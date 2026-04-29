@@ -78,4 +78,9 @@ public class ItemSku extends BaseEntity {
      * 销售价(元)
      */
     private BigDecimal sellingPrice;
+
+    /**
+     * 是否启用SN管理: 0-否 1-是
+     */
+    private Integer snEnabled;
 }

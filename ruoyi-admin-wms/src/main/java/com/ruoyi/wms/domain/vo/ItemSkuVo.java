@@ -94,4 +94,9 @@ public class ItemSkuVo implements Serializable {
 
     private ItemVo item;
 
+    /**
+     * 是否启用SN管理: 0-否 1-是
+     */
+    private Integer snEnabled;
+
 }

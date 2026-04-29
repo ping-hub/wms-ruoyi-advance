@@ -15,17 +15,19 @@ import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.system.service.SysDictTypeService;
-import com.ruoyi.wms.domain.bo.InventoryBo;
-import com.ruoyi.wms.domain.bo.ReceiptOrderBo;
-import com.ruoyi.wms.domain.bo.ReceiptOrderDetailBo;
+import com.ruoyi.wms.domain.bo.*;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ReceiptOrder;
 import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
+import com.ruoyi.wms.domain.vo.ItemSkuVo;
+import com.ruoyi.wms.domain.vo.ItemSnVo;
+import com.ruoyi.wms.domain.vo.ReceiptOrderDetailVo;
 import com.ruoyi.wms.domain.vo.ReceiptOrderVo;
 import com.ruoyi.wms.mapper.ReceiptOrderDetailMapper;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,9 @@ public class ReceiptOrderService {
     private final InventoryDetailService inventoryDetailService;
     private final InventoryHistoryService inventoryHistoryService;
     private final SysDictTypeService dictTypeService;
+    private final ItemSnService itemSnService;
+    private final OrderSnService orderSnService;
+    private final ItemSkuService itemSkuService;
 
     /**
      * 查询入库单
@@ -109,6 +114,11 @@ public class ReceiptOrderService {
         });
         // 创建入库单明细
         receiptOrderDetailService.saveDetails(addDetailList);
+
+        // 将生成的对象回写到BO对象中
+        for (int i = 0; i < detailBoList.size() && i < addDetailList.size(); i++) {
+            BeanUtils.copyProperties(addDetailList.get(i), detailBoList.get(i));
+        }
     }
 
     /**
@@ -116,8 +126,9 @@ public class ReceiptOrderService {
      * 1.校验
      * 2.保存入库单和入库单明细
      * 3.保存库存明细
-     * 4.增加库存
-     * 5.保存库存记录
+     * 4.保存SN记录（如果启用SN模式）
+     * 5.增加库存
+     * 6.保存库存记录
      */
     @Transactional
     public void receive(ReceiptOrderBo bo) {
@@ -134,11 +145,14 @@ public class ReceiptOrderService {
         // 3.保存库存明细
         this.saveInventoryDetails(bo);
 
-        // 4.增加库存
+        // 4.保存SN记录（如果启用SN模式）
+        this.saveItemSns(bo);
+
+        // 5.增加库存
         List<InventoryBo> inventoryList = convertInventoryList(bo.getDetails());
         inventoryService.updateInventoryQuantity(inventoryList);
 
-        // 5.保存库存记录
+        // 6.保存库存记录
         this.saveInventoryHistory(bo);
     }
 
@@ -182,6 +196,89 @@ public class ReceiptOrderService {
     }
 
     /**
+     * 保存SN记录（支持SN模式的入库）
+     */
+    private void saveItemSns(ReceiptOrderBo bo) {
+        List<ItemSnBo> itemSnBoList = new ArrayList<>();
+        List<OrderSnBo> orderSnBoList = new ArrayList<>();
+
+        for (ReceiptOrderDetailBo detail : bo.getDetails()) {
+            // 如果没有启用SN模式或没有SN码，跳过
+            if (Boolean.FALSE.equals(detail.getSnEnabled()) ||
+                CollUtil.isEmpty(detail.getSnCodes())) {
+                continue;
+            }
+
+            // 校验SKU是否启用SN管理
+            ItemSkuVo itemSku = itemSkuService.queryById(detail.getSkuId());
+            if (itemSku == null || itemSku.getSnEnabled() == null || itemSku.getSnEnabled() != 1) {
+                throw new BaseException("SKU【" + itemSku.getSkuName() + "】未启用SN管理，无法录入SN码");
+            }
+
+            // 校验SN数量与数量是否一致
+            int snCount = detail.getSnCodes().size();
+            int quantity = detail.getQuantity().intValue();
+            if (snCount != quantity) {
+                throw new BaseException("SKU【" + itemSku.getSkuName() + "】SN数量(" + snCount +
+                    ")与入库数量(" + quantity + ")不一致");
+            }
+
+            // 创建SN记录
+            for (String snCode : detail.getSnCodes()) {
+                ItemSnBo itemSnBo = new ItemSnBo();
+                itemSnBo.setSnCode(snCode);
+                itemSnBo.setSkuId(detail.getSkuId());
+                itemSnBo.setItemId(itemSku.getItemId());
+                itemSnBo.setWarehouseId(detail.getWarehouseId());
+                itemSnBo.setAreaId(detail.getAreaId());
+                itemSnBo.setStatus(0); // 在库
+                itemSnBo.setBatchNo(detail.getBatchNo());
+                itemSnBo.setProductionDate(detail.getProductionDate() != null ?
+                    detail.getProductionDate().toLocalDate() : null);
+                itemSnBo.setExpirationDate(detail.getExpirationDate() != null ?
+                    detail.getExpirationDate().toLocalDate() : null);
+                itemSnBo.setReceiptOrderId(bo.getId());
+                // inventoryDetailId需要等saveInventoryDetails完成后才能设置，这里暂时先创建
+                itemSnBoList.add(itemSnBo);
+            }
+        }
+
+        // 批量插入SN记录
+        if (CollUtil.isNotEmpty(itemSnBoList)) {
+            itemSnService.batchInsert(itemSnBoList);
+
+            // 批量创建单据SN关联记录
+            // 这里需要重新查询插入的SN记录来获取ID
+            for (ItemSnBo itemSnBo : itemSnBoList) {
+                ItemSnVo itemSnVo =
+                    itemSnService.queryBySnCode(itemSnBo.getSnCode());
+                if (itemSnVo != null) {
+                    // 找到对应的入库明细ID
+                    for (ReceiptOrderDetailBo detail : bo.getDetails()) {
+                        if (itemSnBo.getSkuId().equals(detail.getSkuId()) &&
+                            CollUtil.isNotEmpty(detail.getSnCodes()) &&
+                            detail.getSnCodes().contains(itemSnBo.getSnCode())) {
+                            OrderSnBo orderSnBo = new OrderSnBo();
+                            orderSnBo.setOrderType(ServiceConstants.InventoryHistoryOrderType.RECEIPT);
+                            orderSnBo.setOrderId(bo.getId());
+                            orderSnBo.setOrderDetailId(detail.getId());
+                            orderSnBo.setSnId(itemSnVo.getId());
+                            orderSnBo.setSnCode(itemSnVo.getSnCode());
+                            orderSnBoList.add(orderSnBo);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 批量插入单据SN关联记录
+            if (CollUtil.isNotEmpty(orderSnBoList)) {
+                orderSnService.batchInsert(orderSnBoList);
+            }
+        }
+    }
+
+    /**
      * 合并入库单详情 合并key：warehouseId_areaId_skuId
      * @param orderDetailBoList
      * @return
@@ -215,9 +312,15 @@ public class ReceiptOrderService {
         ReceiptOrder update = MapstructUtils.convert(bo, ReceiptOrder.class);
         receiptOrderMapper.updateById(update);
         // 保存入库单明细
-        List<ReceiptOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), ReceiptOrderDetail.class);
+        List<ReceiptOrderDetailBo> detailBoList = bo.getDetails();
+        List<ReceiptOrderDetail> detailList = MapstructUtils.convert(detailBoList, ReceiptOrderDetail.class);
         detailList.forEach(it -> it.setReceiptOrderId(bo.getId()));
         receiptOrderDetailService.saveDetails(detailList);
+
+        // 将生成的对象回写到BO对象中
+        for (int i = 0; i < detailBoList.size() && i < detailList.size(); i++) {
+            BeanUtils.copyProperties(detailList.get(i), detailBoList.get(i));
+        }
     }
 
     /**

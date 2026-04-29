@@ -12,6 +12,8 @@ import com.ruoyi.common.core.exception.base.BaseException;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.wms.domain.vo.AreaVo;
+import com.ruoyi.wms.domain.vo.WarehouseVo;
 import com.ruoyi.wms.mapper.ItemMapper;
 import com.ruoyi.wms.mapper.ItemSkuMapper;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,8 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
     private final ItemCategoryMapper itemCategoryMapper;
     private final InventoryService inventoryService;
     private final ItemMapper itemMapper;
+    private final WarehouseService warehouseService;
+    private final AreaService areaService;
 
     /**
      * 查询sku信息
@@ -48,6 +52,20 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
 
     public ItemSkuVo queryById(Long id) {
         return itemSkuMapper.selectVoById(id);
+    }
+
+    /**
+     * 查询仓库信息
+     */
+    public WarehouseVo queryWarehouseById(Long warehouseId) {
+        return warehouseService.queryById(warehouseId);
+    }
+
+    /**
+     * 查询库区信息
+     */
+    public AreaVo queryAreaById(Long areaId) {
+        return areaService.queryById(areaId);
     }
 
 
@@ -195,5 +213,12 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         Map<Long, ItemVo> itemMap = itemMapper.selectVoBatchIds(itemIds).stream().collect(Collectors.toMap(ItemVo::getId, Function.identity()));
         vos.forEach(vo -> vo.setItem(itemMap.get(vo.getItemId())));
         return vos;
+    }
+
+    /**
+     * 根据ID列表查询SKU
+     */
+    public List<ItemSkuVo> queryListByIds(List<Long> ids) {
+        return queryVosByIds(ids);
     }
 }

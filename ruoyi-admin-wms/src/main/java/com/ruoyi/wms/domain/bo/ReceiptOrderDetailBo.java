@@ -92,4 +92,14 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "所属库区不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long areaId;
+
+    /**
+     * SN码列表（SN模式使用）
+     */
+    private java.util.List<String> snCodes;
+
+    /**
+     * 是否启用SN模式
+     */
+    private Boolean snEnabled;
 }

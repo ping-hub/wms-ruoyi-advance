@@ -96,4 +96,8 @@ public class ItemSkuBo extends BaseEntity {
     private String itemCategory;
 
     private Long itemBrand;
+    /**
+     * 是否启用SN管理: 0-否 1-是
+     */
+    private Integer snEnabled;
 }
