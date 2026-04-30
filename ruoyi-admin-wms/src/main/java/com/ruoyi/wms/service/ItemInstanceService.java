@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,6 +16,7 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
@@ -122,6 +124,46 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
 
     public void deleteById(Long id) {
         itemInstanceMapper.deleteById(id);
+    }
+
+    public void markInBox(Long id) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_BOX);
+        wrapper.set(ItemInstance::getInBox, 1);
+        wrapper.set(ItemInstance::getWarehouseId, null);
+        wrapper.set(ItemInstance::getAreaId, null);
+        wrapper.set(ItemInstance::getRackId, null);
+        wrapper.set(ItemInstance::getLocationId, null);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    public void restoreFromBox(Long id, Box box) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+        wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
+        wrapper.set(ItemInstance::getAreaId, box.getAreaId());
+        wrapper.set(ItemInstance::getRackId, box.getRackId());
+        wrapper.set(ItemInstance::getLocationId, box.getLocationId());
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    public List<ItemInstance> queryByIds(Set<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return List.of();
+        }
+        return itemInstanceMapper.selectBatchIds(ids);
+    }
+
+    public List<ItemInstanceVo> queryVosByIds(Set<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return List.of();
+        }
+        List<ItemInstanceVo> list = itemInstanceMapper.selectVoBatchIds(ids);
+        enrich(list);
+        return list;
     }
 
     public long countByReceiptOrderId(Long receiptOrderId) {

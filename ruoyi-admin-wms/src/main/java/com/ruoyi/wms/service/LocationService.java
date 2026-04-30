@@ -10,11 +10,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.bo.LocationBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.Warehouse;
+import com.ruoyi.wms.domain.vo.BoxVo;
+import com.ruoyi.wms.domain.vo.ItemInstanceVo;
+import com.ruoyi.wms.domain.vo.LocationStockVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
 import com.ruoyi.wms.mapper.AreaMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
@@ -38,6 +42,8 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     private final RackMapper rackMapper;
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
+    private final ItemInstanceService itemInstanceService;
+    private final BoxService boxService;
 
     public LocationVo queryById(Long id) {
         LocationVo locationVo = locationMapper.selectVoById(id);
@@ -71,6 +77,31 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
 
     public void deleteById(Long id) {
         locationMapper.deleteById(id);
+    }
+
+    public LocationStockVo queryStockById(Long id) {
+        LocationVo locationVo = queryById(id);
+        Assert.notNull(locationVo, "货位不存在");
+        ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
+        itemInstanceBo.setLocationId(id);
+        itemInstanceBo.setInBox(0);
+        List<ItemInstanceVo> itemInstances = itemInstanceService.queryList(itemInstanceBo);
+        List<BoxVo> boxes = boxService.queryByLocationId(id);
+        LocationStockVo stockVo = new LocationStockVo();
+        stockVo.setLocationId(locationVo.getId());
+        stockVo.setLocationCode(locationVo.getLocationCode());
+        stockVo.setLocationName(locationVo.getLocationName());
+        stockVo.setWarehouseId(locationVo.getWarehouseId());
+        stockVo.setWarehouseName(locationVo.getWarehouseName());
+        stockVo.setAreaId(locationVo.getAreaId());
+        stockVo.setAreaName(locationVo.getAreaName());
+        stockVo.setRackId(locationVo.getRackId());
+        stockVo.setRackName(locationVo.getRackName());
+        stockVo.setDirectItemCount(itemInstances.size());
+        stockVo.setBoxCount(boxes.size());
+        stockVo.setItemInstances(itemInstances);
+        stockVo.setBoxes(boxes);
+        return stockVo;
     }
 
     private LambdaQueryWrapper<Location> buildQueryWrapper(LocationBo bo) {

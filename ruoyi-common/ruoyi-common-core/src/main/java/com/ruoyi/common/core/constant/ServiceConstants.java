@@ -74,4 +74,13 @@ public class ServiceConstants {
     public class ItemInstanceSourceType {
         public static final String RECEIPT = "receipt";
     }
+
+    /**
+     * 箱体状态
+     */
+    public class BoxStatus {
+        public static final String IDLE = "idle";
+        public static final String PACKED = "packed";
+        public static final String DISABLED = "disabled";
+    }
 }
