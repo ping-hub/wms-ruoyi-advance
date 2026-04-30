@@ -8,69 +8,52 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 
+/**
+ * 货架对象 wms_rack
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("wms_item")
-public class Item extends BaseEntity {
+@TableName("wms_rack")
+public class Rack extends BaseEntity {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /**
-     *
-     */
     @TableId(value = "id")
     private Long id;
 
     /**
-     * 编号
+     * 货架编码
      */
-    private String itemCode;
+    private String rackCode;
 
     /**
-     * 名称
+     * 货架名称
      */
-    private String itemName;
+    private String rackName;
 
     /**
-     * 分类
+     * 所属仓库
      */
-    private String itemCategory;
+    private Long warehouseId;
 
     /**
-     * 单位类别
+     * 所属库区
      */
-    private String unit;
+    private Long areaId;
 
     /**
-     * 品牌
+     * 货架状态
      */
-    private Long itemBrand;
+    private String rackStatus;
 
     /**
-     * 物品类型
+     * 货架类型
      */
-    private String itemType;
-
-    /**
-     * 追踪模式
-     */
-    private String trackingMode;
-
-    /**
-     * 是否允许装箱
-     */
-    private Integer allowBox;
-
-    /**
-     * 规格等级
-     */
-    private String specLevel;
+    private String rackType;
 
     /**
      * 备注
      */
     private String remark;
-
-
 }

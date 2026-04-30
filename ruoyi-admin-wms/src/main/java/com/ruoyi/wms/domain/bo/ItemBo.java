@@ -55,6 +55,26 @@ public class ItemBo extends BaseEntity {
      */
     private Long itemBrand;
 
+    /**
+     * 物品类型
+     */
+    private String itemType;
+
+    /**
+     * 追踪模式
+     */
+    private String trackingMode;
+
+    /**
+     * 是否允许装箱
+     */
+    private Integer allowBox;
+
+    /**
+     * 规格等级
+     */
+    private String specLevel;
+
 
     /**
      * 备注

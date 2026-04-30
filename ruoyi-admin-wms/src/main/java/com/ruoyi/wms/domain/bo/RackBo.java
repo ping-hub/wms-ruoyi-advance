@@ -1,0 +1,58 @@
+package com.ruoyi.wms.domain.bo;
+
+import com.ruoyi.common.core.validate.AddGroup;
+import com.ruoyi.common.core.validate.EditGroup;
+import com.ruoyi.common.mybatis.core.domain.BaseEntity;
+import com.ruoyi.wms.domain.entity.Rack;
+import io.github.linpeilie.annotations.AutoMapper;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+@Data
+@EqualsAndHashCode(callSuper = true)
+@AutoMapper(target = Rack.class, reverseConvertGenerate = false)
+public class RackBo extends BaseEntity {
+
+    @NotNull(message = "不能为空", groups = {EditGroup.class})
+    private Long id;
+
+    /**
+     * 货架编码
+     */
+    private String rackCode;
+
+    /**
+     * 货架名称
+     */
+    @NotBlank(message = "货架名称不能为空", groups = {AddGroup.class, EditGroup.class})
+    private String rackName;
+
+    /**
+     * 所属仓库
+     */
+    @NotNull(message = "所属仓库不能为空", groups = {AddGroup.class, EditGroup.class})
+    private Long warehouseId;
+
+    /**
+     * 所属库区
+     */
+    @NotNull(message = "所属库区不能为空", groups = {AddGroup.class, EditGroup.class})
+    private Long areaId;
+
+    /**
+     * 货架状态
+     */
+    private String rackStatus;
+
+    /**
+     * 货架类型
+     */
+    private String rackType;
+
+    /**
+     * 备注
+     */
+    private String remark;
+}

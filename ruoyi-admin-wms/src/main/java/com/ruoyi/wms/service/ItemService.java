@@ -104,6 +104,10 @@ public class ItemService {
             lqw.in(Item::getItemCategory, subIdList);
         }
         lqw.eq(StrUtil.isNotBlank(bo.getUnit()), Item::getUnit, bo.getUnit());
+        lqw.eq(StrUtil.isNotBlank(bo.getItemType()), Item::getItemType, bo.getItemType());
+        lqw.eq(StrUtil.isNotBlank(bo.getTrackingMode()), Item::getTrackingMode, bo.getTrackingMode());
+        lqw.eq(bo.getAllowBox() != null, Item::getAllowBox, bo.getAllowBox());
+        lqw.eq(StrUtil.isNotBlank(bo.getSpecLevel()), Item::getSpecLevel, bo.getSpecLevel());
         return lqw;
     }
 
@@ -145,6 +149,7 @@ public class ItemService {
      */
     private void validateBoBeforeSave(ItemBo itemBo) {
         validateItemName(itemBo);
+        validateItemCode(itemBo);
         validateItemSkuName(itemBo.getSku());
     }
 
@@ -153,6 +158,16 @@ public class ItemService {
         queryWrapper.eq(Item::getItemName, item.getItemName());
         queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
         Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "商品名称重复");
+    }
+
+    private void validateItemCode(ItemBo item) {
+        if (StrUtil.isBlank(item.getItemCode())) {
+            return;
+        }
+        LambdaQueryWrapper<Item> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(Item::getItemCode, item.getItemCode());
+        queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
+        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "商品编码重复");
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {

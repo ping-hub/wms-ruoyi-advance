@@ -56,6 +56,30 @@ public class ItemVo implements Serializable {
     private Long itemBrand;
 
     /**
+     * 物品类型
+     */
+    @ExcelProperty(value = "物品类型")
+    private String itemType;
+
+    /**
+     * 追踪模式
+     */
+    @ExcelProperty(value = "追踪模式")
+    private String trackingMode;
+
+    /**
+     * 是否允许装箱
+     */
+    @ExcelProperty(value = "允许装箱")
+    private Integer allowBox;
+
+    /**
+     * 规格等级
+     */
+    @ExcelProperty(value = "规格等级")
+    private String specLevel;
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")
