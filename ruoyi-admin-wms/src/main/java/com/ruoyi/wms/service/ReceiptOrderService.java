@@ -50,6 +50,7 @@ public class ReceiptOrderService {
     private final InventoryDetailService inventoryDetailService;
     private final InventoryHistoryService inventoryHistoryService;
     private final SysDictTypeService dictTypeService;
+    private final ItemInstanceService itemInstanceService;
 
     /**
      * 查询入库单
@@ -140,11 +141,21 @@ public class ReceiptOrderService {
 
         // 5.保存库存记录
         this.saveInventoryHistory(bo);
+
+        // 6.按明细生成单品实例
+        itemInstanceService.generateByReceiptOrder(receiptOrderMapper.selectById(bo.getId()),
+            receiptOrderDetailService.queryEntitiesByReceiptOrderId(bo.getId()));
     }
 
     private void validateBeforeReceive(ReceiptOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
             throw new BaseException("商品明细不能为空");
+        }
+        if (bo.getId() != null) {
+            ReceiptOrder receiptOrder = receiptOrderMapper.selectById(bo.getId());
+            Assert.notNull(receiptOrder, "入库单不存在");
+            Assert.isFalse(ServiceConstants.ReceiptOrderStatus.FINISH.equals(receiptOrder.getReceiptOrderStatus()), "入库单已完成入库");
+            Assert.isTrue(itemInstanceService.countByReceiptOrderId(bo.getId()) == 0, "入库单已生成单品实例，请勿重复入库");
         }
     }
 
@@ -215,6 +226,20 @@ public class ReceiptOrderService {
         ReceiptOrder update = MapstructUtils.convert(bo, ReceiptOrder.class);
         receiptOrderMapper.updateById(update);
         // 保存入库单明细
+        List<Long> incomingIds = bo.getDetails().stream()
+            .map(ReceiptOrderDetailBo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        List<Long> existedIds = receiptOrderDetailService.queryEntitiesByReceiptOrderId(bo.getId()).stream()
+            .map(ReceiptOrderDetail::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        List<Long> deleteIds = existedIds.stream()
+            .filter(id -> !incomingIds.contains(id))
+            .toList();
+        if (CollUtil.isNotEmpty(deleteIds)) {
+            receiptOrderDetailService.deleteByIds(deleteIds);
+        }
         List<ReceiptOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), ReceiptOrderDetail.class);
         detailList.forEach(it -> it.setReceiptOrderId(bo.getId()));
         receiptOrderDetailService.saveDetails(detailList);

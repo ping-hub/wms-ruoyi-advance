@@ -128,4 +128,11 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
         details.forEach(detail -> detail.setItemSku(itemSkuMap.get(detail.getSkuId())));
         return details;
     }
+
+    public List<ReceiptOrderDetail> queryEntitiesByReceiptOrderId(Long receiptOrderId) {
+        LambdaQueryWrapper<ReceiptOrderDetail> lqw = Wrappers.lambdaQuery();
+        lqw.eq(ReceiptOrderDetail::getReceiptOrderId, receiptOrderId);
+        lqw.orderByAsc(ReceiptOrderDetail::getId);
+        return receiptOrderDetailMapper.selectList(lqw);
+    }
 }

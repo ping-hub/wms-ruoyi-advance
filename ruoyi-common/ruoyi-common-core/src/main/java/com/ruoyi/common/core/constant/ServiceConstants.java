@@ -56,4 +56,22 @@ public class ServiceConstants {
         public static final Integer PENDING = 0;
         public static final Integer FINISH = 1;
     }
+
+    /**
+     * 单品实例状态
+     */
+    public class ItemInstanceStatus {
+        public static final String IN_STOCK = "in_stock";
+        public static final String IN_BOX = "in_box";
+        public static final String BORROWED = "borrowed";
+        public static final String OUTBOUND = "outbound";
+        public static final String DISABLED = "disabled";
+    }
+
+    /**
+     * 单品实例来源类型
+     */
+    public class ItemInstanceSourceType {
+        public static final String RECEIPT = "receipt";
+    }
 }

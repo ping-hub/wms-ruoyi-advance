@@ -92,4 +92,14 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "所属库区不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long areaId;
+
+    /**
+     * 是否生成单品实例
+     */
+    private Integer generateItemInstance;
+
+    /**
+     * 已生成单品实例数量
+     */
+    private Integer generatedInstanceQuantity;
 }

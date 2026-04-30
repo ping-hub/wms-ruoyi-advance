@@ -91,5 +91,17 @@ public class ReceiptOrderDetailVo implements Serializable {
     @ExcelProperty(value = "所属库区")
     private Long areaId;
 
+    /**
+     * 是否生成单品实例
+     */
+    @ExcelProperty(value = "生成单品实例")
+    private Integer generateItemInstance;
+
+    /**
+     * 已生成单品实例数量
+     */
+    @ExcelProperty(value = "已生成实例数量")
+    private Integer generatedInstanceQuantity;
+
     private ItemSkuVo itemSku;
 }

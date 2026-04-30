@@ -69,4 +69,14 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 所属库区
      */
     private Long areaId;
+
+    /**
+     * 是否生成单品实例
+     */
+    private Integer generateItemInstance;
+
+    /**
+     * 已生成单品实例数量
+     */
+    private Integer generatedInstanceQuantity;
 }
