@@ -150,6 +150,30 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
+    public void markBorrowed(Long id) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.BORROWED);
+        wrapper.set(ItemInstance::getBorrowed, 1);
+        wrapper.set(ItemInstance::getWarehouseId, null);
+        wrapper.set(ItemInstance::getAreaId, null);
+        wrapper.set(ItemInstance::getRackId, null);
+        wrapper.set(ItemInstance::getLocationId, null);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+        wrapper.set(ItemInstance::getBorrowed, 0);
+        wrapper.set(ItemInstance::getWarehouseId, warehouseId);
+        wrapper.set(ItemInstance::getAreaId, areaId);
+        wrapper.set(ItemInstance::getRackId, rackId);
+        wrapper.set(ItemInstance::getLocationId, locationId);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
     public List<ItemInstance> queryByIds(Set<Long> ids) {
         if (CollUtil.isEmpty(ids)) {
             return List.of();

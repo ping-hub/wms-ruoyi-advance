@@ -1,0 +1,293 @@
+package com.ruoyi.wms.service;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ruoyi.common.core.constant.ServiceConstants;
+import com.ruoyi.common.mybatis.core.page.PageQuery;
+import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.wms.domain.bo.BorrowRecordBo;
+import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.BorrowRecord;
+import com.ruoyi.wms.domain.entity.ItemInstance;
+import com.ruoyi.wms.domain.entity.Location;
+import com.ruoyi.wms.domain.entity.Rack;
+import com.ruoyi.wms.domain.entity.Warehouse;
+import com.ruoyi.wms.domain.vo.BorrowRecordVo;
+import com.ruoyi.wms.domain.vo.ItemInstanceVo;
+import com.ruoyi.wms.mapper.AreaMapper;
+import com.ruoyi.wms.mapper.BorrowRecordMapper;
+import com.ruoyi.wms.mapper.LocationMapper;
+import com.ruoyi.wms.mapper.RackMapper;
+import com.ruoyi.wms.mapper.WarehouseMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@RequiredArgsConstructor
+@Service
+public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowRecord> {
+
+    private final BorrowRecordMapper borrowRecordMapper;
+    private final ItemInstanceService itemInstanceService;
+    private final WarehouseMapper warehouseMapper;
+    private final AreaMapper areaMapper;
+    private final RackMapper rackMapper;
+    private final LocationMapper locationMapper;
+
+    public BorrowRecordVo queryById(Long id) {
+        BorrowRecordVo vo = borrowRecordMapper.selectVoById(id);
+        enrich(List.of(vo));
+        return vo;
+    }
+
+    public BorrowRecordVo queryCurrentByItemInstanceId(Long itemInstanceId) {
+        LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
+        lqw.eq(BorrowRecord::getItemInstanceId, itemInstanceId);
+        lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
+        lqw.orderByDesc(BorrowRecord::getBorrowTime);
+        lqw.last("limit 1");
+        BorrowRecordVo vo = borrowRecordMapper.selectVoOne(lqw);
+        enrich(List.of(vo));
+        return vo;
+    }
+
+    public TableDataInfo<BorrowRecordVo> queryPageList(BorrowRecordBo bo, PageQuery pageQuery) {
+        LambdaQueryWrapper<BorrowRecord> lqw = buildQueryWrapper(bo);
+        Page<BorrowRecordVo> result = borrowRecordMapper.selectVoPage(pageQuery.build(), lqw);
+        enrich(result.getRecords());
+        return TableDataInfo.build(result);
+    }
+
+    public List<BorrowRecordVo> queryList(BorrowRecordBo bo) {
+        LambdaQueryWrapper<BorrowRecord> lqw = buildQueryWrapper(bo);
+        List<BorrowRecordVo> list = borrowRecordMapper.selectVoList(lqw);
+        enrich(list);
+        return list;
+    }
+
+    @Transactional
+    public void borrow(BorrowRecordBo bo) {
+        ItemInstance itemInstance = requireBorrowableItem(bo.getItemInstanceId());
+        Assert.isNull(findActiveRecordEntity(bo.getItemInstanceId()), "该单品实例已处于借出状态");
+        BorrowRecord add = new BorrowRecord();
+        add.setItemInstanceId(itemInstance.getId());
+        add.setBorrowStatus(ServiceConstants.BorrowStatus.BORROWED);
+        add.setBorrower(bo.getBorrower());
+        add.setBorrowTime(bo.getBorrowTime() == null ? LocalDateTime.now() : bo.getBorrowTime());
+        add.setBorrowRemark(bo.getBorrowRemark());
+        add.setOriginalWarehouseId(itemInstance.getWarehouseId());
+        add.setOriginalAreaId(itemInstance.getAreaId());
+        add.setOriginalRackId(itemInstance.getRackId());
+        add.setOriginalLocationId(itemInstance.getLocationId());
+        borrowRecordMapper.insert(add);
+        itemInstanceService.markBorrowed(itemInstance.getId());
+    }
+
+    @Transactional
+    public void returnItem(BorrowRecordBo bo) {
+        BorrowRecord borrowRecord = resolveActiveRecord(bo);
+        validateOriginalLocationStillAvailable(borrowRecord);
+        itemInstanceService.restoreFromBorrow(
+            borrowRecord.getItemInstanceId(),
+            borrowRecord.getOriginalWarehouseId(),
+            borrowRecord.getOriginalAreaId(),
+            borrowRecord.getOriginalRackId(),
+            borrowRecord.getOriginalLocationId()
+        );
+        BorrowRecord update = new BorrowRecord();
+        update.setId(borrowRecord.getId());
+        update.setBorrowStatus(ServiceConstants.BorrowStatus.RETURNED);
+        update.setReturnTime(bo.getReturnTime() == null ? LocalDateTime.now() : bo.getReturnTime());
+        update.setReturnRemark(bo.getReturnRemark());
+        update.setReturnedWarehouseId(borrowRecord.getOriginalWarehouseId());
+        update.setReturnedAreaId(borrowRecord.getOriginalAreaId());
+        update.setReturnedRackId(borrowRecord.getOriginalRackId());
+        update.setReturnedLocationId(borrowRecord.getOriginalLocationId());
+        borrowRecordMapper.updateById(update);
+    }
+
+    private LambdaQueryWrapper<BorrowRecord> buildQueryWrapper(BorrowRecordBo bo) {
+        LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
+        lqw.eq(bo.getItemInstanceId() != null, BorrowRecord::getItemInstanceId, bo.getItemInstanceId());
+        lqw.eq(StrUtil.isNotBlank(bo.getBorrowStatus()), BorrowRecord::getBorrowStatus, bo.getBorrowStatus());
+        lqw.like(StrUtil.isNotBlank(bo.getBorrower()), BorrowRecord::getBorrower, bo.getBorrower());
+        lqw.orderByDesc(BorrowRecord::getBorrowTime);
+        return lqw;
+    }
+
+    private ItemInstance requireBorrowableItem(Long itemInstanceId) {
+        ItemInstance itemInstance = itemInstanceService.getById(itemInstanceId);
+        Assert.notNull(itemInstance, "单品实例不存在");
+        Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()), "单品实例在箱内，不能直接借出");
+        Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "单品实例已借出");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "停用单品不能借出");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "已出库单品不能借出");
+        return itemInstance;
+    }
+
+    private BorrowRecord resolveActiveRecord(BorrowRecordBo bo) {
+        if (bo.getId() != null) {
+            BorrowRecord borrowRecord = borrowRecordMapper.selectById(bo.getId());
+            Assert.notNull(borrowRecord, "借还记录不存在");
+            Assert.isTrue(ServiceConstants.BorrowStatus.BORROWED.equals(borrowRecord.getBorrowStatus()), "该借还记录已归还");
+            return borrowRecord;
+        }
+        Assert.notNull(bo.getItemInstanceId(), "归还时借还记录ID或单品实例ID至少传一个");
+        BorrowRecord borrowRecord = findActiveRecordEntity(bo.getItemInstanceId());
+        Assert.notNull(borrowRecord, "当前单品不存在未归还借用记录");
+        return borrowRecord;
+    }
+
+    private BorrowRecord findActiveRecordEntity(Long itemInstanceId) {
+        LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
+        lqw.eq(BorrowRecord::getItemInstanceId, itemInstanceId);
+        lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
+        lqw.orderByDesc(BorrowRecord::getBorrowTime);
+        lqw.last("limit 1");
+        return borrowRecordMapper.selectOne(lqw);
+    }
+
+    private void validateOriginalLocationStillAvailable(BorrowRecord borrowRecord) {
+        if (borrowRecord.getOriginalLocationId() != null) {
+            Location location = locationMapper.selectById(borrowRecord.getOriginalLocationId());
+            Assert.notNull(location, "原货位已不存在，无法自动归还到原位");
+            Assert.isTrue(Objects.equals(location.getRackId(), borrowRecord.getOriginalRackId()), "原货位结构已变化，无法自动归还");
+            Assert.isTrue(Objects.equals(location.getAreaId(), borrowRecord.getOriginalAreaId()), "原货位所属库区已变化，无法自动归还");
+            Assert.isTrue(Objects.equals(location.getWarehouseId(), borrowRecord.getOriginalWarehouseId()), "原货位所属仓库已变化，无法自动归还");
+        }
+    }
+
+    private void enrich(List<BorrowRecordVo> list) {
+        if (CollUtil.isEmpty(list)) {
+            return;
+        }
+        List<BorrowRecordVo> validList = list.stream().filter(Objects::nonNull).toList();
+        if (CollUtil.isEmpty(validList)) {
+            return;
+        }
+        Set<Long> itemInstanceIds = validList.stream().map(BorrowRecordVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> originalWarehouseIds = validList.stream().map(BorrowRecordVo::getOriginalWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> originalAreaIds = validList.stream().map(BorrowRecordVo::getOriginalAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> originalRackIds = validList.stream().map(BorrowRecordVo::getOriginalRackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> originalLocationIds = validList.stream().map(BorrowRecordVo::getOriginalLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> returnedWarehouseIds = validList.stream().map(BorrowRecordVo::getReturnedWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> returnedAreaIds = validList.stream().map(BorrowRecordVo::getReturnedAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> returnedRackIds = validList.stream().map(BorrowRecordVo::getReturnedRackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> returnedLocationIds = validList.stream().map(BorrowRecordVo::getReturnedLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemInstanceVo> itemMap = itemInstanceService.queryVosByIds(itemInstanceIds).stream()
+            .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
+        Map<Long, Warehouse> warehouseMap = mergeWarehouseMap(originalWarehouseIds, returnedWarehouseIds);
+        Map<Long, Area> areaMap = mergeAreaMap(originalAreaIds, returnedAreaIds);
+        Map<Long, Rack> rackMap = mergeRackMap(originalRackIds, returnedRackIds);
+        Map<Long, Location> locationMap = mergeLocationMap(originalLocationIds, returnedLocationIds);
+        validList.forEach(vo -> {
+            ItemInstanceVo item = itemMap.get(vo.getItemInstanceId());
+            if (item != null) {
+                vo.setInstanceCode(item.getInstanceCode());
+                vo.setItemName(item.getItemName());
+                vo.setSkuName(item.getSkuName());
+            }
+            fillWarehouseName(vo, warehouseMap);
+            fillAreaName(vo, areaMap);
+            fillRackName(vo, rackMap);
+            fillLocationName(vo, locationMap);
+        });
+    }
+
+    private Map<Long, Warehouse> mergeWarehouseMap(Set<Long> firstIds, Set<Long> secondIds) {
+        Set<Long> ids = CollUtil.newHashSet();
+        ids.addAll(firstIds);
+        ids.addAll(secondIds);
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return warehouseMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
+    }
+
+    private Map<Long, Area> mergeAreaMap(Set<Long> firstIds, Set<Long> secondIds) {
+        Set<Long> ids = CollUtil.newHashSet();
+        ids.addAll(firstIds);
+        ids.addAll(secondIds);
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return areaMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
+    }
+
+    private Map<Long, Rack> mergeRackMap(Set<Long> firstIds, Set<Long> secondIds) {
+        Set<Long> ids = CollUtil.newHashSet();
+        ids.addAll(firstIds);
+        ids.addAll(secondIds);
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return rackMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
+    }
+
+    private Map<Long, Location> mergeLocationMap(Set<Long> firstIds, Set<Long> secondIds) {
+        Set<Long> ids = CollUtil.newHashSet();
+        ids.addAll(firstIds);
+        ids.addAll(secondIds);
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return locationMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
+    }
+
+    private void fillWarehouseName(BorrowRecordVo vo, Map<Long, Warehouse> warehouseMap) {
+        Warehouse originalWarehouse = warehouseMap.get(vo.getOriginalWarehouseId());
+        if (originalWarehouse != null) {
+            vo.setOriginalWarehouseName(originalWarehouse.getWarehouseName());
+        }
+        Warehouse returnedWarehouse = warehouseMap.get(vo.getReturnedWarehouseId());
+        if (returnedWarehouse != null) {
+            vo.setReturnedWarehouseName(returnedWarehouse.getWarehouseName());
+        }
+    }
+
+    private void fillAreaName(BorrowRecordVo vo, Map<Long, Area> areaMap) {
+        Area originalArea = areaMap.get(vo.getOriginalAreaId());
+        if (originalArea != null) {
+            vo.setOriginalAreaName(originalArea.getAreaName());
+        }
+        Area returnedArea = areaMap.get(vo.getReturnedAreaId());
+        if (returnedArea != null) {
+            vo.setReturnedAreaName(returnedArea.getAreaName());
+        }
+    }
+
+    private void fillRackName(BorrowRecordVo vo, Map<Long, Rack> rackMap) {
+        Rack originalRack = rackMap.get(vo.getOriginalRackId());
+        if (originalRack != null) {
+            vo.setOriginalRackName(originalRack.getRackName());
+        }
+        Rack returnedRack = rackMap.get(vo.getReturnedRackId());
+        if (returnedRack != null) {
+            vo.setReturnedRackName(returnedRack.getRackName());
+        }
+    }
+
+    private void fillLocationName(BorrowRecordVo vo, Map<Long, Location> locationMap) {
+        Location originalLocation = locationMap.get(vo.getOriginalLocationId());
+        if (originalLocation != null) {
+            vo.setOriginalLocationName(originalLocation.getLocationName());
+        }
+        Location returnedLocation = locationMap.get(vo.getReturnedLocationId());
+        if (returnedLocation != null) {
+            vo.setReturnedLocationName(returnedLocation.getLocationName());
+        }
+    }
+}

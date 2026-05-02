@@ -83,4 +83,12 @@ public class ServiceConstants {
         public static final String PACKED = "packed";
         public static final String DISABLED = "disabled";
     }
+
+    /**
+     * 借还状态
+     */
+    public class BorrowStatus {
+        public static final String BORROWED = "borrowed";
+        public static final String RETURNED = "returned";
+    }
 }
