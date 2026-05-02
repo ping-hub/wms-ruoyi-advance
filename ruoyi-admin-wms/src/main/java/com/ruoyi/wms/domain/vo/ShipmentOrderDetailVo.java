@@ -94,10 +94,34 @@ public class ShipmentOrderDetailVo implements Serializable, PlaceAndItem {
     private Long inventoryDetailId;
 
     /**
+     * 单品实例ID
+     */
+    @ExcelProperty(value = "单品实例ID")
+    private Long itemInstanceId;
+
+    /**
+     * 单品码
+     */
+    @ExcelProperty(value = "单品码")
+    private String instanceCode;
+
+    /**
+     * 箱体ID
+     */
+    @ExcelProperty(value = "箱体ID")
+    private Long boxId;
+
+    /**
+     * 箱码
+     */
+    @ExcelProperty(value = "箱码")
+    private String boxCode;
+
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")
-    private String remark;
 
     private ItemSkuVo itemSku;
 

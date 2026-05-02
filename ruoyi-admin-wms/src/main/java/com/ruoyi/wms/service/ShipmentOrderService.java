@@ -2,6 +2,7 @@ package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,7 +16,9 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.satoken.utils.LoginHelper;
 import com.ruoyi.wms.domain.bo.*;
+import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
 import com.ruoyi.wms.domain.entity.ShipmentOrderDetail;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
@@ -46,6 +49,8 @@ public class ShipmentOrderService {
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryHistoryService inventoryHistoryService;
     private final InventoryDetailService inventoryDetailService;
+    private final ItemInstanceService itemInstanceService;
+    private final BoxService boxService;
 
     /**
      * 查询出库单
@@ -124,6 +129,20 @@ public class ShipmentOrderService {
         ShipmentOrder update = MapstructUtils.convert(bo, ShipmentOrder.class);
         shipmentOrderMapper.updateById(update);
         // 保存出库单明细
+        List<Long> incomingIds = bo.getDetails().stream()
+            .map(ShipmentOrderDetailBo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        List<Long> existedIds = shipmentOrderDetailService.queryByShipmentOrderId(bo.getId()).stream()
+            .map(ShipmentOrderDetailVo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        List<Long> deleteIds = existedIds.stream()
+            .filter(id -> !incomingIds.contains(id))
+            .toList();
+        if (CollUtil.isNotEmpty(deleteIds)) {
+            shipmentOrderDetailService.deleteByIds(deleteIds);
+        }
         List<ShipmentOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), ShipmentOrderDetail.class);
         detailList.forEach(it -> it.setShipmentOrderId(bo.getId()));
         shipmentOrderDetailService.saveDetails(detailList);
@@ -155,6 +174,8 @@ public class ShipmentOrderService {
     public void shipment(ShipmentOrderBo bo) {
         // 1.校验商品明细不能为空！
         validateBeforeShipment(bo);
+        // 2.补齐箱体关联
+        fillShipmentDetailBoxId(bo.getDetails());
         // 2.按仓库库区规格合并商品明细数量
         List<InventoryBo> mergedInventoryBoList = mergeShipmentOrderDetailByPlaceAndItem(bo.getDetails());
         // 3.校验库存明细
@@ -173,6 +194,8 @@ public class ShipmentOrderService {
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
         // 7.创建库存记录
         saveInventoryHistory(bo);
+        // 8.同步单品实例与箱体状态
+        syncShipmentObjects(bo.getDetails());
     }
 
     /**
@@ -235,5 +258,92 @@ public class ShipmentOrderService {
         if (CollUtil.isEmpty(bo.getDetails())) {
             throw new BaseException("商品明细不能为空！");
         }
+        if (bo.getId() != null) {
+            ShipmentOrder shipmentOrder = shipmentOrderMapper.selectById(bo.getId());
+            Assert.notNull(shipmentOrder, "出库单不存在");
+            Assert.isFalse(ServiceConstants.ShipmentOrderStatus.FINISH.equals(shipmentOrder.getShipmentOrderStatus()), "出库单已完成出库");
+        }
+        validateTrackedShipmentDetails(bo.getDetails());
+    }
+
+    private void validateTrackedShipmentDetails(List<ShipmentOrderDetailBo> details) {
+        Set<Long> itemInstanceIds = details.stream()
+            .map(ShipmentOrderDetailBo::getItemInstanceId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(itemInstanceIds)) {
+            return;
+        }
+        Map<Long, ItemInstance> itemMap = itemInstanceService.queryByIds(itemInstanceIds).stream()
+            .collect(Collectors.toMap(ItemInstance::getId, java.util.function.Function.identity()));
+        Map<Long, Long> itemBoxMap = boxService.queryItemBoxMap(itemInstanceIds);
+        Map<Long, Set<Long>> selectedBoxItems = new HashMap<>();
+        for (ShipmentOrderDetailBo detail : details) {
+            if (detail.getItemInstanceId() == null) {
+                continue;
+            }
+            ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
+            Assert.notNull(itemInstance, "存在不存在的单品实例");
+            Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
+            Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
+            Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "已借出单品不能出库");
+            Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "停用单品不能出库");
+            Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "单品已出库");
+            Long boxId = itemBoxMap.get(detail.getItemInstanceId());
+            if (boxId != null) {
+                selectedBoxItems.computeIfAbsent(boxId, key -> new HashSet<>()).add(detail.getItemInstanceId());
+            } else {
+                Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()), "在箱单品必须整箱出库");
+            }
+        }
+        for (Map.Entry<Long, Set<Long>> entry : selectedBoxItems.entrySet()) {
+            Set<Long> allItemIds = boxService.queryItemIdsByBoxId(entry.getKey());
+            Assert.isTrue(CollUtil.isNotEmpty(allItemIds), "箱体内无单品，无法整箱出库");
+            Assert.isTrue(allItemIds.equals(entry.getValue()), "箱内单品必须一次性整箱出库");
+            Box box = boxService.getById(entry.getKey());
+            Assert.notNull(box, "箱体不存在");
+            Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "停用箱体不能出库");
+        }
+    }
+
+    private void fillShipmentDetailBoxId(List<ShipmentOrderDetailBo> details) {
+        Set<Long> itemInstanceIds = details.stream()
+            .map(ShipmentOrderDetailBo::getItemInstanceId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(itemInstanceIds)) {
+            return;
+        }
+        Map<Long, Long> itemBoxMap = boxService.queryItemBoxMap(itemInstanceIds);
+        details.forEach(detail -> {
+            if (detail.getItemInstanceId() != null) {
+                detail.setBoxId(itemBoxMap.get(detail.getItemInstanceId()));
+            }
+        });
+    }
+
+    private void syncShipmentObjects(List<ShipmentOrderDetailBo> details) {
+        Set<Long> itemInstanceIds = details.stream()
+            .map(ShipmentOrderDetailBo::getItemInstanceId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(itemInstanceIds)) {
+            return;
+        }
+        Map<Long, ItemInstance> itemMap = itemInstanceService.queryByIds(itemInstanceIds).stream()
+            .collect(Collectors.toMap(ItemInstance::getId, java.util.function.Function.identity()));
+        Set<Long> boxIds = new HashSet<>();
+        for (ShipmentOrderDetailBo detail : details) {
+            if (detail.getItemInstanceId() == null) {
+                continue;
+            }
+            ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
+            Assert.notNull(itemInstance, "单品实例不存在");
+            itemInstanceService.markOutbound(itemInstance.getId(), itemInstance.getInBox());
+            if (detail.getBoxId() != null) {
+                boxIds.add(detail.getBoxId());
+            }
+        }
+        boxIds.forEach(boxService::markOutbound);
     }
 }

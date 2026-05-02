@@ -9,9 +9,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
+import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.InventoryMapper;
+import com.ruoyi.wms.mapper.BoxMapper;
+import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
@@ -39,12 +43,16 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
     private final ItemSkuService itemSkuService;
     private final InventoryMapper inventoryMapper;
     private final InventoryDetailMapper inventoryDetailMapper;
+    private final ItemInstanceMapper itemInstanceMapper;
+    private final BoxMapper boxMapper;
 
     /**
      * 查询出库单详情
      */
     public ShipmentOrderDetailVo queryById(Long id){
-        return shipmentOrderDetailMapper.selectVoById(id);
+        ShipmentOrderDetailVo vo = shipmentOrderDetailMapper.selectVoById(id);
+        enrich(List.of(vo));
+        return vo;
     }
 
     /**
@@ -61,7 +69,9 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
      */
     public List<ShipmentOrderDetailVo> queryList(ShipmentOrderDetailBo bo) {
         LambdaQueryWrapper<ShipmentOrderDetail> lqw = buildQueryWrapper(bo);
-        return shipmentOrderDetailMapper.selectVoList(lqw);
+        List<ShipmentOrderDetailVo> list = shipmentOrderDetailMapper.selectVoList(lqw);
+        enrich(list);
+        return list;
     }
 
     private LambdaQueryWrapper<ShipmentOrderDetail> buildQueryWrapper(ShipmentOrderDetailBo bo) {
@@ -130,10 +140,53 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         Map<Long, BigDecimal> remainQuantityMap = inventoryDetailMapper.selectBatchIds(inventoryDetailIds)
             .stream()
             .collect(Collectors.toMap(InventoryDetail::getId, InventoryDetail::getRemainQuantity));
+        details.forEach(detail -> detail.setRemainQuantity(remainQuantityMap.getOrDefault(detail.getInventoryDetailId(), BigDecimal.ZERO)));
+        enrich(details, itemSkuMap);
+        return details;
+    }
+
+    public List<ShipmentOrderDetailVo> queryByItemInstanceId(Long itemInstanceId) {
+        ShipmentOrderDetailBo bo = new ShipmentOrderDetailBo();
+        bo.setItemInstanceId(itemInstanceId);
+        return queryList(bo);
+    }
+
+    public List<ShipmentOrderDetailVo> queryByBoxId(Long boxId) {
+        ShipmentOrderDetailBo bo = new ShipmentOrderDetailBo();
+        bo.setBoxId(boxId);
+        return queryList(bo);
+    }
+
+    private void enrich(List<ShipmentOrderDetailVo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Set<Long> skuIds = details.stream().map(ShipmentOrderDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds).stream()
+            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+        enrich(details, itemSkuMap);
+    }
+
+    private void enrich(List<ShipmentOrderDetailVo> details, Map<Long, ItemSkuVo> itemSkuMap) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Set<Long> itemInstanceIds = details.stream().map(ShipmentOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> boxIds = details.stream().map(ShipmentOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty() ? Map.of() :
+            itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
+        Map<Long, Box> boxMap = boxIds.isEmpty() ? Map.of() :
+            boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             detail.setItemSku(itemSkuMap.get(detail.getSkuId()));
-            detail.setRemainQuantity(remainQuantityMap.getOrDefault(detail.getInventoryDetailId(), BigDecimal.ZERO));
+            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            if (itemInstance != null) {
+                detail.setInstanceCode(itemInstance.getInstanceCode());
+            }
+            Box box = boxMap.get(detail.getBoxId());
+            if (box != null) {
+                detail.setBoxCode(box.getBoxCode());
+            }
         });
-        return details;
     }
 }

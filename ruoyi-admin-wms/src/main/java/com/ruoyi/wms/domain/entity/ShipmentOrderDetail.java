@@ -69,6 +69,17 @@ public class ShipmentOrderDetail extends BaseEntity {
      * 入库记录id
      */
     private Long inventoryDetailId;
+
+    /**
+     * 单品实例ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
     /**
      * 备注
      */

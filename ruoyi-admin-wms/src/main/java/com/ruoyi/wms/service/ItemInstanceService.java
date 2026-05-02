@@ -174,6 +174,19 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
+    public void markOutbound(Long id, Integer inBox) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND);
+        wrapper.set(ItemInstance::getBorrowed, 0);
+        wrapper.set(ItemInstance::getInBox, inBox == null ? 0 : inBox);
+        wrapper.set(ItemInstance::getWarehouseId, null);
+        wrapper.set(ItemInstance::getAreaId, null);
+        wrapper.set(ItemInstance::getRackId, null);
+        wrapper.set(ItemInstance::getLocationId, null);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
     public List<ItemInstance> queryByIds(Set<Long> ids) {
         if (CollUtil.isEmpty(ids)) {
             return List.of();

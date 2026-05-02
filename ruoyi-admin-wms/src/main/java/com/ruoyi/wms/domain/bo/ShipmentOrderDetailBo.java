@@ -93,9 +93,19 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long inventoryDetailId;
 
     /**
+     * 单品实例ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
+
+    /**
      * 备注
      */
-    private String remark;
 
 
 }

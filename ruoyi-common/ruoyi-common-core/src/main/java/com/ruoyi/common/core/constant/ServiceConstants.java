@@ -81,6 +81,7 @@ public class ServiceConstants {
     public class BoxStatus {
         public static final String IDLE = "idle";
         public static final String PACKED = "packed";
+        public static final String OUTBOUND = "outbound";
         public static final String DISABLED = "disabled";
     }
 

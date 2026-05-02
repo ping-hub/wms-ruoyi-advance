@@ -151,6 +151,46 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         return list;
     }
 
+    public Map<Long, Long> queryItemBoxMap(Set<Long> itemInstanceIds) {
+        if (CollUtil.isEmpty(itemInstanceIds)) {
+            return Map.of();
+        }
+        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
+        lqw.in(BoxItemRel::getItemInstanceId, itemInstanceIds);
+        return boxItemRelMapper.selectList(lqw).stream()
+            .collect(Collectors.toMap(BoxItemRel::getItemInstanceId, BoxItemRel::getBoxId, (a, b) -> a));
+    }
+
+    public Set<Long> queryItemIdsByBoxId(Long boxId) {
+        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
+        lqw.eq(BoxItemRel::getBoxId, boxId);
+        return boxItemRelMapper.selectList(lqw).stream()
+            .map(BoxItemRel::getItemInstanceId)
+            .collect(Collectors.toSet());
+    }
+
+    public BoxVo queryByItemInstanceId(Long itemInstanceId) {
+        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
+        lqw.eq(BoxItemRel::getItemInstanceId, itemInstanceId);
+        lqw.last("limit 1");
+        BoxItemRel rel = boxItemRelMapper.selectOne(lqw);
+        if (rel == null) {
+            return null;
+        }
+        return queryById(rel.getBoxId());
+    }
+
+    public void markOutbound(Long boxId) {
+        Box update = new Box();
+        update.setId(boxId);
+        update.setBoxStatus(ServiceConstants.BoxStatus.OUTBOUND);
+        update.setWarehouseId(null);
+        update.setAreaId(null);
+        update.setRackId(null);
+        update.setLocationId(null);
+        boxMapper.updateById(update);
+    }
+
     public void deleteById(Long id) {
         Assert.isTrue(countItemsByBoxId(id) == 0, "箱体内仍有单品，无法删除");
         boxMapper.deleteById(id);
