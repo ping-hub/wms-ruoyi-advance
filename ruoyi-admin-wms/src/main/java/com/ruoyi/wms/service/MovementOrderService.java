@@ -19,6 +19,8 @@ import com.ruoyi.wms.domain.bo.MovementOrderBo;
 import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
+import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.MovementOrder;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.ruoyi.wms.domain.vo.MovementOrderVo;
@@ -29,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -48,6 +51,8 @@ public class MovementOrderService {
     private final InventoryDetailService inventoryDetailService;
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryHistoryService inventoryHistoryService;
+    private final ItemInstanceService itemInstanceService;
+    private final BoxService boxService;
 
 
     /**
@@ -185,6 +190,9 @@ public class MovementOrderService {
         // 2.校验库存记录
         inventoryDetailService.validateRemainQuantity(inventoryDetailBoList);
 
+        // 2.1 专装调拨校验
+        validateSpecialMovement(bo);
+
         // 3.保存移库单核移库单明细
         if (Objects.isNull(bo.getId())) {
             insertByBo(bo);
@@ -204,6 +212,9 @@ public class MovementOrderService {
 
         // 6.创建库存记录流水
         createInventoryHistory(bo);
+
+        // 7.同步单品实例与箱体位置
+        syncMovementObjects(bo);
     }
 
     private void validateBeforeMove(MovementOrderBo bo) {
@@ -279,6 +290,7 @@ public class MovementOrderService {
         List<InventoryDetail> addInventoryDetailList = bo.getDetails().stream().map(it -> {
             InventoryDetail addInventoryDetail = new InventoryDetail();
             addInventoryDetail.setReceiptOrderId(bo.getId());
+            addInventoryDetail.setOrderNo(bo.getMovementOrderNo());
             addInventoryDetail.setType(ServiceConstants.InventoryDetailType.MOVEMENT);
             addInventoryDetail.setSkuId(it.getSkuId());
             addInventoryDetail.setWarehouseId(it.getTargetWarehouseId());
@@ -287,6 +299,13 @@ public class MovementOrderService {
             addInventoryDetail.setBatchNo(it.getBatchNo());
             addInventoryDetail.setProductionDate(it.getProductionDate());
             addInventoryDetail.setExpirationDate(it.getExpirationDate());
+            addInventoryDetail.setEquipmentCode(it.getEquipmentCode());
+            addInventoryDetail.setSpecModel(it.getSpecModel());
+            addInventoryDetail.setProductMark(it.getProductMark());
+            addInventoryDetail.setQualityGrade(it.getQualityGrade());
+            addInventoryDetail.setUnitPrice(it.getUnitPrice());
+            addInventoryDetail.setLineAmount(it.getLineAmount());
+            addInventoryDetail.setBelongUnit(bo.getToUnit());
             addInventoryDetail.setRemainQuantity(it.getQuantity());
             return addInventoryDetail;
         }).toList();
@@ -312,6 +331,13 @@ public class MovementOrderService {
             shipmentInventoryHistory.setOrderId(bo.getId());
             shipmentInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             shipmentInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+            shipmentInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
+            shipmentInventoryHistory.setSpecModel(detail.getSpecModel());
+            shipmentInventoryHistory.setProductMark(detail.getProductMark());
+            shipmentInventoryHistory.setQualityGrade(detail.getQualityGrade());
+            shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
+            shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
+            shipmentInventoryHistory.setBelongUnit(bo.getFromUnit());
             addInventoryHistoryList.add(shipmentInventoryHistory);
             InventoryHistory receiptInventoryHistory = new InventoryHistory();
             receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
@@ -324,8 +350,86 @@ public class MovementOrderService {
             receiptInventoryHistory.setOrderId(bo.getId());
             receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+            receiptInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
+            receiptInventoryHistory.setSpecModel(detail.getSpecModel());
+            receiptInventoryHistory.setProductMark(detail.getProductMark());
+            receiptInventoryHistory.setQualityGrade(detail.getQualityGrade());
+            receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
+            receiptInventoryHistory.setLineAmount(detail.getLineAmount());
+            receiptInventoryHistory.setBelongUnit(bo.getToUnit());
             addInventoryHistoryList.add(receiptInventoryHistory);
         });
         inventoryHistoryService.saveBatch(addInventoryHistoryList);
+    }
+
+    private void validateSpecialMovement(MovementOrderBo bo) {
+        boolean specialMovement = "special".equals(bo.getMovementType());
+        if (!specialMovement) {
+            return;
+        }
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            boolean hasItem = detail.getItemInstanceId() != null;
+            boolean hasBox = detail.getBoxId() != null;
+            if (!hasItem && !hasBox) {
+                throw new BaseException("专装调拨必须按单品实例或箱体流转");
+            }
+            if (hasItem && hasBox) {
+                throw new BaseException("专装调拨明细不能同时选择单品实例和箱体");
+            }
+            if (detail.getQuantity() == null || detail.getQuantity().compareTo(BigDecimal.ONE) != 0) {
+                throw new BaseException("专装调拨数量必须为1");
+            }
+            if (hasItem) {
+                ItemInstance itemInstance = itemInstanceService.getById(detail.getItemInstanceId());
+                if (itemInstance == null) {
+                    throw new BaseException("专装调拨存在不存在的单品实例");
+                }
+                if (!Objects.equals(itemInstance.getSkuId(), detail.getSkuId())) {
+                    throw new BaseException("单品实例与调拨规格不匹配");
+                }
+                if (itemInstance.getInBox() != null && itemInstance.getInBox() == 1) {
+                    throw new BaseException("箱内单品请按箱体整箱调拨");
+                }
+                if (itemInstance.getBorrowed() != null && itemInstance.getBorrowed() == 1) {
+                    throw new BaseException("已借出单品不能调拨");
+                }
+                if (ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus())) {
+                    throw new BaseException("已出库单品不能调拨");
+                }
+                if (detail.getProductMark() != null && itemInstance.getProductMark() != null
+                    && !Objects.equals(detail.getProductMark(), itemInstance.getProductMark())) {
+                    throw new BaseException("单品产品标识与调拨明细不一致");
+                }
+            }
+            if (hasBox) {
+                Box box = boxService.getById(detail.getBoxId());
+                if (box == null) {
+                    throw new BaseException("专装调拨存在不存在的箱体");
+                }
+                if (ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus())) {
+                    throw new BaseException("已出库箱体不能调拨");
+                }
+                Set<Long> itemIds = boxService.queryItemIdsByBoxId(detail.getBoxId());
+                if (CollUtil.isEmpty(itemIds)) {
+                    throw new BaseException("箱体内无单品，不能专装调拨");
+                }
+            }
+        }
+    }
+
+    private void syncMovementObjects(MovementOrderBo bo) {
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            if (detail.getItemInstanceId() != null) {
+                itemInstanceService.moveTo(detail.getItemInstanceId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
+            }
+            if (detail.getBoxId() != null) {
+                boxService.moveTo(detail.getBoxId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
+                Set<Long> itemIds = boxService.queryItemIdsByBoxId(detail.getBoxId());
+                for (Long itemId : itemIds) {
+                    itemInstanceService.moveTo(itemId, detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
+                    itemInstanceService.markInBox(itemId);
+                }
+            }
+        }
     }
 }

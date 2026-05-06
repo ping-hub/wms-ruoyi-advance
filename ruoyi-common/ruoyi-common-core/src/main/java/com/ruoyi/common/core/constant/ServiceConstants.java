@@ -37,6 +37,8 @@ public class ServiceConstants {
         public static final Integer SHIPMENT = 2;
         public static final Integer MOVEMENT = 3;
         public static final Integer CHECK = 4;
+        public static final Integer BORROW = 5;
+        public static final Integer RETURN = 6;
     }
 
     /**
@@ -77,6 +79,7 @@ public class ServiceConstants {
         public static final String MOVEMENT = "movement";
         public static final String BORROW = "borrow";
         public static final String MANUAL = "manual";
+        public static final String CHECK = "check";
     }
 
     /**

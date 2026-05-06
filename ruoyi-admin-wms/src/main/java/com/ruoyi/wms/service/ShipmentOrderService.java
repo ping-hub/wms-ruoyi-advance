@@ -260,6 +260,13 @@ public class ShipmentOrderService {
             inventoryHistory.setProductionDate(detail.getProductionDate());
             inventoryHistory.setExpirationDate(detail.getExpirationDate());
             inventoryHistory.setAmount(detail.getAmount());
+            inventoryHistory.setEquipmentCode(detail.getEquipmentCode());
+            inventoryHistory.setSpecModel(detail.getSpecModel());
+            inventoryHistory.setProductMark(detail.getProductMark());
+            inventoryHistory.setQualityGrade(detail.getQualityGrade());
+            inventoryHistory.setUnitPrice(detail.getUnitPrice());
+            inventoryHistory.setLineAmount(detail.getLineAmount());
+            inventoryHistory.setBelongUnit(bo.getReceiveUnit());
             inventoryHistoryList.add(inventoryHistory);
         });
         inventoryHistoryService.saveBatch(inventoryHistoryList);

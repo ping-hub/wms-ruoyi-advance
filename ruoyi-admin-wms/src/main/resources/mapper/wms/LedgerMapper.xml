@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.LedgerMapper">
+
+    <sql id="ledgerSelect">
+        select
+            detail.equipment_code as equipmentCode,
+            item.item_name as itemName,
+            item.equipment_name as equipmentName,
+            coalesce(detail.spec_model, sku.spec_model, item.model_text) as specModel,
+            detail.product_mark as productMark,
+            detail.quality_grade as qualityGrade,
+            coalesce(detail.unit_price, sku.default_unit_price, 0) as unitPrice,
+            sum(detail.remain_quantity) as quantity,
+            item.unit as unit,
+            sum(detail.remain_quantity * coalesce(detail.unit_price, sku.default_unit_price, 0)) as lineAmount,
+            detail.belong_unit as belongUnit
+        from wms_inventory_detail detail
+        left join wms_item_sku sku on detail.sku_id = sku.id
+        left join wms_item item on sku.item_id = item.id
+        <where>
+            detail.remain_quantity > 0
+            <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
+                and detail.equipment_code like concat('%', #{bo.equipmentCode}, '%')
+            </if>
+            <if test="bo.itemName != null and bo.itemName != ''">
+                and item.item_name like concat('%', #{bo.itemName}, '%')
+            </if>
+            <if test="bo.specModel != null and bo.specModel != ''">
+                and coalesce(detail.spec_model, sku.spec_model, item.model_text) like concat('%', #{bo.specModel}, '%')
+            </if>
+            <if test="bo.productMark != null and bo.productMark != ''">
+                and detail.product_mark like concat('%', #{bo.productMark}, '%')
+            </if>
+            <if test="bo.equipmentName != null and bo.equipmentName != ''">
+                and item.equipment_name like concat('%', #{bo.equipmentName}, '%')
+            </if>
+            <if test="bo.qualityGrade != null and bo.qualityGrade != ''">
+                and detail.quality_grade = #{bo.qualityGrade}
+            </if>
+            <if test="bo.belongUnit != null and bo.belongUnit != ''">
+                and detail.belong_unit like concat('%', #{bo.belongUnit}, '%')
+            </if>
+            <if test="bo.unitPrice != null">
+                and coalesce(detail.unit_price, sku.default_unit_price, 0) = #{bo.unitPrice}
+            </if>
+            <if test="bo.createStartTime != null and bo.createEndTime != null">
+                and detail.create_time between #{bo.createStartTime} and #{bo.createEndTime}
+            </if>
+        </where>
+        group by
+            detail.equipment_code,
+            item.item_name,
+            item.equipment_name,
+            coalesce(detail.spec_model, sku.spec_model, item.model_text),
+            detail.product_mark,
+            detail.quality_grade,
+            coalesce(detail.unit_price, sku.default_unit_price, 0),
+            item.unit,
+            detail.belong_unit
+    </sql>
+
+    <select id="selectPageByBo" resultType="com.ruoyi.wms.domain.vo.LedgerVo">
+        <include refid="ledgerSelect"/>
+        order by equipmentCode, itemName, specModel
+    </select>
+
+    <select id="selectListByBo" resultType="com.ruoyi.wms.domain.vo.LedgerVo">
+        <include refid="ledgerSelect"/>
+        order by equipmentCode, itemName, specModel
+    </select>
+</mapper>

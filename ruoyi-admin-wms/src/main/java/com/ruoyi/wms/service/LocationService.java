@@ -76,6 +76,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     }
 
     public void deleteById(Long id) {
+        validateBeforeDelete(id);
         locationMapper.deleteById(id);
     }
 
@@ -145,6 +146,15 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         queryWrapper.eq(Location::getLocationCode, bo.getLocationCode());
         queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
         Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "货位编码重复");
+    }
+
+    private void validateBeforeDelete(Long id) {
+        Assert.notNull(locationMapper.selectById(id), "货位不存在");
+        ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
+        itemInstanceBo.setLocationId(id);
+        itemInstanceBo.setInBox(0);
+        Assert.isTrue(CollUtil.isEmpty(itemInstanceService.queryList(itemInstanceBo)), "货位下仍有单品实例占用，无法删除");
+        Assert.isTrue(CollUtil.isEmpty(boxService.queryByLocationId(id)), "货位下仍有箱体占用，无法删除");
     }
 
     private void enrich(List<LocationVo> list) {

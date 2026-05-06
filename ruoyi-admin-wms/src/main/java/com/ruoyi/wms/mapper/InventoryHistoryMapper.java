@@ -7,6 +7,8 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.vo.InventoryHistoryVo;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 库存记录Mapper接口
  *
@@ -16,4 +18,6 @@ import org.apache.ibatis.annotations.Param;
 public interface InventoryHistoryMapper extends BaseMapperPlus<InventoryHistory, InventoryHistoryVo> {
 
     Page<InventoryHistoryVo> selectVoPageByBo(Page<Object> page, @Param("bo") InventoryHistoryBo bo);
+
+    List<InventoryHistoryVo> selectVoListByBo(@Param("bo") InventoryHistoryBo bo);
 }

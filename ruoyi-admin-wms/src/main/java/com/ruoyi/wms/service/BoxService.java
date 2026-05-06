@@ -191,6 +191,17 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         boxMapper.updateById(update);
     }
 
+    public void moveTo(Long boxId, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+        Box update = new Box();
+        update.setId(boxId);
+        update.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+        update.setWarehouseId(warehouseId);
+        update.setAreaId(areaId);
+        update.setRackId(rackId);
+        update.setLocationId(locationId);
+        boxMapper.updateById(update);
+    }
+
     public void deleteById(Long id) {
         Assert.isTrue(countItemsByBoxId(id) == 0, "箱体内仍有单品，无法删除");
         boxMapper.deleteById(id);

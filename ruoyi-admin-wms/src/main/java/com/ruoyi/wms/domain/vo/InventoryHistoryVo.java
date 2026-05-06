@@ -84,6 +84,66 @@ public class InventoryHistoryVo implements Serializable {
     private BigDecimal amount;
 
     /**
+     * 器材编码
+     */
+    @ExcelProperty(value = "器材编码")
+    private String equipmentCode;
+
+    /**
+     * 器材名称
+     */
+    @ExcelProperty(value = "器材名称")
+    private String itemName;
+
+    /**
+     * 装备名称
+     */
+    @ExcelProperty(value = "装备名称")
+    private String equipmentName;
+
+    /**
+     * 规格型号
+     */
+    @ExcelProperty(value = "规格型号")
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    @ExcelProperty(value = "产品标识")
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
+
+    /**
+     * 单位
+     */
+    @ExcelProperty(value = "计量单位")
+    private String unit;
+
+    /**
+     * 单价
+     */
+    @ExcelProperty(value = "单价")
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    @ExcelProperty(value = "总价")
+    private BigDecimal lineAmount;
+
+    /**
+     * 所在单位
+     */
+    @ExcelProperty(value = "所在单位")
+    private String belongUnit;
+
+    /**
      * 库存变化
      */
     @ExcelProperty(value = "库存变化")

@@ -13,6 +13,7 @@ import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BorrowRecordBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.BorrowRecord;
+import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
@@ -46,6 +47,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private final AreaMapper areaMapper;
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
+    private final InventoryHistoryService inventoryHistoryService;
 
     public BorrowRecordVo queryById(Long id) {
         BorrowRecordVo vo = borrowRecordMapper.selectVoById(id);
@@ -101,6 +103,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setOriginalLocationId(itemInstance.getLocationId());
         borrowRecordMapper.insert(add);
         itemInstanceService.markBorrowed(itemInstance.getId());
+        createBorrowHistory(add, itemInstance);
     }
 
     @Transactional
@@ -124,6 +127,10 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         update.setReturnedRackId(borrowRecord.getOriginalRackId());
         update.setReturnedLocationId(borrowRecord.getOriginalLocationId());
         borrowRecordMapper.updateById(update);
+        ItemInstance itemInstance = itemInstanceService.getById(borrowRecord.getItemInstanceId());
+        if (itemInstance != null) {
+            createReturnHistory(borrowRecord, itemInstance, update.getReturnTime());
+        }
     }
 
     private LambdaQueryWrapper<BorrowRecord> buildQueryWrapper(BorrowRecordBo bo) {
@@ -301,5 +308,42 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         if (returnedLocation != null) {
             vo.setReturnedLocationName(returnedLocation.getLocationName());
         }
+    }
+
+    private void createBorrowHistory(BorrowRecord borrowRecord, ItemInstance itemInstance) {
+        InventoryHistory history = new InventoryHistory();
+        history.setOrderId(borrowRecord.getId());
+        history.setOrderNo(String.valueOf(borrowRecord.getId()));
+        history.setOrderType(ServiceConstants.InventoryHistoryOrderType.BORROW);
+        history.setSkuId(itemInstance.getSkuId());
+        history.setQuantity(java.math.BigDecimal.ONE.negate());
+        history.setWarehouseId(borrowRecord.getOriginalWarehouseId());
+        history.setAreaId(borrowRecord.getOriginalAreaId());
+        history.setBatchNo(itemInstance.getBatchNo());
+        history.setProductionDate(itemInstance.getProductionDate());
+        history.setExpirationDate(itemInstance.getExpirationDate());
+        history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
+        history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
+        history.setBelongUnit(StrUtil.blankToDefault(borrowRecord.getToUnit(), itemInstance.getBelongUnit()));
+        inventoryHistoryService.save(history);
+    }
+
+    private void createReturnHistory(BorrowRecord borrowRecord, ItemInstance itemInstance, LocalDateTime returnTime) {
+        InventoryHistory history = new InventoryHistory();
+        history.setOrderId(borrowRecord.getId());
+        history.setOrderNo(String.valueOf(borrowRecord.getId()));
+        history.setOrderType(ServiceConstants.InventoryHistoryOrderType.RETURN);
+        history.setSkuId(itemInstance.getSkuId());
+        history.setQuantity(java.math.BigDecimal.ONE);
+        history.setWarehouseId(borrowRecord.getOriginalWarehouseId());
+        history.setAreaId(borrowRecord.getOriginalAreaId());
+        history.setBatchNo(itemInstance.getBatchNo());
+        history.setProductionDate(itemInstance.getProductionDate());
+        history.setExpirationDate(itemInstance.getExpirationDate());
+        history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
+        history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
+        history.setBelongUnit(itemInstance.getBelongUnit());
+        history.setCreateTime(returnTime);
+        inventoryHistoryService.save(history);
     }
 }

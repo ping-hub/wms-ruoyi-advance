@@ -57,6 +57,7 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
             bo.setExpirationEndTime(expirationEndTime);
         }
         Page<InventoryDetailVo> result = inventoryDetailMapper.selectPageByBo(pageQuery.build(), bo);
+        enrich(result.getRecords());
         return TableDataInfo.build(result);
     }
 
@@ -65,13 +66,35 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
      */
     public List<InventoryDetailVo> queryList(InventoryDetailBo bo) {
         List<InventoryDetailVo> vos = inventoryDetailMapper.selectListByBo(bo);
-        if (CollUtil.isEmpty(vos)) {
-            return vos;
-        }
-        Set<Long> skuIds = vos.stream().map(InventoryDetailVo::getSkuId).collect(Collectors.toSet());
-        Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        vos.forEach(it -> it.setItemSku(itemSkuMap.get(it.getSkuId())));
+        enrich(vos);
         return vos;
+    }
+
+    private void enrich(List<InventoryDetailVo> vos) {
+        if (CollUtil.isEmpty(vos)) {
+            return;
+        }
+        Set<Long> skuIds = vos.stream().map(InventoryDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+        vos.forEach(it -> {
+            ItemSkuVo itemSku = itemSkuMap.get(it.getSkuId());
+            it.setItemSku(itemSku);
+            if (itemSku != null) {
+                it.setItem(itemSku.getItem());
+                if (StringUtils.isBlank(it.getItemName()) && itemSku.getItem() != null) {
+                    it.setItemName(itemSku.getItem().getItemName());
+                }
+                if (StringUtils.isBlank(it.getEquipmentName()) && itemSku.getItem() != null) {
+                    it.setEquipmentName(itemSku.getItem().getEquipmentName());
+                }
+                if (StringUtils.isBlank(it.getUnit()) && itemSku.getItem() != null) {
+                    it.setUnit(itemSku.getItem().getUnit());
+                }
+                if (StringUtils.isBlank(it.getSpecModel())) {
+                    it.setSpecModel(itemSku.getSpecModel());
+                }
+            }
+        });
     }
 
     private LambdaQueryWrapper<InventoryDetail> buildQueryWrapper(InventoryDetailBo bo) {

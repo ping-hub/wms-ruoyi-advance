@@ -14,4 +14,6 @@ public class BoxTraceVo implements Serializable {
 
     private BoxVo box;
     private List<ShipmentOrderDetailVo> shipmentDetails;
+    private LocationStockVo currentLocation;
+    private List<MovementOrderDetailVo> movementDetails;
 }

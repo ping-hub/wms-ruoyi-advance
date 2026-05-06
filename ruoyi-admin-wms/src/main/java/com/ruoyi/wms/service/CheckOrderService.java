@@ -19,6 +19,7 @@ import com.ruoyi.wms.domain.bo.InventoryDetailBo;
 import com.ruoyi.wms.domain.entity.CheckOrderDetail;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class CheckOrderService {
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryService inventoryService;
     private final InventoryHistoryService inventoryHistoryService;
+    private final ItemInstanceService itemInstanceService;
 
     /**
      * 查询库存盘点单据
@@ -171,6 +173,8 @@ public class CheckOrderService {
         }
         // 计算盈亏数
         calcProfitAndLoss(details);
+        // 盘点前同步单品实例状态
+        syncItemInstancesBeforeCheck(details);
         // 拆分盘盈入库和盘盈出库数据
         List<InventoryDetailBo> shipmentList = splitOutShipmentData(details);
         List<InventoryDetailBo> receiptList = splitOutReceiptData(bo);
@@ -272,5 +276,31 @@ public class CheckOrderService {
             return addInventoryHistory;
         }).toList();
         inventoryHistoryService.saveBatch(addInventoryHistoryList);
+    }
+
+    private void syncItemInstancesBeforeCheck(List<CheckOrderDetailBo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Set<Long> inventoryDetailIds = details.stream().map(CheckOrderDetailBo::getInventoryDetailId).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        if (CollUtil.isEmpty(inventoryDetailIds)) {
+            return;
+        }
+        List<ItemInstance> relatedItems = itemInstanceService.lambdaQuery()
+            .in(ItemInstance::getReceiptOrderDetailId, inventoryDetailIds)
+            .list();
+        Map<Long, List<ItemInstance>> itemMap = relatedItems.stream().collect(java.util.stream.Collectors.groupingBy(ItemInstance::getReceiptOrderDetailId));
+        for (CheckOrderDetailBo detail : details) {
+            if (detail.getProfitAndLoss() == null || detail.getInventoryDetailId() == null) {
+                continue;
+            }
+            List<ItemInstance> currentItems = itemMap.getOrDefault(detail.getInventoryDetailId(), List.of());
+            if (detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) < 0) {
+                int disableCount = detail.getProfitAndLoss().abs().intValue();
+                for (int i = 0; i < Math.min(disableCount, currentItems.size()); i++) {
+                    itemInstanceService.markDisabled(currentItems.get(i).getId());
+                }
+            }
+        }
     }
 }

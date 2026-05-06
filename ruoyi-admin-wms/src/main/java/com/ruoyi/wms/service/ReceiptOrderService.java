@@ -183,6 +183,13 @@ public class ReceiptOrderService {
             inventoryHistory.setProductionDate(detail.getProductionDate());
             inventoryHistory.setExpirationDate(detail.getExpirationDate());
             inventoryHistory.setAmount(detail.getAmount());
+            inventoryHistory.setEquipmentCode(detail.getEquipmentCode());
+            inventoryHistory.setSpecModel(detail.getSpecModel());
+            inventoryHistory.setProductMark(detail.getProductMark());
+            inventoryHistory.setQualityGrade(detail.getQualityGrade());
+            inventoryHistory.setUnitPrice(detail.getUnitPrice());
+            inventoryHistory.setLineAmount(detail.getLineAmount());
+            inventoryHistory.setBelongUnit(bo.getReceiveUnit());
             inventoryHistoryList.add(inventoryHistory);
         });
         inventoryHistoryService.saveBatch(inventoryHistoryList);
@@ -197,6 +204,22 @@ public class ReceiptOrderService {
             inventoryDetail.setOrderNo(bo.getOrderNo());
             inventoryDetail.setType(ServiceConstants.InventoryDetailType.RECEIPT);
             inventoryDetail.setRemainQuantity(inventoryDetail.getQuantity());
+            ReceiptOrderDetailBo detail = bo.getDetails().stream()
+                .filter(it -> Objects.equals(it.getSkuId(), inventoryDetail.getSkuId())
+                    && Objects.equals(it.getWarehouseId(), inventoryDetail.getWarehouseId())
+                    && Objects.equals(it.getAreaId(), inventoryDetail.getAreaId())
+                    && Objects.equals(it.getBatchNo(), inventoryDetail.getBatchNo()))
+                .findFirst()
+                .orElse(null);
+            if (detail != null) {
+                inventoryDetail.setEquipmentCode(detail.getEquipmentCode());
+                inventoryDetail.setSpecModel(detail.getSpecModel());
+                inventoryDetail.setProductMark(detail.getProductMark());
+                inventoryDetail.setQualityGrade(detail.getQualityGrade());
+                inventoryDetail.setUnitPrice(detail.getUnitPrice());
+                inventoryDetail.setLineAmount(detail.getLineAmount());
+                inventoryDetail.setBelongUnit(bo.getReceiveUnit());
+            }
         });
         inventoryDetailService.saveBatch(inventoryDetailList);
     }

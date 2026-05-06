@@ -109,4 +109,14 @@ public class MovementOrderDetail extends BaseEntity {
      */
     private Long inventoryDetailId;
 
+    /**
+     * 单品实例ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
 }

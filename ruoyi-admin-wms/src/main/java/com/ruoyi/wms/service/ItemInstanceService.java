@@ -122,6 +122,32 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.updateById(update);
     }
 
+    public void moveTo(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+        wrapper.set(ItemInstance::getBorrowed, 0);
+        wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getWarehouseId, warehouseId);
+        wrapper.set(ItemInstance::getAreaId, areaId);
+        wrapper.set(ItemInstance::getRackId, rackId);
+        wrapper.set(ItemInstance::getLocationId, locationId);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    public void markDisabled(Long id) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.DISABLED);
+        wrapper.set(ItemInstance::getBorrowed, 0);
+        wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getWarehouseId, null);
+        wrapper.set(ItemInstance::getAreaId, null);
+        wrapper.set(ItemInstance::getRackId, null);
+        wrapper.set(ItemInstance::getLocationId, null);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
     public void deleteById(Long id) {
         itemInstanceMapper.deleteById(id);
     }

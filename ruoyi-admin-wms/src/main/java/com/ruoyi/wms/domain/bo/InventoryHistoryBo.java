@@ -76,6 +76,41 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private BigDecimal amount;
 
     /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    private BigDecimal lineAmount;
+
+    /**
+     * 所在单位
+     */
+    private String belongUnit;
+
+    /**
      * 库存变化
      */
     @NotNull(message = "库存变化不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -103,6 +138,8 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private String itemCode;
     private String skuName;
     private String skuCode;
+    private String equipmentName;
+    private String unit;
 
     private String startTime;
     private String endTime;

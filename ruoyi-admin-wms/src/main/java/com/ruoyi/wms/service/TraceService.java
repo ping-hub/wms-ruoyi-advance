@@ -17,6 +17,8 @@ public class TraceService {
     private final BoxService boxService;
     private final BorrowRecordService borrowRecordService;
     private final ShipmentOrderDetailService shipmentOrderDetailService;
+    private final MovementOrderDetailService movementOrderDetailService;
+    private final LocationService locationService;
 
     public ItemTraceVo queryItemTraceByCode(String instanceCode) {
         ItemInstanceVo itemInstance = itemInstanceService.queryByCode(instanceCode);
@@ -26,9 +28,13 @@ public class TraceService {
         ItemTraceVo traceVo = new ItemTraceVo();
         traceVo.setItemInstance(itemInstance);
         traceVo.setCurrentBox(boxService.queryByItemInstanceId(itemInstance.getId()));
+        if (itemInstance.getLocationId() != null) {
+            traceVo.setCurrentLocation(locationService.queryStockById(itemInstance.getLocationId()));
+        }
         traceVo.setCurrentBorrowRecord(borrowRecordService.queryCurrentByItemInstanceId(itemInstance.getId()));
         traceVo.setBorrowRecords(borrowRecordService.queryList(borrowRecordBo));
         traceVo.setShipmentDetails(shipmentOrderDetailService.queryByItemInstanceId(itemInstance.getId()));
+        traceVo.setMovementDetails(movementOrderDetailService.queryByItemInstanceId(itemInstance.getId()));
         return traceVo;
     }
 
@@ -37,7 +43,11 @@ public class TraceService {
         Assert.notNull(box, "箱体不存在");
         BoxTraceVo traceVo = new BoxTraceVo();
         traceVo.setBox(box);
+        if (box.getLocationId() != null) {
+            traceVo.setCurrentLocation(locationService.queryStockById(box.getLocationId()));
+        }
         traceVo.setShipmentDetails(shipmentOrderDetailService.queryByBoxId(box.getId()));
+        traceVo.setMovementDetails(movementOrderDetailService.queryByBoxId(box.getId()));
         return traceVo;
     }
 }

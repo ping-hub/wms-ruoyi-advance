@@ -129,6 +129,16 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     @NotNull(message = "入库记录id不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long inventoryDetailId;
 
+    /**
+     * 单品实例ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
 
     @Override
     public Long getWarehouseId() {
