@@ -79,6 +79,11 @@ public class ItemInstance extends BaseEntity {
     private String sourceType;
 
     /**
+     * 来源单据类型
+     */
+    private String sourceOrderType;
+
+    /**
      * 来源单据ID
      */
     private Long sourceOrderId;
@@ -92,6 +97,21 @@ public class ItemInstance extends BaseEntity {
      * 来源入库单明细ID
      */
     private Long receiptOrderDetailId;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 所在单位
+     */
+    private String belongUnit;
 
     /**
      * 批号

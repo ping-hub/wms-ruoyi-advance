@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -37,6 +38,41 @@ public class BorrowRecord extends BaseEntity {
      * 借用人
      */
     private String borrower;
+
+    /**
+     * 发货单位
+     */
+    private String fromUnit;
+
+    /**
+     * 收货单位
+     */
+    private String toUnit;
+
+    /**
+     * 发货人
+     */
+    private String fromPerson;
+
+    /**
+     * 收货人
+     */
+    private String toPerson;
+
+    /**
+     * 单据日期
+     */
+    private LocalDate docDate;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
 
     /**
      * 借用时间

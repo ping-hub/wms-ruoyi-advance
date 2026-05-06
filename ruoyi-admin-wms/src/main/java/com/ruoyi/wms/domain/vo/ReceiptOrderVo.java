@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -54,6 +55,60 @@ public class ReceiptOrderVo extends BaseVo {
      */
     @ExcelProperty(value = "订单号")
     private String orderNo;
+
+    /**
+     * 调拨根据
+     */
+    @ExcelProperty(value = "调拨根据")
+    private String basisNo;
+
+    /**
+     * 调拨方式
+     */
+    @ExcelProperty(value = "调拨方式")
+    private String dispatchMode;
+
+    /**
+     * 通知机关
+     */
+    @ExcelProperty(value = "通知机关")
+    private String noticeOrg;
+
+    /**
+     * 收物单位
+     */
+    @ExcelProperty(value = "收物单位")
+    private String receiveUnit;
+
+    /**
+     * 采购日期
+     */
+    @ExcelProperty(value = "采购日期")
+    private LocalDate purchaseDate;
+
+    /**
+     * 入库日期
+     */
+    @ExcelProperty(value = "入库日期")
+    private LocalDate receiptDate;
+
+    /**
+     * 采购配发人
+     */
+    @ExcelProperty(value = "采购配发人")
+    private String purchaserName;
+
+    /**
+     * 验收人
+     */
+    @ExcelProperty(value = "验收人")
+    private String acceptorName;
+
+    /**
+     * 保管员
+     */
+    @ExcelProperty(value = "保管员")
+    private String keeperName;
 
     /**
      * 商品总数

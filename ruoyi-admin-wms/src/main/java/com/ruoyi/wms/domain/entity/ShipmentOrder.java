@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-
 import java.io.Serial;
+import java.time.LocalDate;
 
 /**
  * 出库单对象 wms_shipment_order
@@ -40,6 +40,51 @@ public class ShipmentOrder extends BaseEntity {
      * 出库订单
      */
     private String orderNo;
+
+    /**
+     * 调拨根据
+     */
+    private String basisNo;
+
+    /**
+     * 调拨方式
+     */
+    private String dispatchMode;
+
+    /**
+     * 通知机关
+     */
+    private String noticeOrg;
+
+    /**
+     * 收物单位
+     */
+    private String receiveUnit;
+
+    /**
+     * 采购日期
+     */
+    private LocalDate purchaseDate;
+
+    /**
+     * 出库日期
+     */
+    private LocalDate shipmentDate;
+
+    /**
+     * 采购配发人
+     */
+    private String purchaserName;
+
+    /**
+     * 验收人
+     */
+    private String acceptorName;
+
+    /**
+     * 保管员
+     */
+    private String keeperName;
     /**
      * 客户
      */

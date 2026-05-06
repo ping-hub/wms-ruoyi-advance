@@ -45,6 +45,36 @@ public class ShipmentOrderDetail extends BaseEntity {
      * 金额
      */
     private BigDecimal amount;
+
+    /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    private BigDecimal lineAmount;
     /**
      * 所属仓库
      */

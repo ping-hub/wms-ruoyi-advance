@@ -83,6 +83,16 @@ public class MovementOrderService {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<MovementOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getMovementOrderNo()), MovementOrder::getMovementOrderNo, bo.getMovementOrderNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getMovementType()), MovementOrder::getMovementType, bo.getMovementType());
+        lqw.like(StringUtils.isNotBlank(bo.getDispatchBasis()), MovementOrder::getDispatchBasis, bo.getDispatchBasis());
+        lqw.like(StringUtils.isNotBlank(bo.getDispatchPurpose()), MovementOrder::getDispatchPurpose, bo.getDispatchPurpose());
+        lqw.like(StringUtils.isNotBlank(bo.getSupportNo()), MovementOrder::getSupportNo, bo.getSupportNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), MovementOrder::getDispatchMode, bo.getDispatchMode());
+        lqw.like(StringUtils.isNotBlank(bo.getFromUnit()), MovementOrder::getFromUnit, bo.getFromUnit());
+        lqw.like(StringUtils.isNotBlank(bo.getToUnit()), MovementOrder::getToUnit, bo.getToUnit());
+        lqw.eq(bo.getDispatchDate() != null, MovementOrder::getDispatchDate, bo.getDispatchDate());
+        lqw.eq(bo.getEffectiveDate() != null, MovementOrder::getEffectiveDate, bo.getEffectiveDate());
+        lqw.eq(bo.getIssueDate() != null, MovementOrder::getIssueDate, bo.getIssueDate());
         lqw.eq(bo.getSourceWarehouseId() != null, MovementOrder::getSourceWarehouseId, bo.getSourceWarehouseId());
         lqw.eq(bo.getSourceAreaId() != null, MovementOrder::getSourceAreaId, bo.getSourceAreaId());
         lqw.eq(bo.getTargetWarehouseId() != null, MovementOrder::getTargetWarehouseId, bo.getTargetWarehouseId());

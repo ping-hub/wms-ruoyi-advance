@@ -86,6 +86,13 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setItemInstanceId(itemInstance.getId());
         add.setBorrowStatus(ServiceConstants.BorrowStatus.BORROWED);
         add.setBorrower(bo.getBorrower());
+        add.setFromUnit(bo.getFromUnit());
+        add.setToUnit(bo.getToUnit());
+        add.setFromPerson(bo.getFromPerson());
+        add.setToPerson(bo.getToPerson());
+        add.setDocDate(bo.getDocDate());
+        add.setProductMark(bo.getProductMark());
+        add.setQualityGrade(bo.getQualityGrade());
         add.setBorrowTime(bo.getBorrowTime() == null ? LocalDateTime.now() : bo.getBorrowTime());
         add.setBorrowRemark(bo.getBorrowRemark());
         add.setOriginalWarehouseId(itemInstance.getWarehouseId());
@@ -124,6 +131,11 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         lqw.eq(bo.getItemInstanceId() != null, BorrowRecord::getItemInstanceId, bo.getItemInstanceId());
         lqw.eq(StrUtil.isNotBlank(bo.getBorrowStatus()), BorrowRecord::getBorrowStatus, bo.getBorrowStatus());
         lqw.like(StrUtil.isNotBlank(bo.getBorrower()), BorrowRecord::getBorrower, bo.getBorrower());
+        lqw.like(StrUtil.isNotBlank(bo.getFromUnit()), BorrowRecord::getFromUnit, bo.getFromUnit());
+        lqw.like(StrUtil.isNotBlank(bo.getToUnit()), BorrowRecord::getToUnit, bo.getToUnit());
+        lqw.eq(bo.getDocDate() != null, BorrowRecord::getDocDate, bo.getDocDate());
+        lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), BorrowRecord::getProductMark, bo.getProductMark());
+        lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), BorrowRecord::getQualityGrade, bo.getQualityGrade());
         lqw.orderByDesc(BorrowRecord::getBorrowTime);
         return lqw;
     }

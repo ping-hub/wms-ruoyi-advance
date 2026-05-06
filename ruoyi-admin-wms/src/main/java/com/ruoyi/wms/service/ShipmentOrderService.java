@@ -21,6 +21,7 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
 import com.ruoyi.wms.domain.entity.ShipmentOrderDetail;
+import com.ruoyi.wms.domain.vo.ShipmentOrderDetailVo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.ShipmentOrderMapper;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 出库单Service业务层处理
@@ -88,6 +90,15 @@ public class ShipmentOrderService {
         lqw.eq(bo.getShipmentOrderType() != null, ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ShipmentOrder::getOrderNo, bo.getOrderNo());
         lqw.eq(bo.getMerchantId() != null, ShipmentOrder::getMerchantId, bo.getMerchantId());
+        lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ShipmentOrder::getBasisNo, bo.getBasisNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ShipmentOrder::getDispatchMode, bo.getDispatchMode());
+        lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ShipmentOrder::getNoticeOrg, bo.getNoticeOrg());
+        lqw.like(StringUtils.isNotBlank(bo.getReceiveUnit()), ShipmentOrder::getReceiveUnit, bo.getReceiveUnit());
+        lqw.eq(bo.getPurchaseDate() != null, ShipmentOrder::getPurchaseDate, bo.getPurchaseDate());
+        lqw.eq(bo.getShipmentDate() != null, ShipmentOrder::getShipmentDate, bo.getShipmentDate());
+        lqw.like(StringUtils.isNotBlank(bo.getPurchaserName()), ShipmentOrder::getPurchaserName, bo.getPurchaserName());
+        lqw.like(StringUtils.isNotBlank(bo.getAcceptorName()), ShipmentOrder::getAcceptorName, bo.getAcceptorName());
+        lqw.like(StringUtils.isNotBlank(bo.getKeeperName()), ShipmentOrder::getKeeperName, bo.getKeeperName());
         lqw.eq(bo.getReceivableAmount() != null, ShipmentOrder::getReceivableAmount, bo.getReceivableAmount());
         lqw.eq(bo.getTotalQuantity() != null, ShipmentOrder::getTotalQuantity, bo.getTotalQuantity());
         lqw.eq(bo.getShipmentOrderStatus() != null, ShipmentOrder::getShipmentOrderStatus, bo.getShipmentOrderStatus());

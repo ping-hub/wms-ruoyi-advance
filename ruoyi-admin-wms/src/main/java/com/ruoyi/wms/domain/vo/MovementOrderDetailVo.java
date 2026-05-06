@@ -52,6 +52,42 @@ public class MovementOrderDetailVo implements Serializable {
     private BigDecimal quantity;
 
     /**
+     * 器材编码
+     */
+    @ExcelProperty(value = "器材编码")
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    @ExcelProperty(value = "规格型号")
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    @ExcelProperty(value = "产品标识")
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    @ExcelProperty(value = "单价")
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    @ExcelProperty(value = "行金额")
+    private BigDecimal lineAmount;
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")

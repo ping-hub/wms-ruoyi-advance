@@ -76,6 +76,8 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         lqw.like(StrUtil.isNotBlank(bo.getSkuName()), ItemSku::getSkuName, bo.getSkuName());
         lqw.eq(bo.getItemId() != null, ItemSku::getItemId, bo.getItemId());
         lqw.eq(StrUtil.isNotBlank(bo.getBarcode()), ItemSku::getBarcode, bo.getBarcode());
+        lqw.like(StrUtil.isNotBlank(bo.getSpecModel()), ItemSku::getSpecModel, bo.getSpecModel());
+        lqw.eq(bo.getDefaultUnitPrice() != null, ItemSku::getDefaultUnitPrice, bo.getDefaultUnitPrice());
         lqw.orderByDesc(ItemSku::getItemId);
         return lqw;
     }

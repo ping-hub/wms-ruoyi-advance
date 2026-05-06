@@ -43,6 +43,16 @@ public class ItemSku extends BaseEntity {
      */
     private String skuCode;
 
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 默认单价
+     */
+    private BigDecimal defaultUnitPrice;
+
 
     /**
      * 长(cm)

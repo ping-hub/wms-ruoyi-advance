@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -38,6 +39,27 @@ public class BorrowRecordVo implements Serializable {
 
     @ExcelProperty(value = "借用人")
     private String borrower;
+
+    @ExcelProperty(value = "发货单位")
+    private String fromUnit;
+
+    @ExcelProperty(value = "收货单位")
+    private String toUnit;
+
+    @ExcelProperty(value = "发货人")
+    private String fromPerson;
+
+    @ExcelProperty(value = "收货人")
+    private String toPerson;
+
+    @ExcelProperty(value = "单据日期")
+    private LocalDate docDate;
+
+    @ExcelProperty(value = "产品标识")
+    private String productMark;
+
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
 
     @ExcelProperty(value = "借用时间")
     private LocalDateTime borrowTime;

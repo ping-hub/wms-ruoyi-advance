@@ -50,9 +50,38 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private BigDecimal quantity;
 
     /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    private BigDecimal lineAmount;
+
+    /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空", groups = { AddGroup.class, EditGroup.class })
     private String remark;
 
     /**

@@ -86,6 +86,15 @@ public class ReceiptOrderService {
         lqw.eq(bo.getReceiptOrderType() != null, ReceiptOrder::getReceiptOrderType, bo.getReceiptOrderType());
         lqw.eq(bo.getMerchantId() != null, ReceiptOrder::getMerchantId, bo.getMerchantId());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ReceiptOrder::getOrderNo, bo.getOrderNo());
+        lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ReceiptOrder::getBasisNo, bo.getBasisNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ReceiptOrder::getDispatchMode, bo.getDispatchMode());
+        lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ReceiptOrder::getNoticeOrg, bo.getNoticeOrg());
+        lqw.like(StringUtils.isNotBlank(bo.getReceiveUnit()), ReceiptOrder::getReceiveUnit, bo.getReceiveUnit());
+        lqw.eq(bo.getPurchaseDate() != null, ReceiptOrder::getPurchaseDate, bo.getPurchaseDate());
+        lqw.eq(bo.getReceiptDate() != null, ReceiptOrder::getReceiptDate, bo.getReceiptDate());
+        lqw.like(StringUtils.isNotBlank(bo.getPurchaserName()), ReceiptOrder::getPurchaserName, bo.getPurchaserName());
+        lqw.like(StringUtils.isNotBlank(bo.getAcceptorName()), ReceiptOrder::getAcceptorName, bo.getAcceptorName());
+        lqw.like(StringUtils.isNotBlank(bo.getKeeperName()), ReceiptOrder::getKeeperName, bo.getKeeperName());
         lqw.eq(bo.getPayableAmount() != null, ReceiptOrder::getPayableAmount, bo.getPayableAmount());
         lqw.eq(bo.getReceiptOrderStatus() != null, ReceiptOrder::getReceiptOrderStatus, bo.getReceiptOrderStatus());
         lqw.orderByDesc(BaseEntity::getCreateTime);

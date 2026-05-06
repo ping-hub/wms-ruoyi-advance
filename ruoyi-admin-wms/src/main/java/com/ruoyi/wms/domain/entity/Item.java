@@ -68,6 +68,26 @@ public class Item extends BaseEntity {
     private String specLevel;
 
     /**
+     * 装备名称
+     */
+    private String equipmentName;
+
+    /**
+     * 默认质量等级
+     */
+    private String defaultQualityGrade;
+
+    /**
+     * 产品标识规则
+     */
+    private String productMarkRule;
+
+    /**
+     * 规格型号文本
+     */
+    private String modelText;
+
+    /**
      * 备注
      */
     private String remark;

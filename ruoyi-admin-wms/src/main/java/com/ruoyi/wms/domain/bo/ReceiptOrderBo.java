@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -53,6 +54,51 @@ public class ReceiptOrderBo extends BaseEntity {
      * 订单号
      */
     private String orderNo;
+
+    /**
+     * 调拨根据
+     */
+    private String basisNo;
+
+    /**
+     * 调拨方式
+     */
+    private String dispatchMode;
+
+    /**
+     * 通知机关
+     */
+    private String noticeOrg;
+
+    /**
+     * 收物单位
+     */
+    private String receiveUnit;
+
+    /**
+     * 采购日期
+     */
+    private LocalDate purchaseDate;
+
+    /**
+     * 入库日期
+     */
+    private LocalDate receiptDate;
+
+    /**
+     * 采购配发人
+     */
+    private String purchaserName;
+
+    /**
+     * 验收人
+     */
+    private String acceptorName;
+
+    /**
+     * 保管员
+     */
+    private String keeperName;
 
     /**
      * 商品总数

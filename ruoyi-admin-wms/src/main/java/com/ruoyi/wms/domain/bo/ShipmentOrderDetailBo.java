@@ -56,8 +56,37 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     /**
      * 金额
      */
-    @NotNull(message = "金额不能为空", groups = { AddGroup.class, EditGroup.class })
     private BigDecimal amount;
+
+    /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    private BigDecimal lineAmount;
 
     /**
      * 所属仓库
@@ -106,6 +135,5 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     /**
      * 备注
      */
-
-
+    private String remark;
 }

@@ -6,7 +6,6 @@ import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMappers;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -57,8 +56,37 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     /**
      * 金额
      */
-    @NotNull(message = "金额不能为空", groups = { AddGroup.class, EditGroup.class })
     private BigDecimal amount;
+
+    /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 行金额
+     */
+    private BigDecimal lineAmount;
 
     /**
      * 批号
@@ -78,7 +106,6 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空", groups = { AddGroup.class, EditGroup.class })
     private String remark;
 
     /**

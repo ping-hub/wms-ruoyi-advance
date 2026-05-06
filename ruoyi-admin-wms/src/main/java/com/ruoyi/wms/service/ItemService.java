@@ -108,6 +108,10 @@ public class ItemService {
         lqw.eq(StrUtil.isNotBlank(bo.getTrackingMode()), Item::getTrackingMode, bo.getTrackingMode());
         lqw.eq(bo.getAllowBox() != null, Item::getAllowBox, bo.getAllowBox());
         lqw.eq(StrUtil.isNotBlank(bo.getSpecLevel()), Item::getSpecLevel, bo.getSpecLevel());
+        lqw.like(StrUtil.isNotBlank(bo.getEquipmentName()), Item::getEquipmentName, bo.getEquipmentName());
+        lqw.eq(StrUtil.isNotBlank(bo.getDefaultQualityGrade()), Item::getDefaultQualityGrade, bo.getDefaultQualityGrade());
+        lqw.eq(StrUtil.isNotBlank(bo.getProductMarkRule()), Item::getProductMarkRule, bo.getProductMarkRule());
+        lqw.like(StrUtil.isNotBlank(bo.getModelText()), Item::getModelText, bo.getModelText());
         return lqw;
     }
 

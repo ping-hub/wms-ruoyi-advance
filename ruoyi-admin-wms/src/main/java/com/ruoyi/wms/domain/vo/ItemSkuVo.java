@@ -51,6 +51,18 @@ public class ItemSkuVo implements Serializable {
     private String skuCode;
 
     /**
+     * 规格型号
+     */
+    @ExcelProperty(value = "规格型号")
+    private String specModel;
+
+    /**
+     * 默认单价
+     */
+    @ExcelProperty(value = "默认单价")
+    private BigDecimal defaultUnitPrice;
+
+    /**
      * 长(cm)
      */
     @ExcelProperty(value = "长(cm)")
@@ -65,7 +77,7 @@ public class ItemSkuVo implements Serializable {
     /**
      * 高(cm)
      */
-    @ExcelProperty(value = "=高(cm)")
+    @ExcelProperty(value = "高(cm)")
     private BigDecimal height;
 
     /**

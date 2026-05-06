@@ -244,9 +244,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setRackId(null);
                 itemInstance.setLocationId(null);
                 itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.RECEIPT);
+                itemInstance.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.RECEIPT);
                 itemInstance.setSourceOrderId(receiptOrder.getId());
                 itemInstance.setSourceOrderNo(receiptOrder.getReceiptOrderNo());
                 itemInstance.setReceiptOrderDetailId(detail.getId());
+                itemInstance.setProductMark(StrUtil.blankToDefault(detail.getProductMark(), item.getProductMarkRule()));
+                itemInstance.setQualityGrade(StrUtil.blankToDefault(detail.getQualityGrade(), item.getDefaultQualityGrade()));
+                itemInstance.setBelongUnit(receiptOrder.getReceiveUnit());
                 itemInstance.setBatchNo(detail.getBatchNo());
                 itemInstance.setProductionDate(detail.getProductionDate());
                 itemInstance.setExpirationDate(detail.getExpirationDate());
@@ -278,8 +282,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.eq(bo.getAreaId() != null, ItemInstance::getAreaId, bo.getAreaId());
         lqw.eq(bo.getRackId() != null, ItemInstance::getRackId, bo.getRackId());
         lqw.eq(bo.getLocationId() != null, ItemInstance::getLocationId, bo.getLocationId());
+        lqw.eq(StrUtil.isNotBlank(bo.getSourceType()), ItemInstance::getSourceType, bo.getSourceType());
+        lqw.eq(StrUtil.isNotBlank(bo.getSourceOrderType()), ItemInstance::getSourceOrderType, bo.getSourceOrderType());
         lqw.eq(bo.getSourceOrderId() != null, ItemInstance::getSourceOrderId, bo.getSourceOrderId());
         lqw.eq(bo.getReceiptOrderDetailId() != null, ItemInstance::getReceiptOrderDetailId, bo.getReceiptOrderDetailId());
+        lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), ItemInstance::getProductMark, bo.getProductMark());
+        lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), ItemInstance::getQualityGrade, bo.getQualityGrade());
+        lqw.like(StrUtil.isNotBlank(bo.getBelongUnit()), ItemInstance::getBelongUnit, bo.getBelongUnit());
         lqw.orderByDesc(ItemInstance::getCreateTime);
         return lqw;
     }

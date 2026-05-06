@@ -80,6 +80,30 @@ public class ItemVo implements Serializable {
     private String specLevel;
 
     /**
+     * 装备名称
+     */
+    @ExcelProperty(value = "装备名称")
+    private String equipmentName;
+
+    /**
+     * 默认质量等级
+     */
+    @ExcelProperty(value = "默认质量等级")
+    private String defaultQualityGrade;
+
+    /**
+     * 产品标识规则
+     */
+    @ExcelProperty(value = "产品标识规则")
+    private String productMarkRule;
+
+    /**
+     * 规格型号文本
+     */
+    @ExcelProperty(value = "规格型号文本")
+    private String modelText;
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")

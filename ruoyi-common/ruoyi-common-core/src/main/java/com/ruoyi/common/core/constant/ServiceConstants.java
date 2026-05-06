@@ -73,6 +73,10 @@ public class ServiceConstants {
      */
     public class ItemInstanceSourceType {
         public static final String RECEIPT = "receipt";
+        public static final String SHIPMENT = "shipment";
+        public static final String MOVEMENT = "movement";
+        public static final String BORROW = "borrow";
+        public static final String MANUAL = "manual";
     }
 
     /**

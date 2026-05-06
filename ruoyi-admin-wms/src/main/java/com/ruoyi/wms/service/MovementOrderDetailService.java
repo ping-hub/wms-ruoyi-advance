@@ -69,6 +69,12 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         lqw.eq(bo.getMovementOrderId() != null, MovementOrderDetail::getMovementOrderId, bo.getMovementOrderId());
         lqw.eq(bo.getSkuId() != null, MovementOrderDetail::getSkuId, bo.getSkuId());
         lqw.eq(bo.getQuantity() != null, MovementOrderDetail::getQuantity, bo.getQuantity());
+        lqw.eq(StringUtils.isNotBlank(bo.getEquipmentCode()), MovementOrderDetail::getEquipmentCode, bo.getEquipmentCode());
+        lqw.like(StringUtils.isNotBlank(bo.getSpecModel()), MovementOrderDetail::getSpecModel, bo.getSpecModel());
+        lqw.eq(StringUtils.isNotBlank(bo.getProductMark()), MovementOrderDetail::getProductMark, bo.getProductMark());
+        lqw.eq(StringUtils.isNotBlank(bo.getQualityGrade()), MovementOrderDetail::getQualityGrade, bo.getQualityGrade());
+        lqw.eq(bo.getUnitPrice() != null, MovementOrderDetail::getUnitPrice, bo.getUnitPrice());
+        lqw.eq(bo.getLineAmount() != null, MovementOrderDetail::getLineAmount, bo.getLineAmount());
         lqw.eq(bo.getSourceWarehouseId() != null, MovementOrderDetail::getSourceWarehouseId, bo.getSourceWarehouseId());
         lqw.eq(bo.getSourceAreaId() != null, MovementOrderDetail::getSourceAreaId, bo.getSourceAreaId());
         lqw.eq(bo.getTargetWarehouseId() != null, MovementOrderDetail::getTargetWarehouseId, bo.getTargetWarehouseId());

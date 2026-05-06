@@ -6,8 +6,8 @@ import lombok.EqualsAndHashCode;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 
 import java.math.BigDecimal;
-
 import java.io.Serial;
+import java.time.LocalDate;
 
 /**
  * 移库单对象 wms_movement_order
@@ -32,6 +32,91 @@ public class MovementOrder extends BaseEntity {
      * 编号
      */
     private String movementOrderNo;
+
+    /**
+     * 调拨类型
+     */
+    private String movementType;
+
+    /**
+     * 调拨依据
+     */
+    private String dispatchBasis;
+
+    /**
+     * 调拨目的
+     */
+    private String dispatchPurpose;
+
+    /**
+     * 物资保障号
+     */
+    private String supportNo;
+
+    /**
+     * 调拨方式
+     */
+    private String dispatchMode;
+
+    /**
+     * 发货单位
+     */
+    private String fromUnit;
+
+    /**
+     * 收货单位
+     */
+    private String toUnit;
+
+    /**
+     * 发站
+     */
+    private String fromStation;
+
+    /**
+     * 到站
+     */
+    private String toStation;
+
+    /**
+     * 发货地址
+     */
+    private String fromAddress;
+
+    /**
+     * 收货地址
+     */
+    private String toAddress;
+
+    /**
+     * 通信地址
+     */
+    private String contactAddress;
+
+    /**
+     * 调拨日期
+     */
+    private LocalDate dispatchDate;
+
+    /**
+     * 有效日期
+     */
+    private LocalDate effectiveDate;
+
+    /**
+     * 发出日期
+     */
+    private LocalDate issueDate;
+
+    /**
+     * 发货经手人
+     */
+    private String fromHandler;
+
+    /**
+     * 收货经手人
+     */
+    private String toHandler;
     /**
      * 源仓库
      */

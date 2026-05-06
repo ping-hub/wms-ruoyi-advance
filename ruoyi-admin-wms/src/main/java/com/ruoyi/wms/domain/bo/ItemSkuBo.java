@@ -46,6 +46,16 @@ public class ItemSkuBo extends BaseEntity {
     private String skuCode;
 
     /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 默认单价
+     */
+    private BigDecimal defaultUnitPrice;
+
+    /**
      * 长(cm)
      */
     private BigDecimal length;
@@ -89,6 +99,11 @@ public class ItemSkuBo extends BaseEntity {
      * 商品编码
      */
     private String itemCode;
+
+    /**
+     * 装备名称
+     */
+    private String equipmentName;
 
     /**
      * 商品分类

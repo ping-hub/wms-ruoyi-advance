@@ -23,6 +23,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.itemCode != null and bo.itemCode != ''">
                 and item.item_code like concat('%', #{bo.itemCode}, '%')
             </if>
+            <if test="bo.equipmentName != null and bo.equipmentName != ''">
+                and item.equipment_name like concat('%', #{bo.equipmentName}, '%')
+            </if>
             <if test="bo.itemBrand != null">
                 and item.item_brand=#{bo.itemBrand}
             </if>
@@ -31,6 +34,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.barcode != null and bo.barcode != ''">
                 and sku.barcode like concat('%', #{bo.barcode}, '%')
+            </if>
+            <if test="bo.specModel != null and bo.specModel != ''">
+                and sku.spec_model like concat('%', #{bo.specModel}, '%')
             </if>
             <if test="bo.itemCategory != null and bo.itemCategory != ''">
                 and (category.id=#{bo.itemCategory} or category.parent_id=#{bo.itemCategory})
