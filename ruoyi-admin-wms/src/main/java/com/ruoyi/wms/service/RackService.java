@@ -23,6 +23,7 @@ import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +41,7 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
     private final LocationMapper locationMapper;
+    private final RackLocationPlannerService rackLocationPlannerService;
 
     public RackVo queryById(Long id) {
         RackVo rackVo = rackMapper.selectVoById(id);
@@ -61,14 +63,22 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         return list;
     }
 
+    @Transactional
     public void insertByBo(RackBo bo) {
         validateBoBeforeSave(bo);
-        rackMapper.insert(MapstructUtils.convert(bo, Rack.class));
+        Rack rack = MapstructUtils.convert(bo, Rack.class);
+        rackMapper.insert(rack);
+        rackLocationPlannerService.generateLocationsForNewRack(rack);
     }
 
+    @Transactional
     public void updateByBo(RackBo bo) {
         validateBoBeforeSave(bo);
-        rackMapper.updateById(MapstructUtils.convert(bo, Rack.class));
+        Rack beforeRack = rackMapper.selectById(bo.getId());
+        Assert.notNull(beforeRack, "货架不存在");
+        Rack afterRack = MapstructUtils.convert(bo, Rack.class);
+        rackMapper.updateById(afterRack);
+        rackLocationPlannerService.syncLocationsAfterRackUpdate(beforeRack, afterRack);
     }
 
     public void deleteById(Long id) {
@@ -100,6 +110,8 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
     private void validateBoBeforeSave(RackBo bo) {
         validateRackRelation(bo);
         validateRackNameAndCode(bo);
+        validatePlanningFields(bo);
+        validateRelationChange(bo);
     }
 
     private void validateRackRelation(RackBo bo) {
@@ -123,6 +135,37 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         queryWrapper.eq(Rack::getRackCode, bo.getRackCode());
         queryWrapper.ne(bo.getId() != null, Rack::getId, bo.getId());
         Assert.isTrue(rackMapper.selectCount(queryWrapper) == 0, "货架编码重复");
+    }
+
+    private void validatePlanningFields(RackBo bo) {
+        Assert.notNull(bo.getRowCount(), "货架行数不能为空");
+        Assert.notNull(bo.getColumnCount(), "货架列数不能为空");
+        Assert.isTrue(bo.getRowCount() > 0, "货架行数必须大于0");
+        Assert.isTrue(bo.getColumnCount() > 0, "货架列数必须大于0");
+        if (bo.getLength() != null) {
+            Assert.isTrue(bo.getLength().signum() > 0, "货架长度必须大于0");
+        }
+        if (bo.getWidth() != null) {
+            Assert.isTrue(bo.getWidth().signum() > 0, "货架宽度必须大于0");
+        }
+        if (bo.getHeight() != null) {
+            Assert.isTrue(bo.getHeight().signum() > 0, "货架高度必须大于0");
+        }
+    }
+
+    private void validateRelationChange(RackBo bo) {
+        if (bo.getId() == null) {
+            return;
+        }
+        Rack existedRack = rackMapper.selectById(bo.getId());
+        Assert.notNull(existedRack, "货架不存在");
+        boolean warehouseChanged = !Objects.equals(existedRack.getWarehouseId(), bo.getWarehouseId());
+        boolean areaChanged = !Objects.equals(existedRack.getAreaId(), bo.getAreaId());
+        if ((warehouseChanged || areaChanged) && locationMapper.selectCount(
+            Wrappers.<com.ruoyi.wms.domain.entity.Location>lambdaQuery().eq(com.ruoyi.wms.domain.entity.Location::getRackId, bo.getId())
+        ) > 0) {
+            throw new ServiceException("已规划货位的货架不支持直接变更所属仓库或库区，请先清理并重建");
+        }
     }
 
     private void enrich(List<RackVo> list) {

@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BoxBo;
@@ -20,6 +19,8 @@ import com.ruoyi.wms.domain.entity.Warehouse;
 import com.ruoyi.wms.domain.vo.BoxVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.LocationItemSummaryVo;
+import com.ruoyi.wms.domain.vo.LocationHealthCheckResultVo;
+import com.ruoyi.wms.domain.vo.LocationRebuildResultVo;
 import com.ruoyi.wms.domain.vo.LocationSummaryVo;
 import com.ruoyi.wms.domain.vo.LocationStockVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
@@ -50,6 +51,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     private final WarehouseMapper warehouseMapper;
     private final ItemInstanceService itemInstanceService;
     private final BoxService boxService;
+    private final RackLocationPlannerService rackLocationPlannerService;
 
     public LocationVo queryById(Long id) {
         LocationVo locationVo = locationMapper.selectVoById(id);
@@ -72,18 +74,39 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     }
 
     public void insertByBo(LocationBo bo) {
-        validateBoBeforeSave(bo);
-        locationMapper.insert(MapstructUtils.convert(bo, Location.class));
+        throw new com.ruoyi.common.core.exception.ServiceException("货位由货架自动规划生成，不支持普通手工新增，请通过货架维护或重建功能生成");
     }
 
     public void updateByBo(LocationBo bo) {
-        validateBoBeforeSave(bo);
-        locationMapper.updateById(MapstructUtils.convert(bo, Location.class));
+        validateBoBeforeUpdate(bo);
+        Location existed = locationMapper.selectById(bo.getId());
+        Assert.notNull(existed, "货位不存在");
+        Location update = new Location();
+        update.setId(bo.getId());
+        update.setLocationStatus(bo.getLocationStatus());
+        update.setLocationType(bo.getLocationType());
+        update.setLength(bo.getLength());
+        update.setWidth(bo.getWidth());
+        update.setHeight(bo.getHeight());
+        update.setVolume(bo.getVolume());
+        update.setMaxWeight(bo.getMaxWeight());
+        update.setOccupiedFlag(bo.getOccupiedFlag());
+        update.setSortNo(bo.getSortNo());
+        update.setRemark(bo.getRemark());
+        locationMapper.updateById(update);
     }
 
     public void deleteById(Long id) {
         validateBeforeDelete(id);
         locationMapper.deleteById(id);
+    }
+
+    public LocationRebuildResultVo rebuildByRack(Long rackId) {
+        return rackLocationPlannerService.rebuildByRack(rackId);
+    }
+
+    public LocationHealthCheckResultVo healthCheckByRack(Long rackId) {
+        return rackLocationPlannerService.healthCheckByRack(rackId);
     }
 
     public LocationStockVo queryStockById(Long id) {
@@ -255,6 +278,12 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         validateLocationNameAndCode(bo);
     }
 
+    private void validateBoBeforeUpdate(LocationBo bo) {
+        validateLocationRelation(bo);
+        validateMaintenanceBoundary(bo);
+        validateLocationDimensions(bo);
+    }
+
     private void validateLocationRelation(LocationBo bo) {
         Area area = areaMapper.selectById(bo.getAreaId());
         Assert.notNull(area, "所属库区不存在");
@@ -295,6 +324,36 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         queryWrapper.eq(Location::getColumnNo, bo.getColumnNo());
         queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
         Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "同一货架下货位格子坐标重复");
+    }
+
+    private void validateMaintenanceBoundary(LocationBo bo) {
+        Location existed = locationMapper.selectById(bo.getId());
+        Assert.notNull(existed, "货位不存在");
+        Assert.isTrue(Objects.equals(existed.getWarehouseId(), bo.getWarehouseId()), "货位所属仓库不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getAreaId(), bo.getAreaId()), "货位所属库区不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getRackId(), bo.getRackId()), "货位所属货架不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getRowNo(), bo.getRowNo()), "货位行号不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getColumnNo(), bo.getColumnNo()), "货位列号不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getLocationCode(), bo.getLocationCode()), "货位编码不允许手工修改");
+        Assert.isTrue(Objects.equals(existed.getLocationName(), bo.getLocationName()), "货位名称不允许手工修改");
+    }
+
+    private void validateLocationDimensions(LocationBo bo) {
+        if (bo.getLength() != null) {
+            Assert.isTrue(bo.getLength().signum() > 0, "货位长度必须大于0");
+        }
+        if (bo.getWidth() != null) {
+            Assert.isTrue(bo.getWidth().signum() > 0, "货位宽度必须大于0");
+        }
+        if (bo.getHeight() != null) {
+            Assert.isTrue(bo.getHeight().signum() > 0, "货位高度必须大于0");
+        }
+        if (bo.getVolume() != null) {
+            Assert.isTrue(bo.getVolume().signum() > 0, "货位容积必须大于0");
+        }
+        if (bo.getMaxWeight() != null) {
+            Assert.isTrue(bo.getMaxWeight().signum() > 0, "货位承重必须大于0");
+        }
     }
 
     private void validateBeforeDelete(Long id) {

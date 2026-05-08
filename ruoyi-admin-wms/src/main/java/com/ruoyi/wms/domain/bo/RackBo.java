@@ -5,6 +5,7 @@ import com.ruoyi.common.core.validate.EditGroup;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.wms.domain.entity.Rack;
 import io.github.linpeilie.annotations.AutoMapper;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -56,11 +57,15 @@ public class RackBo extends BaseEntity {
     /**
      * 行数
      */
+    @NotNull(message = "行数不能为空", groups = {AddGroup.class, EditGroup.class})
+    @Min(value = 1, message = "行数必须大于0", groups = {AddGroup.class, EditGroup.class})
     private Integer rowCount;
 
     /**
      * 列数
      */
+    @NotNull(message = "列数不能为空", groups = {AddGroup.class, EditGroup.class})
+    @Min(value = 1, message = "列数必须大于0", groups = {AddGroup.class, EditGroup.class})
     private Integer columnCount;
 
     /**
