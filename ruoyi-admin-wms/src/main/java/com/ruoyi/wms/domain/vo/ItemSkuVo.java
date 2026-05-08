@@ -63,6 +63,24 @@ public class ItemSkuVo implements Serializable {
     private BigDecimal defaultUnitPrice;
 
     /**
+     * 默认质量等级
+     */
+    @ExcelProperty(value = "默认质量等级")
+    private String defaultQualityGrade;
+
+    /**
+     * 启用状态
+     */
+    @ExcelProperty(value = "启用状态")
+    private String status;
+
+    /**
+     * 体积
+     */
+    @ExcelProperty(value = "体积")
+    private BigDecimal volume;
+
+    /**
      * 长(cm)
      */
     @ExcelProperty(value = "长(cm)")

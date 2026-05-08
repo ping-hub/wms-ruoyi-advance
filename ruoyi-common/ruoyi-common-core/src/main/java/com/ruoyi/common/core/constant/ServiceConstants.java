@@ -17,6 +17,7 @@ public class ServiceConstants {
         public static final Integer RECEIPT = 1;
         public static final Integer MOVEMENT = 2;
         public static final Integer CHECK = 3;
+        public static final Integer ADJUST = 4;
 
     }
 
@@ -39,6 +40,7 @@ public class ServiceConstants {
         public static final Integer CHECK = 4;
         public static final Integer BORROW = 5;
         public static final Integer RETURN = 6;
+        public static final Integer ADJUST = 7;
     }
 
     /**
@@ -54,6 +56,15 @@ public class ServiceConstants {
      * 盘库单状态
      */
     public class CheckOrderStatus {
+        public static final Integer INVALID = -1;
+        public static final Integer PENDING = 0;
+        public static final Integer FINISH = 1;
+    }
+
+    /**
+     * 调整单状态
+     */
+    public class AdjustOrderStatus {
         public static final Integer INVALID = -1;
         public static final Integer PENDING = 0;
         public static final Integer FINISH = 1;

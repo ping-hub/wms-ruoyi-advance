@@ -46,6 +46,10 @@ public class CheckOrderDetail extends BaseEntity {
      */
     private BigDecimal checkQuantity;
     /**
+     * 差异数量
+     */
+    private BigDecimal differenceQuantity;
+    /**
      * 入库时间
      */
     private LocalDateTime receiptTime;
@@ -57,6 +61,14 @@ public class CheckOrderDetail extends BaseEntity {
      * 所属库区
      */
     private Long areaId;
+    /**
+     * 货架
+     */
+    private Long rackId;
+    /**
+     * 货位
+     */
+    private Long locationId;
     /**
      * 批号
      */
@@ -73,6 +85,30 @@ public class CheckOrderDetail extends BaseEntity {
      * 入库记录id
      */
     private Long inventoryDetailId;
+    /**
+     * 器材编码
+     */
+    private String equipmentCode;
+    /**
+     * 规格型号
+     */
+    private String specModel;
+    /**
+     * 产品标识
+     */
+    private String productMark;
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+    /**
+     * 物品明细ID
+     */
+    private Long itemInstanceId;
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
     /**
      * 备注
      */

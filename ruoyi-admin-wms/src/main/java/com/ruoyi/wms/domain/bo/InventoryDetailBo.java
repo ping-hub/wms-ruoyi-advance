@@ -80,6 +80,41 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
     private Long areaId;
 
     /**
+     * 所属货架
+     */
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    private Long locationId;
+
+    /**
+     * 物品明细ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
+    /**
+     * 来源单据类型
+     */
+    private String sourceOrderType;
+
+    /**
+     * 来源单据ID
+     */
+    private Long sourceOrderId;
+
+    /**
+     * 行号
+     */
+    private Integer lineNo;
+
+    /**
      * 入库数量
      */
     @NotNull(message = "入库数量不能为空", groups = { AddGroup.class, EditGroup.class })

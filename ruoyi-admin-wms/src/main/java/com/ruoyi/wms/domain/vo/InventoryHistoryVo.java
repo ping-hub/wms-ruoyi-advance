@@ -167,6 +167,54 @@ public class InventoryHistoryVo implements Serializable {
     @ExcelProperty(value = "所属库区")
     private Long areaId;
 
+    /**
+     * 所属货架
+     */
+    @ExcelProperty(value = "所属货架")
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    @ExcelProperty(value = "所属货位")
+    private Long locationId;
+
+    /**
+     * 物品明细ID
+     */
+    @ExcelProperty(value = "物品明细ID")
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    @ExcelProperty(value = "箱体ID")
+    private Long boxId;
+
+    /**
+     * 变化前数量
+     */
+    @ExcelProperty(value = "变化前数量")
+    private BigDecimal beforeQuantity;
+
+    /**
+     * 变化后数量
+     */
+    @ExcelProperty(value = "变化后数量")
+    private BigDecimal afterQuantity;
+
+    /**
+     * 业务动作类型
+     */
+    @ExcelProperty(value = "业务动作类型")
+    private String operationType;
+
+    /**
+     * 操作人
+     */
+    @ExcelProperty(value = "操作人")
+    private String operatorName;
+
     private ItemSkuVo itemSku;
 
     private ItemVo item;

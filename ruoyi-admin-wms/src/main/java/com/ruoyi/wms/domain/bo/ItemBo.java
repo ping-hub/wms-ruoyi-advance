@@ -81,17 +81,40 @@ public class ItemBo extends BaseEntity {
     private String equipmentName;
 
     /**
+     * 器材类型
+     */
+    private String equipmentType;
+
+    /**
+     * 启用状态
+     */
+    private String status;
+
+    /**
+     * 默认追踪方式
+     */
+    private String defaultTrackingMode;
+
+    /**
+     * 默认所属单位
+     */
+    private String defaultBelongUnit;
+
+    /**
      * 默认质量等级
+     * 兼容保留
      */
     private String defaultQualityGrade;
 
     /**
      * 产品标识规则
+     * 兼容保留
      */
     private String productMarkRule;
 
     /**
      * 规格型号文本
+     * 兼容保留
      */
     private String modelText;
 

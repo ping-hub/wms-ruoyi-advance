@@ -6,7 +6,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="ledgerSelect">
         select
-            detail.equipment_code as equipmentCode,
+            coalesce(detail.equipment_code, item.item_code) as equipmentCode,
             item.item_name as itemName,
             item.equipment_name as equipmentName,
             coalesce(detail.spec_model, sku.spec_model, item.model_text) as specModel,
@@ -23,7 +23,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <where>
             detail.remain_quantity > 0
             <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
-                and detail.equipment_code like concat('%', #{bo.equipmentCode}, '%')
+                and coalesce(detail.equipment_code, item.item_code) like concat('%', #{bo.equipmentCode}, '%')
             </if>
             <if test="bo.itemName != null and bo.itemName != ''">
                 and item.item_name like concat('%', #{bo.itemName}, '%')
@@ -51,7 +51,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
         </where>
         group by
-            detail.equipment_code,
+            coalesce(detail.equipment_code, item.item_code),
             item.item_name,
             item.equipment_name,
             coalesce(detail.spec_model, sku.spec_model, item.model_text),

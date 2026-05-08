@@ -53,6 +53,21 @@ public class ItemSku extends BaseEntity {
      */
     private BigDecimal defaultUnitPrice;
 
+    /**
+     * 默认质量等级
+     */
+    private String defaultQualityGrade;
+
+    /**
+     * 启用状态
+     */
+    private String status;
+
+    /**
+     * 体积
+     */
+    private BigDecimal volume;
+
 
     /**
      * 长(cm)

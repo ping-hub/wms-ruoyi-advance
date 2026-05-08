@@ -86,6 +86,30 @@ public class ItemVo implements Serializable {
     private String equipmentName;
 
     /**
+     * 器材类型
+     */
+    @ExcelProperty(value = "器材类型")
+    private String equipmentType;
+
+    /**
+     * 启用状态
+     */
+    @ExcelProperty(value = "启用状态")
+    private String status;
+
+    /**
+     * 默认追踪方式
+     */
+    @ExcelProperty(value = "默认追踪方式")
+    private String defaultTrackingMode;
+
+    /**
+     * 默认所属单位
+     */
+    @ExcelProperty(value = "默认所属单位")
+    private String defaultBelongUnit;
+
+    /**
      * 默认质量等级
      */
     @ExcelProperty(value = "默认质量等级")

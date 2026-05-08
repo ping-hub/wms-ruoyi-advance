@@ -62,6 +62,18 @@ public class InventoryHistoryService extends ServiceImpl<InventoryHistoryMapper,
         return list;
     }
 
+    public List<InventoryHistoryVo> queryByItemInstanceId(Long itemInstanceId) {
+        InventoryHistoryBo bo = new InventoryHistoryBo();
+        bo.setItemInstanceId(itemInstanceId);
+        return queryList(bo);
+    }
+
+    public List<InventoryHistoryVo> queryByBoxId(Long boxId) {
+        InventoryHistoryBo bo = new InventoryHistoryBo();
+        bo.setBoxId(boxId);
+        return queryList(bo);
+    }
+
     private void enrich(List<InventoryHistoryVo> vos) {
         if (vos == null || vos.isEmpty()) {
             return;

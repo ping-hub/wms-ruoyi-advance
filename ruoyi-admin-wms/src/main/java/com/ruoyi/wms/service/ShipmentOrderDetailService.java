@@ -82,12 +82,6 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         lqw.eq(bo.getSkuId() != null, ShipmentOrderDetail::getSkuId, bo.getSkuId());
         lqw.eq(bo.getQuantity() != null, ShipmentOrderDetail::getQuantity, bo.getQuantity());
         lqw.eq(bo.getAmount() != null, ShipmentOrderDetail::getAmount, bo.getAmount());
-        lqw.eq(StringUtils.isNotBlank(bo.getEquipmentCode()), ShipmentOrderDetail::getEquipmentCode, bo.getEquipmentCode());
-        lqw.like(StringUtils.isNotBlank(bo.getSpecModel()), ShipmentOrderDetail::getSpecModel, bo.getSpecModel());
-        lqw.eq(StringUtils.isNotBlank(bo.getProductMark()), ShipmentOrderDetail::getProductMark, bo.getProductMark());
-        lqw.eq(StringUtils.isNotBlank(bo.getQualityGrade()), ShipmentOrderDetail::getQualityGrade, bo.getQualityGrade());
-        lqw.eq(bo.getUnitPrice() != null, ShipmentOrderDetail::getUnitPrice, bo.getUnitPrice());
-        lqw.eq(bo.getLineAmount() != null, ShipmentOrderDetail::getLineAmount, bo.getLineAmount());
         lqw.eq(bo.getWarehouseId() != null, ShipmentOrderDetail::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, ShipmentOrderDetail::getAreaId, bo.getAreaId());
         return lqw;

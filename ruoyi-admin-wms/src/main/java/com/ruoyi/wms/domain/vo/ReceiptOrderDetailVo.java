@@ -128,6 +128,18 @@ public class ReceiptOrderDetailVo implements Serializable {
     private Long areaId;
 
     /**
+     * 所属货架
+     */
+    @ExcelProperty(value = "所属货架")
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    @ExcelProperty(value = "所属货位")
+    private Long locationId;
+
+    /**
      * 是否生成单品实例
      */
     @ExcelProperty(value = "生成单品实例")

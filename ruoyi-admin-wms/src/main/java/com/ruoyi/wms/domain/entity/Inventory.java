@@ -42,6 +42,14 @@ public class Inventory extends BaseEntity implements PlaceAndItem {
      */
     private Long areaId;
     /**
+     * 所属货架
+     */
+    private Long rackId;
+    /**
+     * 所属货位
+     */
+    private Long locationId;
+    /**
      * 库存
      */
     private BigDecimal quantity;

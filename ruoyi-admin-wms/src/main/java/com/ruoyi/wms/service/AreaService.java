@@ -70,9 +70,13 @@ public class AreaService {
     private LambdaQueryWrapper<Area> buildQueryWrapper(AreaBo bo) {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<Area> lqw = Wrappers.lambdaQuery();
+        lqw.eq(bo.getId() != null, Area::getId, bo.getId());
         lqw.eq(StrUtil.isNotBlank(bo.getAreaCode()), Area::getAreaCode, bo.getAreaCode());
         lqw.like(StrUtil.isNotBlank(bo.getAreaName()), Area::getAreaName, bo.getAreaName());
         lqw.eq(bo.getWarehouseId() != null, Area::getWarehouseId, bo.getWarehouseId());
+        lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Area::getStatus, bo.getStatus());
+        lqw.eq(StrUtil.isNotBlank(bo.getAreaType()), Area::getAreaType, bo.getAreaType());
+        lqw.orderByAsc(Area::getOrderNum).orderByDesc(Area::getCreateTime);
         return lqw;
     }
 
@@ -106,6 +110,7 @@ public class AreaService {
             return;
         }
         queryWrapper.clear();
+        queryWrapper.eq(Area::getWarehouseId, area.getWarehouseId());
         queryWrapper.eq(Area::getAreaCode, area.getAreaCode());
         queryWrapper.ne(area.getId() != null, Area::getId, area.getId());
         Assert.isTrue(areaMapper.selectCount(queryWrapper) == 0, "库区编号重复");

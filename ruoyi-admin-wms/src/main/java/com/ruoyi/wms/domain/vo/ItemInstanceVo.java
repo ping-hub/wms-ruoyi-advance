@@ -75,6 +75,9 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "来源单据类型")
     private String sourceOrderType;
 
+    @ExcelProperty(value = "箱体ID")
+    private Long boxId;
+
     @ExcelProperty(value = "来源单据ID")
     private Long sourceOrderId;
 
@@ -92,6 +95,15 @@ public class ItemInstanceVo implements Serializable {
 
     @ExcelProperty(value = "所在单位")
     private String belongUnit;
+
+    @ExcelProperty(value = "当前责任单位")
+    private String currentOwnerUnit;
+
+    @ExcelProperty(value = "最后一次业务动作")
+    private String lastOperationType;
+
+    @ExcelProperty(value = "最后动作时间")
+    private LocalDateTime lastOperationTime;
 
     @ExcelProperty(value = "批号")
     private String batchNo;

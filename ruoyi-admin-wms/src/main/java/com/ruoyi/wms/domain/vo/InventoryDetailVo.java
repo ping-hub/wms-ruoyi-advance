@@ -74,6 +74,48 @@ public class InventoryDetailVo extends BaseVo {
     private Long areaId;
 
     /**
+     * 所属货架
+     */
+    @ExcelProperty(value = "所属货架")
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    @ExcelProperty(value = "所属货位")
+    private Long locationId;
+
+    /**
+     * 物品明细ID
+     */
+    @ExcelProperty(value = "物品明细ID")
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    @ExcelProperty(value = "箱体ID")
+    private Long boxId;
+
+    /**
+     * 来源单据类型
+     */
+    @ExcelProperty(value = "来源单据类型")
+    private String sourceOrderType;
+
+    /**
+     * 来源单据ID
+     */
+    @ExcelProperty(value = "来源单据ID")
+    private Long sourceOrderId;
+
+    /**
+     * 行号
+     */
+    @ExcelProperty(value = "行号")
+    private Integer lineNo;
+
+    /**
      * 入库数量
      */
     @ExcelProperty(value = "入库数量")

@@ -89,19 +89,17 @@ public class MovementOrderService {
         LambdaQueryWrapper<MovementOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getMovementOrderNo()), MovementOrder::getMovementOrderNo, bo.getMovementOrderNo());
         lqw.eq(StringUtils.isNotBlank(bo.getMovementType()), MovementOrder::getMovementType, bo.getMovementType());
-        lqw.like(StringUtils.isNotBlank(bo.getDispatchBasis()), MovementOrder::getDispatchBasis, bo.getDispatchBasis());
-        lqw.like(StringUtils.isNotBlank(bo.getDispatchPurpose()), MovementOrder::getDispatchPurpose, bo.getDispatchPurpose());
-        lqw.like(StringUtils.isNotBlank(bo.getSupportNo()), MovementOrder::getSupportNo, bo.getSupportNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getMovementScope()), MovementOrder::getMovementScope, bo.getMovementScope());
+        lqw.eq(StringUtils.isNotBlank(bo.getDispatchBasis()), MovementOrder::getDispatchBasis, bo.getDispatchBasis());
         lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), MovementOrder::getDispatchMode, bo.getDispatchMode());
-        lqw.like(StringUtils.isNotBlank(bo.getFromUnit()), MovementOrder::getFromUnit, bo.getFromUnit());
-        lqw.like(StringUtils.isNotBlank(bo.getToUnit()), MovementOrder::getToUnit, bo.getToUnit());
-        lqw.eq(bo.getDispatchDate() != null, MovementOrder::getDispatchDate, bo.getDispatchDate());
-        lqw.eq(bo.getEffectiveDate() != null, MovementOrder::getEffectiveDate, bo.getEffectiveDate());
-        lqw.eq(bo.getIssueDate() != null, MovementOrder::getIssueDate, bo.getIssueDate());
         lqw.eq(bo.getSourceWarehouseId() != null, MovementOrder::getSourceWarehouseId, bo.getSourceWarehouseId());
         lqw.eq(bo.getSourceAreaId() != null, MovementOrder::getSourceAreaId, bo.getSourceAreaId());
+        lqw.eq(bo.getSourceRackId() != null, MovementOrder::getSourceRackId, bo.getSourceRackId());
+        lqw.eq(bo.getSourceLocationId() != null, MovementOrder::getSourceLocationId, bo.getSourceLocationId());
         lqw.eq(bo.getTargetWarehouseId() != null, MovementOrder::getTargetWarehouseId, bo.getTargetWarehouseId());
         lqw.eq(bo.getTargetAreaId() != null, MovementOrder::getTargetAreaId, bo.getTargetAreaId());
+        lqw.eq(bo.getTargetRackId() != null, MovementOrder::getTargetRackId, bo.getTargetRackId());
+        lqw.eq(bo.getTargetLocationId() != null, MovementOrder::getTargetLocationId, bo.getTargetLocationId());
         lqw.eq(bo.getMovementOrderStatus() != null, MovementOrder::getMovementOrderStatus, bo.getMovementOrderStatus());
         lqw.eq(bo.getTotalQuantity() != null, MovementOrder::getTotalQuantity, bo.getTotalQuantity());
         lqw.orderByDesc(BaseEntity::getCreateTime);
@@ -115,6 +113,7 @@ public class MovementOrderService {
     public void insertByBo(MovementOrderBo bo) {
         // 1.校验移库单号唯一性
         validateMovementOrderNo(bo.getMovementOrderNo());
+        fillHeaderLocationByDetails(bo);
         // 2.创建移库单
         MovementOrder add = MapstructUtils.convert(bo, MovementOrder.class);
         movementOrderMapper.insert(add);
@@ -141,6 +140,7 @@ public class MovementOrderService {
     @Transactional
     public void updateByBo(MovementOrderBo bo) {
         // 1.更新移库单
+        fillHeaderLocationByDetails(bo);
         MovementOrder update = MapstructUtils.convert(bo, MovementOrder.class);
         movementOrderMapper.updateById(update);
         // 2.保存移库单明细
@@ -224,13 +224,14 @@ public class MovementOrderService {
     }
 
     /**
-     * 按仓库库区规格合并商品明细的数量
-     * @param movementOrderDetailBoList
+     * 按源仓库/库区/货架/货位/规格合并移出数量
+     * @param movementOrderDetailBoList 明细
      */
     public List<InventoryBo> mergeShipmentDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList) {
         Map<String, InventoryBo> mergedShipmentMap = new HashMap<>();
         movementOrderDetailBoList.forEach(detail -> {
-            String mergedShipmentKey = detail.getKey();
+            String mergedShipmentKey = detail.getSourceWarehouseId() + "_" + detail.getSourceAreaId()
+                + "_" + detail.getSourceRackId() + "_" + detail.getSourceLocationId() + "_" + detail.getSkuId();
             if (mergedShipmentMap.containsKey(mergedShipmentKey)) {
                 InventoryBo mergedInventoryBo = mergedShipmentMap.get(mergedShipmentKey);
                 mergedInventoryBo.setQuantity(mergedInventoryBo.getQuantity().add(detail.getQuantity()));
@@ -238,6 +239,8 @@ public class MovementOrderService {
                 InventoryBo mergedInventoryBo = new InventoryBo();
                 mergedInventoryBo.setWarehouseId(detail.getSourceWarehouseId());
                 mergedInventoryBo.setAreaId(detail.getSourceAreaId());
+                mergedInventoryBo.setRackId(detail.getSourceRackId());
+                mergedInventoryBo.setLocationId(detail.getSourceLocationId());
                 mergedInventoryBo.setSkuId(detail.getSkuId());
                 mergedInventoryBo.setQuantity(detail.getQuantity());
                 mergedShipmentMap.put(mergedShipmentKey, mergedInventoryBo);
@@ -248,13 +251,13 @@ public class MovementOrderService {
     }
 
     /**
-     * 按仓库库区规格合并商品明细的数量
-     * @param movementOrderDetailBoList
+     * 按目标仓库/库区/货架/货位/规格合并移入数量
+     * @param movementOrderDetailBoList 明细
      */
     public List<InventoryBo> mergeReceiptDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList) {
         Map<String, InventoryBo> mergedReceiptMap = new HashMap<>();
         movementOrderDetailBoList.forEach(detail -> {
-            String mergedReceiptKey = detail.getTargetWarehouseId() + "_" + detail.getTargetAreaId() + "_" + detail.getSkuId();
+            String mergedReceiptKey = detail.getTargetWarehouseId() + "_" + detail.getTargetAreaId() + "_" + detail.getTargetRackId() + "_" + detail.getTargetLocationId() + "_" + detail.getSkuId();
             if (mergedReceiptMap.containsKey(mergedReceiptKey)) {
                 InventoryBo mergedInventoryBo = mergedReceiptMap.get(mergedReceiptKey);
                 mergedInventoryBo.setQuantity(mergedInventoryBo.getQuantity().add(detail.getQuantity()));
@@ -262,6 +265,8 @@ public class MovementOrderService {
                 InventoryBo mergedInventoryBo = new InventoryBo();
                 mergedInventoryBo.setWarehouseId(detail.getTargetWarehouseId());
                 mergedInventoryBo.setAreaId(detail.getTargetAreaId());
+                mergedInventoryBo.setRackId(detail.getTargetRackId());
+                mergedInventoryBo.setLocationId(detail.getTargetLocationId());
                 mergedInventoryBo.setSkuId(detail.getSkuId());
                 mergedInventoryBo.setQuantity(detail.getQuantity());
                 mergedReceiptMap.put(mergedReceiptKey, mergedInventoryBo);
@@ -295,6 +300,10 @@ public class MovementOrderService {
             addInventoryDetail.setSkuId(it.getSkuId());
             addInventoryDetail.setWarehouseId(it.getTargetWarehouseId());
             addInventoryDetail.setAreaId(it.getTargetAreaId());
+            addInventoryDetail.setRackId(it.getTargetRackId());
+            addInventoryDetail.setLocationId(it.getTargetLocationId());
+            addInventoryDetail.setItemInstanceId(it.getItemInstanceId());
+            addInventoryDetail.setBoxId(it.getBoxId());
             addInventoryDetail.setQuantity(it.getQuantity());
             addInventoryDetail.setBatchNo(it.getBatchNo());
             addInventoryDetail.setProductionDate(it.getProductionDate());
@@ -323,6 +332,10 @@ public class MovementOrderService {
             InventoryHistory shipmentInventoryHistory = new InventoryHistory();
             shipmentInventoryHistory.setWarehouseId(detail.getSourceWarehouseId());
             shipmentInventoryHistory.setAreaId(detail.getSourceAreaId());
+            shipmentInventoryHistory.setRackId(detail.getSourceRackId());
+            shipmentInventoryHistory.setLocationId(detail.getSourceLocationId());
+            shipmentInventoryHistory.setItemInstanceId(detail.getItemInstanceId());
+            shipmentInventoryHistory.setBoxId(detail.getBoxId());
             shipmentInventoryHistory.setSkuId(detail.getSkuId());
             shipmentInventoryHistory.setQuantity(detail.getQuantity().negate());
             shipmentInventoryHistory.setBatchNo(detail.getBatchNo());
@@ -342,6 +355,10 @@ public class MovementOrderService {
             InventoryHistory receiptInventoryHistory = new InventoryHistory();
             receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
             receiptInventoryHistory.setAreaId(detail.getTargetAreaId());
+            receiptInventoryHistory.setRackId(detail.getTargetRackId());
+            receiptInventoryHistory.setLocationId(detail.getTargetLocationId());
+            receiptInventoryHistory.setItemInstanceId(detail.getItemInstanceId());
+            receiptInventoryHistory.setBoxId(detail.getBoxId());
             receiptInventoryHistory.setSkuId(detail.getSkuId());
             receiptInventoryHistory.setQuantity(detail.getQuantity());
             receiptInventoryHistory.setBatchNo(detail.getBatchNo());
@@ -417,17 +434,45 @@ public class MovementOrderService {
         }
     }
 
+    private void fillHeaderLocationByDetails(MovementOrderBo bo) {
+        if (CollUtil.isEmpty(bo.getDetails())) {
+            return;
+        }
+        MovementOrderDetailBo firstDetail = bo.getDetails().get(0);
+        boolean sameSource = bo.getDetails().stream().allMatch(detail ->
+            Objects.equals(detail.getSourceRackId(), firstDetail.getSourceRackId())
+                && Objects.equals(detail.getSourceLocationId(), firstDetail.getSourceLocationId())
+        );
+        boolean sameTarget = bo.getDetails().stream().allMatch(detail ->
+            Objects.equals(detail.getTargetRackId(), firstDetail.getTargetRackId())
+                && Objects.equals(detail.getTargetLocationId(), firstDetail.getTargetLocationId())
+        );
+        if (bo.getSourceRackId() == null && sameSource) {
+            bo.setSourceRackId(firstDetail.getSourceRackId());
+        }
+        if (bo.getSourceLocationId() == null && sameSource) {
+            bo.setSourceLocationId(firstDetail.getSourceLocationId());
+        }
+        if (bo.getTargetRackId() == null && sameTarget) {
+            bo.setTargetRackId(firstDetail.getTargetRackId());
+        }
+        if (bo.getTargetLocationId() == null && sameTarget) {
+            bo.setTargetLocationId(firstDetail.getTargetLocationId());
+        }
+    }
+
     private void syncMovementObjects(MovementOrderBo bo) {
         for (MovementOrderDetailBo detail : bo.getDetails()) {
             if (detail.getItemInstanceId() != null) {
-                itemInstanceService.moveTo(detail.getItemInstanceId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
+                itemInstanceService.moveTo(detail.getItemInstanceId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), detail.getTargetRackId(), detail.getTargetLocationId());
             }
             if (detail.getBoxId() != null) {
-                boxService.moveTo(detail.getBoxId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
+                boxService.moveTo(detail.getBoxId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(), detail.getTargetRackId(), detail.getTargetLocationId());
+                Box box = boxService.getById(detail.getBoxId());
                 Set<Long> itemIds = boxService.queryItemIdsByBoxId(detail.getBoxId());
                 for (Long itemId : itemIds) {
-                    itemInstanceService.moveTo(itemId, detail.getTargetWarehouseId(), detail.getTargetAreaId(), null, null);
-                    itemInstanceService.markInBox(itemId);
+                    itemInstanceService.moveTo(itemId, detail.getTargetWarehouseId(), detail.getTargetAreaId(), detail.getTargetRackId(), detail.getTargetLocationId());
+                    itemInstanceService.markInBox(itemId, box);
                 }
             }
         }

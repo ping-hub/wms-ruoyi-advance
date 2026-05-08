@@ -86,15 +86,6 @@ public class ReceiptOrderService {
         lqw.eq(bo.getReceiptOrderType() != null, ReceiptOrder::getReceiptOrderType, bo.getReceiptOrderType());
         lqw.eq(bo.getMerchantId() != null, ReceiptOrder::getMerchantId, bo.getMerchantId());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ReceiptOrder::getOrderNo, bo.getOrderNo());
-        lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ReceiptOrder::getBasisNo, bo.getBasisNo());
-        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ReceiptOrder::getDispatchMode, bo.getDispatchMode());
-        lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ReceiptOrder::getNoticeOrg, bo.getNoticeOrg());
-        lqw.like(StringUtils.isNotBlank(bo.getReceiveUnit()), ReceiptOrder::getReceiveUnit, bo.getReceiveUnit());
-        lqw.eq(bo.getPurchaseDate() != null, ReceiptOrder::getPurchaseDate, bo.getPurchaseDate());
-        lqw.eq(bo.getReceiptDate() != null, ReceiptOrder::getReceiptDate, bo.getReceiptDate());
-        lqw.like(StringUtils.isNotBlank(bo.getPurchaserName()), ReceiptOrder::getPurchaserName, bo.getPurchaserName());
-        lqw.like(StringUtils.isNotBlank(bo.getAcceptorName()), ReceiptOrder::getAcceptorName, bo.getAcceptorName());
-        lqw.like(StringUtils.isNotBlank(bo.getKeeperName()), ReceiptOrder::getKeeperName, bo.getKeeperName());
         lqw.eq(bo.getPayableAmount() != null, ReceiptOrder::getPayableAmount, bo.getPayableAmount());
         lqw.eq(bo.getReceiptOrderStatus() != null, ReceiptOrder::getReceiptOrderStatus, bo.getReceiptOrderStatus());
         lqw.orderByDesc(BaseEntity::getCreateTime);
@@ -153,7 +144,8 @@ public class ReceiptOrderService {
 
         // 6.按明细生成单品实例
         itemInstanceService.generateByReceiptOrder(receiptOrderMapper.selectById(bo.getId()),
-            receiptOrderDetailService.queryEntitiesByReceiptOrderId(bo.getId()));
+            receiptOrderDetailService.queryEntitiesByReceiptOrderId(bo.getId()),
+            bo.getReceiveUnit());
     }
 
     private void validateBeforeReceive(ReceiptOrderBo bo) {
@@ -179,6 +171,8 @@ public class ReceiptOrderService {
             inventoryHistory.setQuantity(detail.getQuantity());
             inventoryHistory.setWarehouseId(detail.getWarehouseId());
             inventoryHistory.setAreaId(detail.getAreaId());
+            inventoryHistory.setRackId(detail.getRackId());
+            inventoryHistory.setLocationId(detail.getLocationId());
             inventoryHistory.setBatchNo(detail.getBatchNo());
             inventoryHistory.setProductionDate(detail.getProductionDate());
             inventoryHistory.setExpirationDate(detail.getExpirationDate());
@@ -208,10 +202,14 @@ public class ReceiptOrderService {
                 .filter(it -> Objects.equals(it.getSkuId(), inventoryDetail.getSkuId())
                     && Objects.equals(it.getWarehouseId(), inventoryDetail.getWarehouseId())
                     && Objects.equals(it.getAreaId(), inventoryDetail.getAreaId())
+                    && Objects.equals(it.getRackId(), inventoryDetail.getRackId())
+                    && Objects.equals(it.getLocationId(), inventoryDetail.getLocationId())
                     && Objects.equals(it.getBatchNo(), inventoryDetail.getBatchNo()))
                 .findFirst()
                 .orElse(null);
             if (detail != null) {
+                inventoryDetail.setRackId(detail.getRackId());
+                inventoryDetail.setLocationId(detail.getLocationId());
                 inventoryDetail.setEquipmentCode(detail.getEquipmentCode());
                 inventoryDetail.setSpecModel(detail.getSpecModel());
                 inventoryDetail.setProductMark(detail.getProductMark());
@@ -225,12 +223,13 @@ public class ReceiptOrderService {
     }
 
     /**
-     * 合并入库单详情 合并key：warehouseId_areaId_skuId
-     * @param orderDetailBoList
-     * @return
+     * 合并入库单详情
+     * 合并key：warehouseId_areaId_rackId_locationId_skuId
+     * @param orderDetailBoList 明细
+     * @return 合并后的库存变更
      */
     private List<InventoryBo> convertInventoryList(List<ReceiptOrderDetailBo> orderDetailBoList) {
-        Function<ReceiptOrderDetailBo, String> keyFunction = it -> it.getWarehouseId() + "_" + it.getAreaId() + "_" + it.getSkuId();
+        Function<ReceiptOrderDetailBo, String> keyFunction = it -> it.getWarehouseId() + "_" + it.getAreaId() + "_" + it.getRackId() + "_" + it.getLocationId() + "_" + it.getSkuId();
         Map<String, InventoryBo> inventoryMap = new HashMap<>();
         orderDetailBoList.forEach(orderDetailBo -> {
             String key = keyFunction.apply(orderDetailBo);
@@ -242,6 +241,8 @@ public class ReceiptOrderService {
                 inventory.setSkuId(orderDetailBo.getSkuId());
                 inventory.setWarehouseId(orderDetailBo.getWarehouseId());
                 inventory.setAreaId(orderDetailBo.getAreaId());
+                inventory.setRackId(orderDetailBo.getRackId());
+                inventory.setLocationId(orderDetailBo.getLocationId());
                 inventory.setQuantity(orderDetailBo.getQuantity());
                 inventoryMap.put(key, inventory);
             }

@@ -124,6 +124,18 @@ public class MovementOrderDetailVo implements Serializable {
     private Long sourceAreaId;
 
     /**
+     * 源货架
+     */
+    @ExcelProperty(value = "源货架")
+    private Long sourceRackId;
+
+    /**
+     * 源货位
+     */
+    @ExcelProperty(value = "源货位")
+    private Long sourceLocationId;
+
+    /**
      * 目标仓库
      */
     @ExcelProperty(value = "目标仓库")
@@ -134,6 +146,18 @@ public class MovementOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "目标库区")
     private Long targetAreaId;
+
+    /**
+     * 目标货架
+     */
+    @ExcelProperty(value = "目标货架")
+    private Long targetRackId;
+
+    /**
+     * 目标货位
+     */
+    @ExcelProperty(value = "目标货位")
+    private Long targetLocationId;
 
     /**
      * 入库记录id

@@ -49,6 +49,16 @@ public class InventoryBo extends BaseEntity implements PlaceAndItem {
     private Long areaId;
 
     /**
+     * 所属货架
+     */
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    private Long locationId;
+
+    /**
      * 库存
      */
     @NotNull(message = "库存不能为空", groups = { AddGroup.class, EditGroup.class })

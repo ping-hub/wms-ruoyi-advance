@@ -75,6 +75,31 @@ public class BorrowRecord extends BaseEntity {
     private String qualityGrade;
 
     /**
+     * 借用单号
+     */
+    private String borrowNo;
+
+    /**
+     * 计划归还日期
+     */
+    private LocalDate planReturnDate;
+
+    /**
+     * 是否逾期
+     */
+    private Integer overdueFlag;
+
+    /**
+     * 逾期天数
+     */
+    private Integer overdueDays;
+
+    /**
+     * 物品码快照
+     */
+    private String instanceCode;
+
+    /**
      * 借用时间
      */
     private LocalDateTime borrowTime;

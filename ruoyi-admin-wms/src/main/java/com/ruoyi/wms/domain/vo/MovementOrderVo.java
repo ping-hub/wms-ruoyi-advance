@@ -156,6 +156,18 @@ public class MovementOrderVo extends BaseVo{
     private Long sourceAreaId;
 
     /**
+     * 源货架
+     */
+    @ExcelProperty(value = "源货架")
+    private Long sourceRackId;
+
+    /**
+     * 源货位
+     */
+    @ExcelProperty(value = "源货位")
+    private Long sourceLocationId;
+
+    /**
      * 目标仓库
      */
     @ExcelProperty(value = "目标仓库")
@@ -166,6 +178,24 @@ public class MovementOrderVo extends BaseVo{
      */
     @ExcelProperty(value = "目标库区")
     private Long targetAreaId;
+
+    /**
+     * 目标货架
+     */
+    @ExcelProperty(value = "目标货架")
+    private Long targetRackId;
+
+    /**
+     * 目标货位
+     */
+    @ExcelProperty(value = "目标货位")
+    private Long targetLocationId;
+
+    /**
+     * 调拨范围
+     */
+    @ExcelProperty(value = "调拨范围")
+    private String movementScope;
 
     /**
      * 状态

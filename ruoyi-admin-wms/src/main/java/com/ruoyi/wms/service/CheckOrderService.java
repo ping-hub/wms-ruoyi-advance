@@ -88,6 +88,8 @@ public class CheckOrderService {
         lqw.eq(bo.getCheckOrderTotal() != null, CheckOrder::getCheckOrderTotal, bo.getCheckOrderTotal());
         lqw.eq(bo.getWarehouseId() != null, CheckOrder::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, CheckOrder::getAreaId, bo.getAreaId());
+        lqw.eq(bo.getRackId() != null, CheckOrder::getRackId, bo.getRackId());
+        lqw.eq(StringUtils.isNotBlank(bo.getCheckScopeType()), CheckOrder::getCheckScopeType, bo.getCheckScopeType());
         lqw.orderByDesc(BaseEntity::getCreateTime);
         return lqw;
     }
@@ -205,7 +207,11 @@ public class CheckOrderService {
     }
 
     private void calcProfitAndLoss(List<CheckOrderDetailBo> details) {
-        details.forEach(detail -> detail.setProfitAndLoss(detail.getCheckQuantity().subtract(detail.getQuantity())));
+        details.forEach(detail -> {
+            BigDecimal differenceQuantity = detail.getCheckQuantity().subtract(detail.getQuantity());
+            detail.setProfitAndLoss(differenceQuantity);
+            detail.setDifferenceQuantity(differenceQuantity);
+        });
     }
 
     public List<InventoryDetailBo> splitOutShipmentData(List<CheckOrderDetailBo> details) {
@@ -217,10 +223,18 @@ public class CheckOrderService {
                 inventoryDetailBo.setSkuId(filteredDetail.getSkuId());
                 inventoryDetailBo.setWarehouseId(filteredDetail.getWarehouseId());
                 inventoryDetailBo.setAreaId(filteredDetail.getAreaId());
+                inventoryDetailBo.setRackId(filteredDetail.getRackId());
+                inventoryDetailBo.setLocationId(filteredDetail.getLocationId());
+                inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
+                inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
                 inventoryDetailBo.setBatchNo(filteredDetail.getBatchNo());
                 inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
+                inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
+                inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
+                inventoryDetailBo.setProductMark(filteredDetail.getProductMark());
+                inventoryDetailBo.setQualityGrade(filteredDetail.getQualityGrade());
                 inventoryDetailBo.setShipmentQuantity(filteredDetail.getProfitAndLoss().abs());
                 return inventoryDetailBo;
             }).toList();
@@ -236,10 +250,18 @@ public class CheckOrderService {
                 inventoryDetailBo.setSkuId(filteredDetail.getSkuId());
                 inventoryDetailBo.setWarehouseId(filteredDetail.getWarehouseId());
                 inventoryDetailBo.setAreaId(filteredDetail.getAreaId());
+                inventoryDetailBo.setRackId(filteredDetail.getRackId());
+                inventoryDetailBo.setLocationId(filteredDetail.getLocationId());
+                inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
+                inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
                 inventoryDetailBo.setBatchNo(filteredDetail.getBatchNo());
                 inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
+                inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
+                inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
+                inventoryDetailBo.setProductMark(filteredDetail.getProductMark());
+                inventoryDetailBo.setQualityGrade(filteredDetail.getQualityGrade());
                 inventoryDetailBo.setRemainQuantity(filteredDetail.getProfitAndLoss());
                 inventoryDetailBo.setCreateTime(filteredDetail.getReceiptTime());
                 return inventoryDetailBo;
@@ -282,24 +304,15 @@ public class CheckOrderService {
         if (CollUtil.isEmpty(details)) {
             return;
         }
-        Set<Long> inventoryDetailIds = details.stream().map(CheckOrderDetailBo::getInventoryDetailId).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
-        if (CollUtil.isEmpty(inventoryDetailIds)) {
-            return;
-        }
-        List<ItemInstance> relatedItems = itemInstanceService.lambdaQuery()
-            .in(ItemInstance::getReceiptOrderDetailId, inventoryDetailIds)
-            .list();
-        Map<Long, List<ItemInstance>> itemMap = relatedItems.stream().collect(java.util.stream.Collectors.groupingBy(ItemInstance::getReceiptOrderDetailId));
         for (CheckOrderDetailBo detail : details) {
-            if (detail.getProfitAndLoss() == null || detail.getInventoryDetailId() == null) {
+            if (detail.getProfitAndLoss() == null) {
                 continue;
             }
-            List<ItemInstance> currentItems = itemMap.getOrDefault(detail.getInventoryDetailId(), List.of());
+            if (detail.getItemInstanceId() == null) {
+                continue;
+            }
             if (detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) < 0) {
-                int disableCount = detail.getProfitAndLoss().abs().intValue();
-                for (int i = 0; i < Math.min(disableCount, currentItems.size()); i++) {
-                    itemInstanceService.markDisabled(currentItems.get(i).getId());
-                }
+                itemInstanceService.markDisabled(detail.getItemInstanceId());
             }
         }
     }

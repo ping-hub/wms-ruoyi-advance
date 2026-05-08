@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AutoMapper(target = Box.class, reverseConvertGenerate = false)
@@ -33,6 +35,31 @@ public class BoxBo extends BaseEntity {
     private String boxStatus;
 
     /**
+     * 长
+     */
+    private BigDecimal length;
+
+    /**
+     * 宽
+     */
+    private BigDecimal width;
+
+    /**
+     * 高
+     */
+    private BigDecimal height;
+
+    /**
+     * 容积
+     */
+    private BigDecimal volume;
+
+    /**
+     * 承重
+     */
+    private BigDecimal maxWeight;
+
+    /**
      * 所属仓库
      */
     private Long warehouseId;
@@ -51,6 +78,11 @@ public class BoxBo extends BaseEntity {
      * 所属货位
      */
     private Long locationId;
+
+    /**
+     * 箱内数量快照
+     */
+    private Integer itemCount;
 
     /**
      * 备注

@@ -17,6 +17,7 @@ import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.satoken.utils.LoginHelper;
 import com.ruoyi.wms.domain.bo.*;
 import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
@@ -90,15 +91,6 @@ public class ShipmentOrderService {
         lqw.eq(bo.getShipmentOrderType() != null, ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ShipmentOrder::getOrderNo, bo.getOrderNo());
         lqw.eq(bo.getMerchantId() != null, ShipmentOrder::getMerchantId, bo.getMerchantId());
-        lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ShipmentOrder::getBasisNo, bo.getBasisNo());
-        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ShipmentOrder::getDispatchMode, bo.getDispatchMode());
-        lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ShipmentOrder::getNoticeOrg, bo.getNoticeOrg());
-        lqw.like(StringUtils.isNotBlank(bo.getReceiveUnit()), ShipmentOrder::getReceiveUnit, bo.getReceiveUnit());
-        lqw.eq(bo.getPurchaseDate() != null, ShipmentOrder::getPurchaseDate, bo.getPurchaseDate());
-        lqw.eq(bo.getShipmentDate() != null, ShipmentOrder::getShipmentDate, bo.getShipmentDate());
-        lqw.like(StringUtils.isNotBlank(bo.getPurchaserName()), ShipmentOrder::getPurchaserName, bo.getPurchaserName());
-        lqw.like(StringUtils.isNotBlank(bo.getAcceptorName()), ShipmentOrder::getAcceptorName, bo.getAcceptorName());
-        lqw.like(StringUtils.isNotBlank(bo.getKeeperName()), ShipmentOrder::getKeeperName, bo.getKeeperName());
         lqw.eq(bo.getReceivableAmount() != null, ShipmentOrder::getReceivableAmount, bo.getReceivableAmount());
         lqw.eq(bo.getTotalQuantity() != null, ShipmentOrder::getTotalQuantity, bo.getTotalQuantity());
         lqw.eq(bo.getShipmentOrderStatus() != null, ShipmentOrder::getShipmentOrderStatus, bo.getShipmentOrderStatus());
@@ -187,8 +179,9 @@ public class ShipmentOrderService {
         validateBeforeShipment(bo);
         // 2.补齐箱体关联
         fillShipmentDetailBoxId(bo.getDetails());
-        // 2.按仓库库区规格合并商品明细数量
-        List<InventoryBo> mergedInventoryBoList = mergeShipmentOrderDetailByPlaceAndItem(bo.getDetails());
+        Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
+        // 2.按仓库/库区/货架/货位/规格合并商品明细数量
+        List<InventoryBo> mergedInventoryBoList = mergeShipmentOrderDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
         // 3.校验库存明细
         List<InventoryDetailBo> inventoryDetailBoList = convertShipmentOrderDetailToInventoryDetail(bo.getDetails());
         inventoryDetailService.validateRemainQuantity(inventoryDetailBoList);
@@ -204,28 +197,37 @@ public class ShipmentOrderService {
         // 6.更新库存明细：InventoryHistory表
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
         // 7.创建库存记录
-        saveInventoryHistory(bo);
+        saveInventoryHistory(bo, inventoryDetailMap);
         // 8.同步单品实例与箱体状态
         syncShipmentObjects(bo.getDetails());
     }
 
     /**
-     * 按仓库库区规格合并商品明细的数量
-     * @param shipmentOrderDetailBoList
-     * @return
+     * 按仓库/库区/货架/货位/规格合并商品明细数量
+     * @param shipmentOrderDetailBoList 明细
+     * @param inventoryDetailMap 库存明细映射
+     * @return 合并后的库存变更
      */
-    public List<InventoryBo> mergeShipmentOrderDetailByPlaceAndItem(@NotEmpty List<ShipmentOrderDetailBo> shipmentOrderDetailBoList) {
+    public List<InventoryBo> mergeShipmentOrderDetailByPlaceAndItem(@NotEmpty List<ShipmentOrderDetailBo> shipmentOrderDetailBoList,
+                                                                    Map<Long, InventoryDetail> inventoryDetailMap) {
         Map<String, InventoryBo> mergedMap = new HashMap<>();
         shipmentOrderDetailBoList.forEach(detail -> {
-            String mergedKey = detail.getKey();
+            InventoryDetail inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            Long warehouseId = inventoryDetail != null ? inventoryDetail.getWarehouseId() : detail.getWarehouseId();
+            Long areaId = inventoryDetail != null ? inventoryDetail.getAreaId() : detail.getAreaId();
+            Long rackId = inventoryDetail != null ? inventoryDetail.getRackId() : null;
+            Long locationId = inventoryDetail != null ? inventoryDetail.getLocationId() : null;
+            String mergedKey = warehouseId + "_" + areaId + "_" + rackId + "_" + locationId + "_" + detail.getSkuId();
             if (mergedMap.containsKey(mergedKey)) {
                 InventoryBo mergedInventoryBo = mergedMap.get(mergedKey);
                 mergedInventoryBo.setQuantity(mergedInventoryBo.getQuantity().add(detail.getQuantity()));
                 return;
             }
             InventoryBo mergedInventoryBo = new InventoryBo();
-            mergedInventoryBo.setWarehouseId(detail.getWarehouseId());
-            mergedInventoryBo.setAreaId(detail.getAreaId());
+            mergedInventoryBo.setWarehouseId(warehouseId);
+            mergedInventoryBo.setAreaId(areaId);
+            mergedInventoryBo.setRackId(rackId);
+            mergedInventoryBo.setLocationId(locationId);
             mergedInventoryBo.setSkuId(detail.getSkuId());
             mergedInventoryBo.setQuantity(detail.getQuantity());
             mergedMap.put(mergedKey, mergedInventoryBo);
@@ -245,20 +247,30 @@ public class ShipmentOrderService {
             }).toList();
     }
 
-    private void saveInventoryHistory(ShipmentOrderBo bo){
+    private void saveInventoryHistory(ShipmentOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap){
         List<InventoryHistory> inventoryHistoryList = new LinkedList<>();
         bo.getDetails().forEach(detail -> {
+            InventoryDetail inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
             InventoryHistory inventoryHistory = new InventoryHistory();
             inventoryHistory.setOrderId(bo.getId());
             inventoryHistory.setOrderNo(bo.getShipmentOrderNo());
             inventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.SHIPMENT);
             inventoryHistory.setSkuId(detail.getSkuId());
             inventoryHistory.setQuantity(detail.getQuantity().negate());
-            inventoryHistory.setWarehouseId(detail.getWarehouseId());
-            inventoryHistory.setAreaId(detail.getAreaId());
-            inventoryHistory.setBatchNo(detail.getBatchNo());
-            inventoryHistory.setProductionDate(detail.getProductionDate());
-            inventoryHistory.setExpirationDate(detail.getExpirationDate());
+            inventoryHistory.setWarehouseId(inventoryDetail != null ? inventoryDetail.getWarehouseId() : detail.getWarehouseId());
+            inventoryHistory.setAreaId(inventoryDetail != null ? inventoryDetail.getAreaId() : detail.getAreaId());
+            inventoryHistory.setRackId(inventoryDetail != null ? inventoryDetail.getRackId() : null);
+            inventoryHistory.setLocationId(inventoryDetail != null ? inventoryDetail.getLocationId() : null);
+            inventoryHistory.setItemInstanceId(detail.getItemInstanceId() != null ? detail.getItemInstanceId() :
+                (inventoryDetail != null ? inventoryDetail.getItemInstanceId() : null));
+            inventoryHistory.setBoxId(detail.getBoxId() != null ? detail.getBoxId() :
+                (inventoryDetail != null ? inventoryDetail.getBoxId() : null));
+            inventoryHistory.setBatchNo(detail.getBatchNo() != null ? detail.getBatchNo() :
+                (inventoryDetail != null ? inventoryDetail.getBatchNo() : null));
+            inventoryHistory.setProductionDate(detail.getProductionDate() != null ? detail.getProductionDate() :
+                (inventoryDetail != null ? inventoryDetail.getProductionDate() : null));
+            inventoryHistory.setExpirationDate(detail.getExpirationDate() != null ? detail.getExpirationDate() :
+                (inventoryDetail != null ? inventoryDetail.getExpirationDate() : null));
             inventoryHistory.setAmount(detail.getAmount());
             inventoryHistory.setEquipmentCode(detail.getEquipmentCode());
             inventoryHistory.setSpecModel(detail.getSpecModel());
@@ -270,6 +282,18 @@ public class ShipmentOrderService {
             inventoryHistoryList.add(inventoryHistory);
         });
         inventoryHistoryService.saveBatch(inventoryHistoryList);
+    }
+
+    private Map<Long, InventoryDetail> queryInventoryDetailMap(List<ShipmentOrderDetailBo> details) {
+        Set<Long> inventoryDetailIds = details.stream()
+            .map(ShipmentOrderDetailBo::getInventoryDetailId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(inventoryDetailIds)) {
+            return Map.of();
+        }
+        return inventoryDetailMapper.selectBatchIds(inventoryDetailIds).stream()
+            .collect(Collectors.toMap(InventoryDetail::getId, java.util.function.Function.identity()));
     }
 
     private void validateBeforeShipment(ShipmentOrderBo bo) {

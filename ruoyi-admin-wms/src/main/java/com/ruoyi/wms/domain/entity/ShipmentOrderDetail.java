@@ -47,33 +47,39 @@ public class ShipmentOrderDetail extends BaseEntity {
     private BigDecimal amount;
 
     /**
-     * 器材编码
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String equipmentCode;
 
     /**
-     * 规格型号
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String specModel;
 
     /**
-     * 产品标识
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String productMark;
 
     /**
-     * 质量等级
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String qualityGrade;
 
     /**
-     * 单价
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private BigDecimal unitPrice;
 
     /**
-     * 行金额
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private BigDecimal lineAmount;
     /**
      * 所属仓库

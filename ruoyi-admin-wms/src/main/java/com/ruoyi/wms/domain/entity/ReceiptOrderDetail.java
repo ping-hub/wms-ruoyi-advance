@@ -1,5 +1,6 @@
 package com.ruoyi.wms.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
@@ -47,33 +48,39 @@ public class ReceiptOrderDetail extends BaseEntity {
     private BigDecimal amount;
 
     /**
-     * 器材编码
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String equipmentCode;
 
     /**
-     * 规格型号
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String specModel;
 
     /**
-     * 产品标识
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String productMark;
 
     /**
-     * 质量等级
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private String qualityGrade;
 
     /**
-     * 单价
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private BigDecimal unitPrice;
 
     /**
-     * 行金额
+     * 兼容保留：当前库表已无此字段
      */
+    @TableField(exist = false)
     private BigDecimal lineAmount;
     /**
      * 批号
@@ -99,6 +106,16 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 所属库区
      */
     private Long areaId;
+
+    /**
+     * 所属货架
+     */
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    private Long locationId;
 
     /**
      * 是否生成单品实例

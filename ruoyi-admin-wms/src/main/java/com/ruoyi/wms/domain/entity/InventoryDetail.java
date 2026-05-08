@@ -61,6 +61,41 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
      * 所属库区
      */
     private Long areaId;
+
+    /**
+     * 所属货架
+     */
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    private Long locationId;
+
+    /**
+     * 物品明细ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
+
+    /**
+     * 来源单据类型
+     */
+    private String sourceOrderType;
+
+    /**
+     * 来源单据ID
+     */
+    private Long sourceOrderId;
+
+    /**
+     * 行号
+     */
+    private Integer lineNo;
     /**
      * 入库数量
      */

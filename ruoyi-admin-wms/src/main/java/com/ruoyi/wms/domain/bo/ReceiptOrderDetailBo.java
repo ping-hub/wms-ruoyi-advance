@@ -121,6 +121,16 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     private Long areaId;
 
     /**
+     * 所属货架
+     */
+    private Long rackId;
+
+    /**
+     * 所属货位
+     */
+    private Long locationId;
+
+    /**
      * 是否生成单品实例
      */
     private Integer generateItemInstance;

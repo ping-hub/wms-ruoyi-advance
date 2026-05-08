@@ -36,6 +36,36 @@ public class WarehouseVo implements Serializable {
      */
     @ExcelProperty(value = "名称")
     private String warehouseName;
+
+    /**
+     * 启用状态
+     */
+    @ExcelProperty(value = "启用状态")
+    private String status;
+
+    /**
+     * 仓库类型
+     */
+    @ExcelProperty(value = "仓库类型")
+    private String warehouseType;
+
+    /**
+     * 地址
+     */
+    @ExcelProperty(value = "地址")
+    private String address;
+
+    /**
+     * 负责人
+     */
+    @ExcelProperty(value = "负责人")
+    private String managerName;
+
+    /**
+     * 负责人电话
+     */
+    @ExcelProperty(value = "负责人电话")
+    private String managerPhone;
     /**
      * 排序
      */

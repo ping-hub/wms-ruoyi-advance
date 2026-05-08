@@ -60,6 +60,9 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
 
     public ItemInstanceVo queryById(Long id) {
         ItemInstanceVo vo = itemInstanceMapper.selectVoById(id);
+        if (vo == null) {
+            return null;
+        }
         enrich(List.of(vo));
         return vo;
     }
@@ -68,6 +71,9 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
         lqw.eq(ItemInstance::getInstanceCode, instanceCode);
         ItemInstanceVo vo = itemInstanceMapper.selectVoOne(lqw);
+        if (vo == null) {
+            return null;
+        }
         enrich(List.of(vo));
         return vo;
     }
@@ -128,6 +134,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
         wrapper.set(ItemInstance::getBorrowed, 0);
         wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, warehouseId);
         wrapper.set(ItemInstance::getAreaId, areaId);
         wrapper.set(ItemInstance::getRackId, rackId);
@@ -141,6 +148,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.DISABLED);
         wrapper.set(ItemInstance::getBorrowed, 0);
         wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, null);
         wrapper.set(ItemInstance::getAreaId, null);
         wrapper.set(ItemInstance::getRackId, null);
@@ -152,15 +160,16 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.deleteById(id);
     }
 
-    public void markInBox(Long id) {
+    public void markInBox(Long id, Box box) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_BOX);
         wrapper.set(ItemInstance::getInBox, 1);
-        wrapper.set(ItemInstance::getWarehouseId, null);
-        wrapper.set(ItemInstance::getAreaId, null);
-        wrapper.set(ItemInstance::getRackId, null);
-        wrapper.set(ItemInstance::getLocationId, null);
+        wrapper.set(ItemInstance::getBoxId, box.getId());
+        wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
+        wrapper.set(ItemInstance::getAreaId, box.getAreaId());
+        wrapper.set(ItemInstance::getRackId, box.getRackId());
+        wrapper.set(ItemInstance::getLocationId, box.getLocationId());
         itemInstanceMapper.update(null, wrapper);
     }
 
@@ -169,6 +178,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
         wrapper.set(ItemInstance::getInBox, 0);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
         wrapper.set(ItemInstance::getAreaId, box.getAreaId());
         wrapper.set(ItemInstance::getRackId, box.getRackId());
@@ -181,6 +191,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.BORROWED);
         wrapper.set(ItemInstance::getBorrowed, 1);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, null);
         wrapper.set(ItemInstance::getAreaId, null);
         wrapper.set(ItemInstance::getRackId, null);
@@ -193,6 +204,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
         wrapper.set(ItemInstance::getBorrowed, 0);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, warehouseId);
         wrapper.set(ItemInstance::getAreaId, areaId);
         wrapper.set(ItemInstance::getRackId, rackId);
@@ -206,6 +218,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND);
         wrapper.set(ItemInstance::getBorrowed, 0);
         wrapper.set(ItemInstance::getInBox, inBox == null ? 0 : inBox);
+        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, null);
         wrapper.set(ItemInstance::getAreaId, null);
         wrapper.set(ItemInstance::getRackId, null);
@@ -237,7 +250,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     }
 
     @Transactional
-    public void generateByReceiptOrder(ReceiptOrder receiptOrder, List<ReceiptOrderDetail> detailList) {
+    public void generateByReceiptOrder(ReceiptOrder receiptOrder, List<ReceiptOrderDetail> detailList, String belongUnit) {
         if (CollUtil.isEmpty(detailList)) {
             return;
         }
@@ -267,8 +280,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setBorrowed(0);
                 itemInstance.setWarehouseId(detail.getWarehouseId());
                 itemInstance.setAreaId(detail.getAreaId());
-                itemInstance.setRackId(null);
-                itemInstance.setLocationId(null);
+                itemInstance.setRackId(detail.getRackId());
+                itemInstance.setLocationId(detail.getLocationId());
                 itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.RECEIPT);
                 itemInstance.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.RECEIPT);
                 itemInstance.setSourceOrderId(receiptOrder.getId());
@@ -276,7 +289,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setReceiptOrderDetailId(detail.getId());
                 itemInstance.setProductMark(StrUtil.blankToDefault(detail.getProductMark(), item.getProductMarkRule()));
                 itemInstance.setQualityGrade(StrUtil.blankToDefault(detail.getQualityGrade(), item.getDefaultQualityGrade()));
-                itemInstance.setBelongUnit(receiptOrder.getReceiveUnit());
+                itemInstance.setBelongUnit(belongUnit);
                 itemInstance.setBatchNo(detail.getBatchNo());
                 itemInstance.setProductionDate(detail.getProductionDate());
                 itemInstance.setExpirationDate(detail.getExpirationDate());
@@ -310,11 +323,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.eq(bo.getLocationId() != null, ItemInstance::getLocationId, bo.getLocationId());
         lqw.eq(StrUtil.isNotBlank(bo.getSourceType()), ItemInstance::getSourceType, bo.getSourceType());
         lqw.eq(StrUtil.isNotBlank(bo.getSourceOrderType()), ItemInstance::getSourceOrderType, bo.getSourceOrderType());
+        lqw.eq(bo.getBoxId() != null, ItemInstance::getBoxId, bo.getBoxId());
         lqw.eq(bo.getSourceOrderId() != null, ItemInstance::getSourceOrderId, bo.getSourceOrderId());
         lqw.eq(bo.getReceiptOrderDetailId() != null, ItemInstance::getReceiptOrderDetailId, bo.getReceiptOrderDetailId());
         lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), ItemInstance::getProductMark, bo.getProductMark());
         lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), ItemInstance::getQualityGrade, bo.getQualityGrade());
         lqw.like(StrUtil.isNotBlank(bo.getBelongUnit()), ItemInstance::getBelongUnit, bo.getBelongUnit());
+        lqw.like(StrUtil.isNotBlank(bo.getCurrentOwnerUnit()), ItemInstance::getCurrentOwnerUnit, bo.getCurrentOwnerUnit());
         lqw.orderByDesc(ItemInstance::getCreateTime);
         return lqw;
     }

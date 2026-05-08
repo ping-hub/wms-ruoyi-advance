@@ -65,6 +65,8 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
         wrapper.eq(bo.getSkuId() != null, Inventory::getSkuId, bo.getSkuId());
         wrapper.eq(bo.getWarehouseId() != null, Inventory::getWarehouseId, bo.getWarehouseId());
         wrapper.eq(bo.getAreaId() != null, Inventory::getAreaId, bo.getAreaId());
+        wrapper.eq(bo.getRackId() != null, Inventory::getRackId, bo.getRackId());
+        wrapper.eq(bo.getLocationId() != null, Inventory::getLocationId, bo.getLocationId());
         wrapper.eq(bo.getQuantity() != null, Inventory::getQuantity, bo.getQuantity());
         return wrapper;
     }
@@ -108,6 +110,8 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
             LambdaQueryWrapper<Inventory> wrapper = Wrappers.lambdaQuery();
             wrapper.eq(Inventory::getWarehouseId, inventoryBo.getWarehouseId());
             wrapper.eq(Inventory::getAreaId, inventoryBo.getAreaId());
+            applyEqOrIsNull(wrapper, Inventory::getRackId, inventoryBo.getRackId());
+            applyEqOrIsNull(wrapper, Inventory::getLocationId, inventoryBo.getLocationId());
             wrapper.eq(Inventory::getSkuId, inventoryBo.getSkuId());
             Inventory result = inventoryMapper.selectOne(wrapper);
             if(result!=null){
@@ -123,6 +127,16 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
         }
         if (updateList.size() > 0) {
             updateBatchById(updateList);
+        }
+    }
+
+    private <T> void applyEqOrIsNull(LambdaQueryWrapper<Inventory> wrapper,
+                                     com.baomidou.mybatisplus.core.toolkit.support.SFunction<Inventory, T> column,
+                                     T value) {
+        if (value == null) {
+            wrapper.isNull(column);
+        } else {
+            wrapper.eq(column, value);
         }
     }
 

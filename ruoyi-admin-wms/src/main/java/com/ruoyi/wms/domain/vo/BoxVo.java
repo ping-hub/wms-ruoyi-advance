@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -29,6 +30,21 @@ public class BoxVo implements Serializable {
 
     @ExcelProperty(value = "箱体状态")
     private String boxStatus;
+
+    @ExcelProperty(value = "长")
+    private BigDecimal length;
+
+    @ExcelProperty(value = "宽")
+    private BigDecimal width;
+
+    @ExcelProperty(value = "高")
+    private BigDecimal height;
+
+    @ExcelProperty(value = "容积")
+    private BigDecimal volume;
+
+    @ExcelProperty(value = "承重")
+    private BigDecimal maxWeight;
 
     @ExcelProperty(value = "所属仓库")
     private Long warehouseId;

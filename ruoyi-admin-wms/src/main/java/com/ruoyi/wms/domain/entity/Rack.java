@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.math.BigDecimal;
 
 /**
  * 货架对象 wms_rack
@@ -51,6 +52,36 @@ public class Rack extends BaseEntity {
      * 货架类型
      */
     private String rackType;
+
+    /**
+     * 行数
+     */
+    private Integer rowCount;
+
+    /**
+     * 列数
+     */
+    private Integer columnCount;
+
+    /**
+     * 长
+     */
+    private BigDecimal length;
+
+    /**
+     * 宽
+     */
+    private BigDecimal width;
+
+    /**
+     * 高
+     */
+    private BigDecimal height;
+
+    /**
+     * 排序
+     */
+    private Long orderNum;
 
     /**
      * 备注

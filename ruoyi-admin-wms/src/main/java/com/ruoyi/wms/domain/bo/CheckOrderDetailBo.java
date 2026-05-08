@@ -60,6 +60,11 @@ public class CheckOrderDetailBo extends BaseEntity {
     private BigDecimal profitAndLoss;
 
     /**
+     * 差异数量
+     */
+    private BigDecimal differenceQuantity;
+
+    /**
      * 所属仓库
      */
     @NotNull(message = "所属仓库不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -70,6 +75,14 @@ public class CheckOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "所属库区不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long areaId;
+    /**
+     * 货架
+     */
+    private Long rackId;
+    /**
+     * 货位
+     */
+    private Long locationId;
     /**
      * 批号
      */
@@ -95,6 +108,36 @@ public class CheckOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "入库记录id不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long inventoryDetailId;
+
+    /**
+     * 器材编码
+     */
+    private String equipmentCode;
+
+    /**
+     * 规格型号
+     */
+    private String specModel;
+
+    /**
+     * 产品标识
+     */
+    private String productMark;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 物品明细ID
+     */
+    private Long itemInstanceId;
+
+    /**
+     * 箱体ID
+     */
+    private Long boxId;
 
     /**
      * 备注

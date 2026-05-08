@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.wms.domain.bo.BoxBo;
 import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.bo.LocationBo;
 import com.ruoyi.wms.domain.entity.Area;
@@ -18,8 +19,13 @@ import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.Warehouse;
 import com.ruoyi.wms.domain.vo.BoxVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
+import com.ruoyi.wms.domain.vo.LocationItemSummaryVo;
+import com.ruoyi.wms.domain.vo.LocationSummaryVo;
 import com.ruoyi.wms.domain.vo.LocationStockVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
+import com.ruoyi.wms.domain.vo.RackGridCellVo;
+import com.ruoyi.wms.domain.vo.RackGridVo;
+import com.ruoyi.wms.domain.vo.RackVo;
 import com.ruoyi.wms.mapper.AreaMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
@@ -105,8 +111,127 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         return stockVo;
     }
 
+    public RackGridVo queryRackGrid(Long rackId) {
+        RackVo rackVo = rackMapper.selectVoById(rackId);
+        Assert.notNull(rackVo, "货架不存在");
+        LocationBo locationBo = new LocationBo();
+        locationBo.setRackId(rackId);
+        List<LocationVo> locations = queryList(locationBo);
+
+        BoxBo boxBo = new BoxBo();
+        boxBo.setRackId(rackId);
+        List<BoxVo> boxes = boxService.queryList(boxBo);
+
+        ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
+        itemInstanceBo.setRackId(rackId);
+        List<ItemInstanceVo> itemInstances = itemInstanceService.queryList(itemInstanceBo);
+
+        Map<Long, Integer> boxCountMap = boxes.stream()
+            .filter(box -> box.getLocationId() != null)
+            .collect(Collectors.toMap(BoxVo::getLocationId, box -> 1, Integer::sum));
+        Map<Long, Integer> totalItemCountMap = itemInstances.stream()
+            .filter(item -> item.getLocationId() != null)
+            .collect(Collectors.toMap(ItemInstanceVo::getLocationId, item -> 1, Integer::sum));
+        Map<Long, Integer> directItemCountMap = itemInstances.stream()
+            .filter(item -> item.getLocationId() != null && !Integer.valueOf(1).equals(item.getInBox()))
+            .collect(Collectors.toMap(ItemInstanceVo::getLocationId, item -> 1, Integer::sum));
+
+        RackGridVo gridVo = new RackGridVo();
+        gridVo.setRackId(rackVo.getId());
+        gridVo.setRackCode(rackVo.getRackCode());
+        gridVo.setRackName(rackVo.getRackName());
+        gridVo.setWarehouseId(rackVo.getWarehouseId());
+        gridVo.setWarehouseName(rackVo.getWarehouseName());
+        gridVo.setAreaId(rackVo.getAreaId());
+        gridVo.setAreaName(rackVo.getAreaName());
+        gridVo.setRowCount(rackVo.getRowCount());
+        gridVo.setColumnCount(rackVo.getColumnCount());
+        gridVo.setCells(locations.stream()
+            .sorted(java.util.Comparator.comparing(LocationVo::getRowNo, java.util.Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(LocationVo::getColumnNo, java.util.Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(LocationVo::getSortNo, java.util.Comparator.nullsLast(Long::compareTo))
+                .thenComparing(LocationVo::getId))
+            .map(location -> {
+                RackGridCellVo cellVo = new RackGridCellVo();
+                cellVo.setRowNo(location.getRowNo());
+                cellVo.setColumnNo(location.getColumnNo());
+                cellVo.setLocationId(location.getId());
+                cellVo.setLocationCode(location.getLocationCode());
+                cellVo.setLocationName(location.getLocationName());
+                cellVo.setLocationStatus(location.getLocationStatus());
+                cellVo.setOccupiedFlag(location.getOccupiedFlag());
+                cellVo.setBoxCount(boxCountMap.getOrDefault(location.getId(), 0));
+                cellVo.setDirectItemCount(directItemCountMap.getOrDefault(location.getId(), 0));
+                cellVo.setItemInstanceCount(totalItemCountMap.getOrDefault(location.getId(), 0));
+                return cellVo;
+            })
+            .toList());
+        return gridVo;
+    }
+
+    public LocationSummaryVo querySummaryById(Long id) {
+        LocationVo locationVo = queryById(id);
+        Assert.notNull(locationVo, "货位不存在");
+
+        BoxBo boxBo = new BoxBo();
+        boxBo.setLocationId(id);
+        List<BoxVo> boxes = boxService.queryList(boxBo);
+
+        ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
+        itemInstanceBo.setLocationId(id);
+        List<ItemInstanceVo> itemInstances = itemInstanceService.queryList(itemInstanceBo);
+
+        LocationSummaryVo summaryVo = new LocationSummaryVo();
+        summaryVo.setLocationId(locationVo.getId());
+        summaryVo.setLocationCode(locationVo.getLocationCode());
+        summaryVo.setLocationName(locationVo.getLocationName());
+        summaryVo.setWarehouseId(locationVo.getWarehouseId());
+        summaryVo.setWarehouseName(locationVo.getWarehouseName());
+        summaryVo.setAreaId(locationVo.getAreaId());
+        summaryVo.setAreaName(locationVo.getAreaName());
+        summaryVo.setRackId(locationVo.getRackId());
+        summaryVo.setRackName(locationVo.getRackName());
+        summaryVo.setLocationStatus(locationVo.getLocationStatus());
+        summaryVo.setLocationType(locationVo.getLocationType());
+        summaryVo.setRowNo(locationVo.getRowNo());
+        summaryVo.setColumnNo(locationVo.getColumnNo());
+        summaryVo.setLength(locationVo.getLength());
+        summaryVo.setWidth(locationVo.getWidth());
+        summaryVo.setHeight(locationVo.getHeight());
+        summaryVo.setVolume(locationVo.getVolume());
+        summaryVo.setMaxWeight(locationVo.getMaxWeight());
+        summaryVo.setOccupiedFlag(locationVo.getOccupiedFlag());
+        summaryVo.setBoxCount(boxes.size());
+        summaryVo.setItemInstanceCount(itemInstances.size());
+        summaryVo.setDirectItemCount((int) itemInstances.stream()
+            .filter(item -> !Integer.valueOf(1).equals(item.getInBox()))
+            .count());
+        summaryVo.setItemSummaries(itemInstances.stream()
+            .collect(Collectors.groupingBy(
+                item -> item.getItemId() + "_" + item.getSkuId(),
+                Collectors.toList()
+            ))
+            .values()
+            .stream()
+            .map(items -> {
+                ItemInstanceVo first = items.get(0);
+                LocationItemSummaryVo itemSummaryVo = new LocationItemSummaryVo();
+                itemSummaryVo.setItemId(first.getItemId());
+                itemSummaryVo.setItemName(first.getItemName());
+                itemSummaryVo.setSkuId(first.getSkuId());
+                itemSummaryVo.setSkuName(first.getSkuName());
+                itemSummaryVo.setQuantity(items.size());
+                return itemSummaryVo;
+            })
+            .sorted(java.util.Comparator.comparing(LocationItemSummaryVo::getItemName, java.util.Comparator.nullsLast(String::compareTo))
+                .thenComparing(LocationItemSummaryVo::getSkuName, java.util.Comparator.nullsLast(String::compareTo)))
+            .toList());
+        return summaryVo;
+    }
+
     private LambdaQueryWrapper<Location> buildQueryWrapper(LocationBo bo) {
         LambdaQueryWrapper<Location> lqw = Wrappers.lambdaQuery();
+        lqw.eq(bo.getId() != null, Location::getId, bo.getId());
         lqw.eq(StrUtil.isNotBlank(bo.getLocationCode()), Location::getLocationCode, bo.getLocationCode());
         lqw.like(StrUtil.isNotBlank(bo.getLocationName()), Location::getLocationName, bo.getLocationName());
         lqw.eq(bo.getWarehouseId() != null, Location::getWarehouseId, bo.getWarehouseId());
@@ -114,7 +239,10 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         lqw.eq(bo.getRackId() != null, Location::getRackId, bo.getRackId());
         lqw.eq(StrUtil.isNotBlank(bo.getLocationStatus()), Location::getLocationStatus, bo.getLocationStatus());
         lqw.eq(StrUtil.isNotBlank(bo.getLocationType()), Location::getLocationType, bo.getLocationType());
-        lqw.orderByDesc(Location::getCreateTime);
+        lqw.eq(bo.getRowNo() != null, Location::getRowNo, bo.getRowNo());
+        lqw.eq(bo.getColumnNo() != null, Location::getColumnNo, bo.getColumnNo());
+        lqw.eq(bo.getOccupiedFlag() != null, Location::getOccupiedFlag, bo.getOccupiedFlag());
+        lqw.orderByAsc(Location::getSortNo).orderByDesc(Location::getCreateTime);
         return lqw;
     }
 
@@ -140,12 +268,29 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
         Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "同一货架下货位名称重复");
         if (StrUtil.isBlank(bo.getLocationCode())) {
+            validateGridUnique(bo);
             return;
         }
         queryWrapper.clear();
+        queryWrapper.eq(Location::getWarehouseId, bo.getWarehouseId());
+        queryWrapper.eq(Location::getAreaId, bo.getAreaId());
+        queryWrapper.eq(Location::getRackId, bo.getRackId());
         queryWrapper.eq(Location::getLocationCode, bo.getLocationCode());
         queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
         Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "货位编码重复");
+        validateGridUnique(bo);
+    }
+
+    private void validateGridUnique(LocationBo bo) {
+        if (bo.getRowNo() == null || bo.getColumnNo() == null) {
+            return;
+        }
+        LambdaQueryWrapper<Location> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(Location::getRackId, bo.getRackId());
+        queryWrapper.eq(Location::getRowNo, bo.getRowNo());
+        queryWrapper.eq(Location::getColumnNo, bo.getColumnNo());
+        queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
+        Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "同一货架下货位格子坐标重复");
     }
 
     private void validateBeforeDelete(Long id) {

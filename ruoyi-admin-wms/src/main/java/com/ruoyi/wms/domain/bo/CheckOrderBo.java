@@ -10,6 +10,7 @@ import jakarta.validation.constraints.*;
 import io.github.linpeilie.annotations.AutoMapper;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -57,6 +58,31 @@ public class CheckOrderBo extends BaseEntity {
      * 所属库区
      */
     private Long areaId;
+
+    /**
+     * 货架
+     */
+    private Long rackId;
+
+    /**
+     * 盘点范围类型
+     */
+    private String checkScopeType;
+
+    /**
+     * 盘点日期
+     */
+    private LocalDateTime checkDate;
+
+    /**
+     * 盘点人
+     */
+    private String checkerName;
+
+    /**
+     * 复核人
+     */
+    private String reviewerName;
 
     /**
      * 备注

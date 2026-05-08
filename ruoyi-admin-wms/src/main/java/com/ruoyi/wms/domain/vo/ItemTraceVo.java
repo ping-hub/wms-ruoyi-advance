@@ -19,4 +19,5 @@ public class ItemTraceVo implements Serializable {
     private List<BorrowRecordVo> borrowRecords;
     private List<ShipmentOrderDetailVo> shipmentDetails;
     private List<MovementOrderDetailVo> movementDetails;
+    private List<InventoryHistoryVo> inventoryHistories;
 }

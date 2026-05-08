@@ -1,6 +1,8 @@
 package com.ruoyi.wms.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
@@ -42,34 +44,16 @@ public class MovementOrderDetail extends BaseEntity {
      */
     private BigDecimal quantity;
 
-    /**
-     * 器材编码
-     */
     private String equipmentCode;
 
-    /**
-     * 规格型号
-     */
     private String specModel;
 
-    /**
-     * 产品标识
-     */
     private String productMark;
 
-    /**
-     * 质量等级
-     */
     private String qualityGrade;
 
-    /**
-     * 单价
-     */
     private BigDecimal unitPrice;
 
-    /**
-     * 行金额
-     */
     private BigDecimal lineAmount;
 
     /**
@@ -85,6 +69,14 @@ public class MovementOrderDetail extends BaseEntity {
      */
     private Long sourceAreaId;
     /**
+     * 源货架
+     */
+    private Long sourceRackId;
+    /**
+     * 源货位
+     */
+    private Long sourceLocationId;
+    /**
      * 目标仓库
      */
     private Long targetWarehouseId;
@@ -92,6 +84,14 @@ public class MovementOrderDetail extends BaseEntity {
      * 目标库区
      */
     private Long targetAreaId;
+    /**
+     * 目标货架
+     */
+    private Long targetRackId;
+    /**
+     * 目标货位
+     */
+    private Long targetLocationId;
     /**
      * 批号
      */

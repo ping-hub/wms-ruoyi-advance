@@ -15,9 +15,9 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BoxBo;
 import com.ruoyi.wms.domain.bo.BoxOperationBo;
+import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.Box;
-import com.ruoyi.wms.domain.entity.BoxItemRel;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
@@ -26,7 +26,6 @@ import com.ruoyi.wms.domain.vo.BoxVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.AreaMapper;
-import com.ruoyi.wms.mapper.BoxItemRelMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
@@ -36,7 +35,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +47,6 @@ import java.util.stream.Collectors;
 public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     private final BoxMapper boxMapper;
-    private final BoxItemRelMapper boxItemRelMapper;
     private final ItemInstanceService itemInstanceService;
     private final ItemSkuService itemSkuService;
     private final WarehouseMapper warehouseMapper;
@@ -59,6 +56,9 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     public BoxVo queryById(Long id) {
         BoxVo boxVo = boxMapper.selectVoById(id);
+        if (boxVo == null) {
+            return null;
+        }
         enrich(List.of(boxVo), true);
         return boxVo;
     }
@@ -67,6 +67,9 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         LambdaQueryWrapper<Box> lqw = Wrappers.lambdaQuery();
         lqw.eq(Box::getBoxCode, boxCode);
         BoxVo boxVo = boxMapper.selectVoOne(lqw);
+        if (boxVo == null) {
+            return null;
+        }
         enrich(List.of(boxVo), true);
         return boxVo;
     }
@@ -101,45 +104,46 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     public void pack(BoxOperationBo bo) {
         Box box = requireBox(bo.getBoxId());
         Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "箱体已停用，无法装箱");
+        Assert.isFalse(ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus()), "已出库箱体无法装箱");
         Set<Long> itemIds = Set.copyOf(bo.getItemInstanceIds());
         List<ItemInstanceVo> items = itemInstanceService.queryVosByIds(itemIds);
         Assert.isTrue(items.size() == itemIds.size(), "存在不存在的单品实例");
-        LambdaQueryWrapper<BoxItemRel> relQuery = Wrappers.lambdaQuery();
-        relQuery.in(BoxItemRel::getItemInstanceId, itemIds);
-        Assert.isTrue(boxItemRelMapper.selectCount(relQuery) == 0, "存在已装箱的单品实例");
+        Assert.isTrue(items.stream().noneMatch(item -> item.getBoxId() != null), "存在已装箱的单品实例");
         Set<Long> skuIds = items.stream().map(ItemInstanceVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream()
             .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        List<BoxItemRel> relList = new ArrayList<>();
+        LocationContext targetLocation = resolvePackTargetLocation(box, items);
         for (ItemInstanceVo item : items) {
             validateItemBeforePack(item, skuMap.get(item.getSkuId()));
-            BoxItemRel rel = new BoxItemRel();
-            rel.setBoxId(box.getId());
-            rel.setItemInstanceId(item.getId());
-            relList.add(rel);
+            validateItemLocationForPack(item, targetLocation);
         }
-        boxItemRelMapper.insertBatch(relList);
+        if (!sameLocation(box, targetLocation)) {
+            Box update = new Box();
+            update.setId(box.getId());
+            update.setWarehouseId(targetLocation.warehouseId());
+            update.setAreaId(targetLocation.areaId());
+            update.setRackId(targetLocation.rackId());
+            update.setLocationId(targetLocation.locationId());
+            boxMapper.updateById(update);
+            box = requireBox(box.getId());
+        }
         for (ItemInstanceVo item : items) {
-            itemInstanceService.markInBox(item.getId());
+            itemInstanceService.markInBox(item.getId(), box);
         }
-        updateBoxStatus(box.getId(), ServiceConstants.BoxStatus.PACKED);
+        syncBoxSnapshot(box.getId(), ServiceConstants.BoxStatus.PACKED);
     }
 
     @Transactional
     public void unpack(BoxOperationBo bo) {
         Box box = requireBox(bo.getBoxId());
         Set<Long> itemIds = Set.copyOf(bo.getItemInstanceIds());
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BoxItemRel::getBoxId, bo.getBoxId());
-        lqw.in(BoxItemRel::getItemInstanceId, itemIds);
-        List<BoxItemRel> relList = boxItemRelMapper.selectList(lqw);
-        Assert.isTrue(relList.size() == itemIds.size(), "存在不属于当前箱体的单品实例");
-        boxItemRelMapper.delete(lqw);
         List<ItemInstance> items = itemInstanceService.queryByIds(itemIds);
+        Assert.isTrue(items.size() == itemIds.size(), "存在不存在的单品实例");
+        Assert.isTrue(items.stream().allMatch(item -> Objects.equals(item.getBoxId(), bo.getBoxId())), "存在不属于当前箱体的单品实例");
         for (ItemInstance item : items) {
             itemInstanceService.restoreFromBox(item.getId(), box);
         }
-        updateBoxStatus(box.getId(), countItemsByBoxId(box.getId()) > 0 ? ServiceConstants.BoxStatus.PACKED : ServiceConstants.BoxStatus.IDLE);
+        syncBoxSnapshot(box.getId(), countItemsByBoxId(box.getId()) > 0 ? ServiceConstants.BoxStatus.PACKED : ServiceConstants.BoxStatus.IDLE);
     }
 
     public List<BoxVo> queryByLocationId(Long locationId) {
@@ -155,35 +159,33 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         if (CollUtil.isEmpty(itemInstanceIds)) {
             return Map.of();
         }
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.in(BoxItemRel::getItemInstanceId, itemInstanceIds);
-        return boxItemRelMapper.selectList(lqw).stream()
-            .collect(Collectors.toMap(BoxItemRel::getItemInstanceId, BoxItemRel::getBoxId, (a, b) -> a));
+        List<ItemInstanceVo> list = itemInstanceService.queryVosByIds(itemInstanceIds);
+        return list.stream()
+            .filter(item -> item.getBoxId() != null)
+            .collect(Collectors.toMap(ItemInstanceVo::getId, ItemInstanceVo::getBoxId, (a, b) -> a));
     }
 
     public Set<Long> queryItemIdsByBoxId(Long boxId) {
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BoxItemRel::getBoxId, boxId);
-        return boxItemRelMapper.selectList(lqw).stream()
-            .map(BoxItemRel::getItemInstanceId)
+        ItemInstanceBo bo = new ItemInstanceBo();
+        bo.setBoxId(boxId);
+        return itemInstanceService.queryList(bo).stream()
+            .map(ItemInstanceVo::getId)
             .collect(Collectors.toSet());
     }
 
     public BoxVo queryByItemInstanceId(Long itemInstanceId) {
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BoxItemRel::getItemInstanceId, itemInstanceId);
-        lqw.last("limit 1");
-        BoxItemRel rel = boxItemRelMapper.selectOne(lqw);
-        if (rel == null) {
+        ItemInstanceVo item = itemInstanceService.queryById(itemInstanceId);
+        if (item == null || item.getBoxId() == null) {
             return null;
         }
-        return queryById(rel.getBoxId());
+        return queryById(item.getBoxId());
     }
 
     public void markOutbound(Long boxId) {
         Box update = new Box();
         update.setId(boxId);
         update.setBoxStatus(ServiceConstants.BoxStatus.OUTBOUND);
+        update.setItemCount(countItemsByBoxId(boxId));
         update.setWarehouseId(null);
         update.setAreaId(null);
         update.setRackId(null);
@@ -195,6 +197,7 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         Box update = new Box();
         update.setId(boxId);
         update.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+        update.setItemCount(countItemsByBoxId(boxId));
         update.setWarehouseId(warehouseId);
         update.setAreaId(areaId);
         update.setRackId(rackId);
@@ -275,6 +278,13 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         Assert.isTrue(Integer.valueOf(1).equals(skuVo.getItem().getAllowBox()), "物品未开启装箱，不允许装箱");
     }
 
+    private void validateItemLocationForPack(ItemInstanceVo item, LocationContext targetLocation) {
+        Assert.isTrue(Objects.equals(item.getWarehouseId(), targetLocation.warehouseId()), "待装箱单品不在同一仓库，无法装入同一箱体");
+        Assert.isTrue(Objects.equals(item.getAreaId(), targetLocation.areaId()), "待装箱单品不在同一库区，无法装入同一箱体");
+        Assert.isTrue(Objects.equals(item.getRackId(), targetLocation.rackId()), "待装箱单品不在同一货架，无法装入同一箱体");
+        Assert.isTrue(Objects.equals(item.getLocationId(), targetLocation.locationId()), "待装箱单品不在同一货位，无法装入同一箱体");
+    }
+
     private Box requireBox(Long boxId) {
         Box box = boxMapper.selectById(boxId);
         Assert.notNull(box, "箱体不存在");
@@ -288,14 +298,41 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         boxMapper.updateById(update);
     }
 
+    private void syncBoxSnapshot(Long boxId, String boxStatus) {
+        Box update = new Box();
+        update.setId(boxId);
+        update.setBoxStatus(boxStatus);
+        update.setItemCount(countItemsByBoxId(boxId));
+        boxMapper.updateById(update);
+    }
+
     private int countItemsByBoxId(Long boxId) {
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BoxItemRel::getBoxId, boxId);
-        return Math.toIntExact(boxItemRelMapper.selectCount(lqw));
+        ItemInstanceBo bo = new ItemInstanceBo();
+        bo.setBoxId(boxId);
+        return itemInstanceService.queryList(bo).size();
     }
 
     private String generateBoxCode() {
         return "BOX" + IdUtil.getSnowflakeNextIdStr();
+    }
+
+    private LocationContext resolvePackTargetLocation(Box box, List<ItemInstanceVo> items) {
+        Assert.isTrue(CollUtil.isNotEmpty(items), "待装箱单品不能为空");
+        if (countItemsByBoxId(box.getId()) > 0) {
+            return new LocationContext(box.getWarehouseId(), box.getAreaId(), box.getRackId(), box.getLocationId());
+        }
+        ItemInstanceVo firstItem = items.get(0);
+        return new LocationContext(firstItem.getWarehouseId(), firstItem.getAreaId(), firstItem.getRackId(), firstItem.getLocationId());
+    }
+
+    private boolean sameLocation(Box box, LocationContext location) {
+        return Objects.equals(box.getWarehouseId(), location.warehouseId())
+            && Objects.equals(box.getAreaId(), location.areaId())
+            && Objects.equals(box.getRackId(), location.rackId())
+            && Objects.equals(box.getLocationId(), location.locationId());
+    }
+
+    private record LocationContext(Long warehouseId, Long areaId, Long rackId, Long locationId) {
     }
 
     private void enrich(List<BoxVo> list, boolean loadItems) {
@@ -319,13 +356,11 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
             rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
         Map<Long, Location> locationMap = locationIds.isEmpty() ? Map.of() :
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
-        LambdaQueryWrapper<BoxItemRel> lqw = Wrappers.lambdaQuery();
-        lqw.in(BoxItemRel::getBoxId, boxIds);
-        List<BoxItemRel> relList = boxIds.isEmpty() ? List.of() : boxItemRelMapper.selectList(lqw);
-        Map<Long, List<BoxItemRel>> relMap = relList.stream().collect(Collectors.groupingBy(BoxItemRel::getBoxId));
-        Set<Long> itemIds = relList.stream().map(BoxItemRel::getItemInstanceId).collect(Collectors.toSet());
-        Map<Long, ItemInstanceVo> itemMap = itemInstanceService.queryVosByIds(itemIds).stream()
-            .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
+        ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
+        List<ItemInstanceVo> boxItems = boxIds.isEmpty() ? List.of() : itemInstanceService.queryList(itemInstanceBo).stream()
+            .filter(item -> item.getBoxId() != null && boxIds.contains(item.getBoxId()))
+            .toList();
+        Map<Long, List<ItemInstanceVo>> itemMapByBoxId = boxItems.stream().collect(Collectors.groupingBy(ItemInstanceVo::getBoxId));
         validList.forEach(boxVo -> {
             Warehouse warehouse = warehouseMap.get(boxVo.getWarehouseId());
             if (warehouse != null) {
@@ -343,13 +378,10 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
             if (location != null) {
                 boxVo.setLocationName(location.getLocationName());
             }
-            List<BoxItemRel> currentRelList = relMap.getOrDefault(boxVo.getId(), List.of());
-            boxVo.setItemCount(currentRelList.size());
+            List<ItemInstanceVo> currentItems = itemMapByBoxId.getOrDefault(boxVo.getId(), List.of());
+            boxVo.setItemCount(currentItems.size());
             if (loadItems) {
-                boxVo.setItems(currentRelList.stream()
-                    .map(it -> itemMap.get(it.getItemInstanceId()))
-                    .filter(Objects::nonNull)
-                    .toList());
+                boxVo.setItems(currentItems);
             }
         });
     }

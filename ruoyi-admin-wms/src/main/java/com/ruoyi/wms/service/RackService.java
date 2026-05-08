@@ -86,13 +86,14 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
 
     private LambdaQueryWrapper<Rack> buildQueryWrapper(RackBo bo) {
         LambdaQueryWrapper<Rack> lqw = Wrappers.lambdaQuery();
+        lqw.eq(bo.getId() != null, Rack::getId, bo.getId());
         lqw.eq(StrUtil.isNotBlank(bo.getRackCode()), Rack::getRackCode, bo.getRackCode());
         lqw.like(StrUtil.isNotBlank(bo.getRackName()), Rack::getRackName, bo.getRackName());
         lqw.eq(bo.getWarehouseId() != null, Rack::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, Rack::getAreaId, bo.getAreaId());
         lqw.eq(StrUtil.isNotBlank(bo.getRackStatus()), Rack::getRackStatus, bo.getRackStatus());
         lqw.eq(StrUtil.isNotBlank(bo.getRackType()), Rack::getRackType, bo.getRackType());
-        lqw.orderByDesc(Rack::getCreateTime);
+        lqw.orderByAsc(Rack::getOrderNum).orderByDesc(Rack::getCreateTime);
         return lqw;
     }
 
@@ -117,6 +118,8 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
             return;
         }
         queryWrapper.clear();
+        queryWrapper.eq(Rack::getWarehouseId, bo.getWarehouseId());
+        queryWrapper.eq(Rack::getAreaId, bo.getAreaId());
         queryWrapper.eq(Rack::getRackCode, bo.getRackCode());
         queryWrapper.ne(bo.getId() != null, Rack::getId, bo.getId());
         Assert.isTrue(rackMapper.selectCount(queryWrapper) == 0, "货架编码重复");

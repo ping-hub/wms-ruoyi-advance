@@ -67,14 +67,10 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
         lqw.eq(bo.getSkuId() != null, ReceiptOrderDetail::getSkuId, bo.getSkuId());
         lqw.eq(bo.getQuantity() != null, ReceiptOrderDetail::getQuantity, bo.getQuantity());
         lqw.eq(bo.getAmount() != null, ReceiptOrderDetail::getAmount, bo.getAmount());
-        lqw.eq(StringUtils.isNotBlank(bo.getEquipmentCode()), ReceiptOrderDetail::getEquipmentCode, bo.getEquipmentCode());
-        lqw.like(StringUtils.isNotBlank(bo.getSpecModel()), ReceiptOrderDetail::getSpecModel, bo.getSpecModel());
-        lqw.eq(StringUtils.isNotBlank(bo.getProductMark()), ReceiptOrderDetail::getProductMark, bo.getProductMark());
-        lqw.eq(StringUtils.isNotBlank(bo.getQualityGrade()), ReceiptOrderDetail::getQualityGrade, bo.getQualityGrade());
-        lqw.eq(bo.getUnitPrice() != null, ReceiptOrderDetail::getUnitPrice, bo.getUnitPrice());
-        lqw.eq(bo.getLineAmount() != null, ReceiptOrderDetail::getLineAmount, bo.getLineAmount());
         lqw.eq(bo.getWarehouseId() != null, ReceiptOrderDetail::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, ReceiptOrderDetail::getAreaId, bo.getAreaId());
+        lqw.eq(bo.getRackId() != null, ReceiptOrderDetail::getRackId, bo.getRackId());
+        lqw.eq(bo.getLocationId() != null, ReceiptOrderDetail::getLocationId, bo.getLocationId());
         return lqw;
     }
 

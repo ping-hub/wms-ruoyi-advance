@@ -10,6 +10,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AutoMapper(target = Rack.class, reverseConvertGenerate = false)
@@ -50,6 +52,36 @@ public class RackBo extends BaseEntity {
      * 货架类型
      */
     private String rackType;
+
+    /**
+     * 行数
+     */
+    private Integer rowCount;
+
+    /**
+     * 列数
+     */
+    private Integer columnCount;
+
+    /**
+     * 长
+     */
+    private BigDecimal length;
+
+    /**
+     * 宽
+     */
+    private BigDecimal width;
+
+    /**
+     * 高
+     */
+    private BigDecimal height;
+
+    /**
+     * 排序
+     */
+    private Long orderNum;
 
     /**
      * 备注

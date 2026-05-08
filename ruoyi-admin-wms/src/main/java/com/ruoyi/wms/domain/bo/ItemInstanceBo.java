@@ -81,6 +81,11 @@ public class ItemInstanceBo extends BaseEntity {
     private String sourceOrderType;
 
     /**
+     * 当前所在箱体ID
+     */
+    private Long boxId;
+
+    /**
      * 来源单据ID
      */
     private Long sourceOrderId;
@@ -109,6 +114,21 @@ public class ItemInstanceBo extends BaseEntity {
      * 所在单位
      */
     private String belongUnit;
+
+    /**
+     * 当前责任单位
+     */
+    private String currentOwnerUnit;
+
+    /**
+     * 最后一次业务动作
+     */
+    private String lastOperationType;
+
+    /**
+     * 最后动作时间
+     */
+    private LocalDateTime lastOperationTime;
 
     /**
      * 批号

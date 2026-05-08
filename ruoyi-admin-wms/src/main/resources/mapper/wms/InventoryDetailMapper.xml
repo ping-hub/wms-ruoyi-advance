@@ -42,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 and item.item_code like concat('%', #{bo.itemCode}, '%')
             </if>
             <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
-                and detail.equipment_code like concat('%', #{bo.equipmentCode}, '%')
+                and coalesce(detail.equipment_code, item.item_code) like concat('%', #{bo.equipmentCode}, '%')
             </if>
             <if test="bo.equipmentName != null and bo.equipmentName != ''">
                 and item.equipment_name like concat('%', #{bo.equipmentName}, '%')

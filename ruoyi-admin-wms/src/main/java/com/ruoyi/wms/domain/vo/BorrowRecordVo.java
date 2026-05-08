@@ -61,6 +61,18 @@ public class BorrowRecordVo implements Serializable {
     @ExcelProperty(value = "质量等级")
     private String qualityGrade;
 
+    @ExcelProperty(value = "借用单号")
+    private String borrowNo;
+
+    @ExcelProperty(value = "计划归还日期")
+    private LocalDate planReturnDate;
+
+    @ExcelProperty(value = "是否逾期")
+    private Integer overdueFlag;
+
+    @ExcelProperty(value = "逾期天数")
+    private Integer overdueDays;
+
     @ExcelProperty(value = "借用时间")
     private LocalDateTime borrowTime;
 

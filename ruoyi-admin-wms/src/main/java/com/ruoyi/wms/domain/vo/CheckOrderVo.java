@@ -13,6 +13,7 @@ import io.github.linpeilie.annotations.AutoMapper;
 
 import java.io.Serializable;
 import java.io.Serial;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -64,6 +65,36 @@ public class CheckOrderVo extends BaseVo {
      */
     @ExcelProperty(value = "所属库区")
     private Long areaId;
+
+    /**
+     * 货架
+     */
+    @ExcelProperty(value = "货架")
+    private Long rackId;
+
+    /**
+     * 盘点范围类型
+     */
+    @ExcelProperty(value = "盘点范围类型")
+    private String checkScopeType;
+
+    /**
+     * 盘点日期
+     */
+    @ExcelProperty(value = "盘点日期")
+    private LocalDateTime checkDate;
+
+    /**
+     * 盘点人
+     */
+    @ExcelProperty(value = "盘点人")
+    private String checkerName;
+
+    /**
+     * 复核人
+     */
+    @ExcelProperty(value = "复核人")
+    private String reviewerName;
 
     /**
      * 备注

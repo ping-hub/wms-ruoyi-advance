@@ -11,6 +11,7 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.BorrowRecordBo;
+import com.ruoyi.wms.domain.vo.BorrowWarningStatsVo;
 import com.ruoyi.wms.domain.vo.BorrowRecordVo;
 import com.ruoyi.wms.service.BorrowRecordService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -58,6 +59,12 @@ public class BorrowRecordController extends BaseController {
     @GetMapping("/current/{itemInstanceId}")
     public R<BorrowRecordVo> getCurrent(@NotNull(message = "单品实例不能为空") @PathVariable Long itemInstanceId) {
         return R.ok(borrowRecordService.queryCurrentByItemInstanceId(itemInstanceId));
+    }
+
+    @SaCheckPermission("wms:borrowRecord:list")
+    @GetMapping("/warning/stats")
+    public R<BorrowWarningStatsVo> warningStats() {
+        return R.ok(borrowRecordService.queryWarningStats());
     }
 
     @SaCheckPermission("wms:borrowRecord:edit")

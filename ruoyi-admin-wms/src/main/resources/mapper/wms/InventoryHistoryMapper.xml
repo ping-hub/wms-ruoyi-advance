@@ -14,6 +14,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join wms_item_sku sku on history.sku_id=sku.id
         left join wms_item item on sku.item_id=item.id
         <where>
+            <if test="bo.orderId != null">
+                and history.order_id=#{bo.orderId}
+            </if>
             <if test="bo.orderType != null">
                 and history.order_type=#{bo.orderType}
             </if>
@@ -27,7 +30,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 and item.item_code like concat('%', #{bo.itemCode}, '%')
             </if>
             <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
-                and history.equipment_code like concat('%', #{bo.equipmentCode}, '%')
+                and coalesce(history.equipment_code, item.item_code) like concat('%', #{bo.equipmentCode}, '%')
             </if>
             <if test="bo.equipmentName != null and bo.equipmentName != ''">
                 and item.equipment_name like concat('%', #{bo.equipmentName}, '%')
@@ -55,6 +58,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.areaId != null">
                 and history.area_id=#{bo.areaId}
+            </if>
+            <if test="bo.rackId != null">
+                and history.rack_id=#{bo.rackId}
+            </if>
+            <if test="bo.locationId != null">
+                and history.location_id=#{bo.locationId}
+            </if>
+            <if test="bo.itemInstanceId != null">
+                and history.item_instance_id=#{bo.itemInstanceId}
+            </if>
+            <if test="bo.boxId != null">
+                and history.box_id=#{bo.boxId}
+            </if>
+            <if test="bo.skuId != null">
+                and history.sku_id=#{bo.skuId}
             </if>
             <if test="bo.startTime != null and bo.startTime != '' and bo.endTime != null and bo.endTime != ''">
                 and (history.create_time between #{bo.startTime} and #{bo.endTime})

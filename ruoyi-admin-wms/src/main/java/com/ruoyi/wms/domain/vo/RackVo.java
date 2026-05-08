@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Data
 @ExcelIgnoreUnannotated
@@ -67,6 +68,42 @@ public class RackVo implements Serializable {
      */
     @ExcelProperty(value = "货架类型")
     private String rackType;
+
+    /**
+     * 行数
+     */
+    @ExcelProperty(value = "行数")
+    private Integer rowCount;
+
+    /**
+     * 列数
+     */
+    @ExcelProperty(value = "列数")
+    private Integer columnCount;
+
+    /**
+     * 长
+     */
+    @ExcelProperty(value = "长")
+    private BigDecimal length;
+
+    /**
+     * 宽
+     */
+    @ExcelProperty(value = "宽")
+    private BigDecimal width;
+
+    /**
+     * 高
+     */
+    @ExcelProperty(value = "高")
+    private BigDecimal height;
+
+    /**
+     * 排序
+     */
+    @ExcelProperty(value = "排序")
+    private Long orderNum;
 
     /**
      * 备注

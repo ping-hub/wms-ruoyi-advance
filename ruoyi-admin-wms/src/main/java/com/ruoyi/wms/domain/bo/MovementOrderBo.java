@@ -134,6 +134,16 @@ public class MovementOrderBo extends BaseEntity {
     private Long sourceAreaId;
 
     /**
+     * 源货架
+     */
+    private Long sourceRackId;
+
+    /**
+     * 源货位
+     */
+    private Long sourceLocationId;
+
+    /**
      * 目标仓库
      */
     @NotNull(message = "目标仓库不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -143,6 +153,21 @@ public class MovementOrderBo extends BaseEntity {
      * 目标库区
      */
     private Long targetAreaId;
+
+    /**
+     * 目标货架
+     */
+    private Long targetRackId;
+
+    /**
+     * 目标货位
+     */
+    private Long targetLocationId;
+
+    /**
+     * 调拨范围
+     */
+    private String movementScope;
 
     /**
      * 状态

@@ -18,6 +18,7 @@ public class TraceService {
     private final BorrowRecordService borrowRecordService;
     private final ShipmentOrderDetailService shipmentOrderDetailService;
     private final MovementOrderDetailService movementOrderDetailService;
+    private final InventoryHistoryService inventoryHistoryService;
     private final LocationService locationService;
 
     public ItemTraceVo queryItemTraceByCode(String instanceCode) {
@@ -35,6 +36,7 @@ public class TraceService {
         traceVo.setBorrowRecords(borrowRecordService.queryList(borrowRecordBo));
         traceVo.setShipmentDetails(shipmentOrderDetailService.queryByItemInstanceId(itemInstance.getId()));
         traceVo.setMovementDetails(movementOrderDetailService.queryByItemInstanceId(itemInstance.getId()));
+        traceVo.setInventoryHistories(inventoryHistoryService.queryByItemInstanceId(itemInstance.getId()));
         return traceVo;
     }
 
@@ -48,6 +50,7 @@ public class TraceService {
         }
         traceVo.setShipmentDetails(shipmentOrderDetailService.queryByBoxId(box.getId()));
         traceVo.setMovementDetails(movementOrderDetailService.queryByBoxId(box.getId()));
+        traceVo.setInventoryHistories(inventoryHistoryService.queryByBoxId(box.getId()));
         return traceVo;
     }
 }

@@ -10,10 +10,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
+import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.MovementOrderDetailVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
+import com.ruoyi.wms.mapper.BoxMapper;
+import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
@@ -40,6 +44,8 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
     private final CheckOrderDetailMapper checkOrderDetailMapper;
     private final ItemSkuService itemSkuService;
     private final InventoryDetailMapper inventoryDetailMapper;
+    private final ItemInstanceMapper itemInstanceMapper;
+    private final BoxMapper boxMapper;
 
     /**
      * 查询库存盘点单据详情
@@ -82,7 +88,11 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
         lqw.eq(bo.getCheckQuantity() != null, CheckOrderDetail::getCheckQuantity, bo.getCheckQuantity());
         lqw.eq(bo.getWarehouseId() != null, CheckOrderDetail::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, CheckOrderDetail::getAreaId, bo.getAreaId());
+        lqw.eq(bo.getRackId() != null, CheckOrderDetail::getRackId, bo.getRackId());
+        lqw.eq(bo.getLocationId() != null, CheckOrderDetail::getLocationId, bo.getLocationId());
         lqw.eq(bo.getInventoryDetailId() != null, CheckOrderDetail::getInventoryDetailId, bo.getInventoryDetailId());
+        lqw.eq(bo.getItemInstanceId() != null, CheckOrderDetail::getItemInstanceId, bo.getItemInstanceId());
+        lqw.eq(bo.getBoxId() != null, CheckOrderDetail::getBoxId, bo.getBoxId());
         lqw.apply(bo.getHaveProfitAndLoss() != null && bo.getHaveProfitAndLoss(), "quantity != check_quantity");
         return lqw;
     }
@@ -139,6 +149,31 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
             it.setItemSku(itemSkuMap.get(it.getSkuId()));
             it.setRemainQuantity(remainQuantityMap.getOrDefault(it.getInventoryDetailId(), BigDecimal.ZERO));
         });
+        enrichTrackingInfo(details);
         return details;
+    }
+
+    private void enrichTrackingInfo(List<CheckOrderDetailVo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Set<Long> itemInstanceIds = details.stream().map(CheckOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> boxIds = details.stream().map(CheckOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty()
+            ? Map.of()
+            : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
+        Map<Long, Box> boxMap = boxIds.isEmpty()
+            ? Map.of()
+            : boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
+        details.forEach(detail -> {
+            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            if (itemInstance != null) {
+                detail.setInstanceCode(itemInstance.getInstanceCode());
+            }
+            Box box = boxMap.get(detail.getBoxId());
+            if (box != null) {
+                detail.setBoxCode(box.getBoxCode());
+            }
+        });
     }
 }

@@ -2,6 +2,7 @@ package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -18,6 +19,7 @@ import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.Warehouse;
+import com.ruoyi.wms.domain.vo.BorrowWarningStatsVo;
 import com.ruoyi.wms.domain.vo.BorrowRecordVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.mapper.AreaMapper;
@@ -51,6 +53,9 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
 
     public BorrowRecordVo queryById(Long id) {
         BorrowRecordVo vo = borrowRecordMapper.selectVoById(id);
+        if (vo == null) {
+            return null;
+        }
         enrich(List.of(vo));
         return vo;
     }
@@ -62,6 +67,9 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         lqw.orderByDesc(BorrowRecord::getBorrowTime);
         lqw.last("limit 1");
         BorrowRecordVo vo = borrowRecordMapper.selectVoOne(lqw);
+        if (vo == null) {
+            return null;
+        }
         enrich(List.of(vo));
         return vo;
     }
@@ -80,6 +88,24 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return list;
     }
 
+    public BorrowWarningStatsVo queryWarningStats() {
+        BorrowWarningStatsVo statsVo = new BorrowWarningStatsVo();
+
+        LambdaQueryWrapper<BorrowRecord> borrowingWrapper = Wrappers.lambdaQuery();
+        borrowingWrapper.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
+        statsVo.setBorrowingCount(borrowRecordMapper.selectCount(borrowingWrapper));
+
+        LambdaQueryWrapper<BorrowRecord> overdueWrapper = Wrappers.lambdaQuery();
+        overdueWrapper.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
+        overdueWrapper.and(wrapper -> wrapper
+            .eq(BorrowRecord::getOverdueFlag, 1)
+            .or()
+            .lt(BorrowRecord::getPlanReturnDate, java.time.LocalDate.now()));
+        statsVo.setOverdueCount(borrowRecordMapper.selectCount(overdueWrapper));
+
+        return statsVo;
+    }
+
     @Transactional
     public void borrow(BorrowRecordBo bo) {
         ItemInstance itemInstance = requireBorrowableItem(bo.getItemInstanceId());
@@ -95,12 +121,16 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setDocDate(bo.getDocDate());
         add.setProductMark(bo.getProductMark());
         add.setQualityGrade(bo.getQualityGrade());
+        add.setBorrowNo(StrUtil.blankToDefault(bo.getBorrowNo(), generateBorrowNo()));
+        add.setPlanReturnDate(bo.getPlanReturnDate());
+        add.setInstanceCode(StrUtil.blankToDefault(bo.getInstanceCode(), itemInstance.getInstanceCode()));
         add.setBorrowTime(bo.getBorrowTime() == null ? LocalDateTime.now() : bo.getBorrowTime());
         add.setBorrowRemark(bo.getBorrowRemark());
         add.setOriginalWarehouseId(itemInstance.getWarehouseId());
         add.setOriginalAreaId(itemInstance.getAreaId());
         add.setOriginalRackId(itemInstance.getRackId());
         add.setOriginalLocationId(itemInstance.getLocationId());
+        fillOverdueFields(add, add.getBorrowTime(), null);
         borrowRecordMapper.insert(add);
         itemInstanceService.markBorrowed(itemInstance.getId());
         createBorrowHistory(add, itemInstance);
@@ -126,7 +156,10 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         update.setReturnedAreaId(borrowRecord.getOriginalAreaId());
         update.setReturnedRackId(borrowRecord.getOriginalRackId());
         update.setReturnedLocationId(borrowRecord.getOriginalLocationId());
+        fillOverdueFields(update, borrowRecord.getBorrowTime(), update.getReturnTime() == null ? LocalDateTime.now() : update.getReturnTime());
         borrowRecordMapper.updateById(update);
+        borrowRecord.setReturnTime(update.getReturnTime());
+        borrowRecord.setReturnRemark(update.getReturnRemark());
         ItemInstance itemInstance = itemInstanceService.getById(borrowRecord.getItemInstanceId());
         if (itemInstance != null) {
             createReturnHistory(borrowRecord, itemInstance, update.getReturnTime());
@@ -137,12 +170,34 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
         lqw.eq(bo.getItemInstanceId() != null, BorrowRecord::getItemInstanceId, bo.getItemInstanceId());
         lqw.eq(StrUtil.isNotBlank(bo.getBorrowStatus()), BorrowRecord::getBorrowStatus, bo.getBorrowStatus());
+        lqw.eq(StrUtil.isNotBlank(bo.getBorrowNo()), BorrowRecord::getBorrowNo, bo.getBorrowNo());
+        lqw.eq(StrUtil.isNotBlank(bo.getInstanceCode()), BorrowRecord::getInstanceCode, bo.getInstanceCode());
         lqw.like(StrUtil.isNotBlank(bo.getBorrower()), BorrowRecord::getBorrower, bo.getBorrower());
         lqw.like(StrUtil.isNotBlank(bo.getFromUnit()), BorrowRecord::getFromUnit, bo.getFromUnit());
         lqw.like(StrUtil.isNotBlank(bo.getToUnit()), BorrowRecord::getToUnit, bo.getToUnit());
         lqw.eq(bo.getDocDate() != null, BorrowRecord::getDocDate, bo.getDocDate());
+        lqw.eq(bo.getPlanReturnDate() != null, BorrowRecord::getPlanReturnDate, bo.getPlanReturnDate());
         lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), BorrowRecord::getProductMark, bo.getProductMark());
         lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), BorrowRecord::getQualityGrade, bo.getQualityGrade());
+        if (bo.getOverdueFlag() != null) {
+            if (Integer.valueOf(1).equals(bo.getOverdueFlag())) {
+                lqw.and(wrapper -> wrapper
+                    .eq(BorrowRecord::getOverdueFlag, 1)
+                    .or()
+                    .eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED)
+                    .lt(BorrowRecord::getPlanReturnDate, java.time.LocalDate.now()));
+            } else {
+                lqw.and(wrapper -> wrapper
+                    .and(inner -> inner.isNull(BorrowRecord::getPlanReturnDate)
+                        .or()
+                        .eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.RETURNED)
+                        .or()
+                        .ge(BorrowRecord::getPlanReturnDate, java.time.LocalDate.now()))
+                    .and(inner -> inner.isNull(BorrowRecord::getOverdueFlag)
+                        .or()
+                        .eq(BorrowRecord::getOverdueFlag, 0)));
+            }
+        }
         lqw.orderByDesc(BorrowRecord::getBorrowTime);
         return lqw;
     }
@@ -219,6 +274,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
                 vo.setItemName(item.getItemName());
                 vo.setSkuName(item.getSkuName());
             }
+            fillOverdueFields(vo, vo.getBorrowTime(), vo.getReturnTime());
             fillWarehouseName(vo, warehouseMap);
             fillAreaName(vo, areaMap);
             fillRackName(vo, rackMap);
@@ -313,37 +369,94 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private void createBorrowHistory(BorrowRecord borrowRecord, ItemInstance itemInstance) {
         InventoryHistory history = new InventoryHistory();
         history.setOrderId(borrowRecord.getId());
-        history.setOrderNo(String.valueOf(borrowRecord.getId()));
+        history.setOrderNo(StrUtil.blankToDefault(borrowRecord.getBorrowNo(), String.valueOf(borrowRecord.getId())));
         history.setOrderType(ServiceConstants.InventoryHistoryOrderType.BORROW);
         history.setSkuId(itemInstance.getSkuId());
         history.setQuantity(java.math.BigDecimal.ONE.negate());
         history.setWarehouseId(borrowRecord.getOriginalWarehouseId());
         history.setAreaId(borrowRecord.getOriginalAreaId());
+        history.setRackId(borrowRecord.getOriginalRackId());
+        history.setLocationId(borrowRecord.getOriginalLocationId());
+        history.setItemInstanceId(borrowRecord.getItemInstanceId());
+        history.setBoxId(itemInstance.getBoxId());
         history.setBatchNo(itemInstance.getBatchNo());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
         history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
         history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
         history.setBelongUnit(StrUtil.blankToDefault(borrowRecord.getToUnit(), itemInstance.getBelongUnit()));
+        history.setOperationType("borrow");
+        history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getCreateBy()));
+        history.setRemark(StrUtil.blankToDefault(borrowRecord.getBorrowRemark(), "借出登记"));
+        history.setCreateTime(borrowRecord.getBorrowTime());
         inventoryHistoryService.save(history);
     }
 
     private void createReturnHistory(BorrowRecord borrowRecord, ItemInstance itemInstance, LocalDateTime returnTime) {
         InventoryHistory history = new InventoryHistory();
         history.setOrderId(borrowRecord.getId());
-        history.setOrderNo(String.valueOf(borrowRecord.getId()));
+        history.setOrderNo(StrUtil.blankToDefault(borrowRecord.getBorrowNo(), String.valueOf(borrowRecord.getId())));
         history.setOrderType(ServiceConstants.InventoryHistoryOrderType.RETURN);
         history.setSkuId(itemInstance.getSkuId());
         history.setQuantity(java.math.BigDecimal.ONE);
         history.setWarehouseId(borrowRecord.getOriginalWarehouseId());
         history.setAreaId(borrowRecord.getOriginalAreaId());
+        history.setRackId(borrowRecord.getOriginalRackId());
+        history.setLocationId(borrowRecord.getOriginalLocationId());
+        history.setItemInstanceId(borrowRecord.getItemInstanceId());
+        history.setBoxId(itemInstance.getBoxId());
         history.setBatchNo(itemInstance.getBatchNo());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
         history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
         history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
         history.setBelongUnit(itemInstance.getBelongUnit());
+        history.setOperationType("return");
+        history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getUpdateBy()));
+        history.setRemark(StrUtil.blankToDefault(borrowRecord.getReturnRemark(), "归还登记"));
         history.setCreateTime(returnTime);
         inventoryHistoryService.save(history);
+    }
+
+    private void fillOverdueFields(BorrowRecord borrowRecord, LocalDateTime borrowTime, LocalDateTime returnTime) {
+        if (borrowRecord.getPlanReturnDate() == null) {
+            borrowRecord.setOverdueFlag(0);
+            borrowRecord.setOverdueDays(0);
+            return;
+        }
+        LocalDateTime compareTime = returnTime == null ? LocalDateTime.now() : returnTime;
+        int overdueDays = (int) java.time.temporal.ChronoUnit.DAYS.between(
+            borrowRecord.getPlanReturnDate().atStartOfDay(),
+            compareTime
+        );
+        borrowRecord.setOverdueFlag(overdueDays > 0 ? 1 : 0);
+        borrowRecord.setOverdueDays(Math.max(overdueDays, 0));
+        if (borrowTime != null && compareTime.isBefore(borrowTime)) {
+            borrowRecord.setOverdueFlag(0);
+            borrowRecord.setOverdueDays(0);
+        }
+    }
+
+    private void fillOverdueFields(BorrowRecordVo borrowRecord, LocalDateTime borrowTime, LocalDateTime returnTime) {
+        if (borrowRecord.getPlanReturnDate() == null) {
+            borrowRecord.setOverdueFlag(0);
+            borrowRecord.setOverdueDays(0);
+            return;
+        }
+        LocalDateTime compareTime = returnTime == null ? LocalDateTime.now() : returnTime;
+        int overdueDays = (int) java.time.temporal.ChronoUnit.DAYS.between(
+            borrowRecord.getPlanReturnDate().atStartOfDay(),
+            compareTime
+        );
+        borrowRecord.setOverdueFlag(overdueDays > 0 ? 1 : 0);
+        borrowRecord.setOverdueDays(Math.max(overdueDays, 0));
+        if (borrowTime != null && compareTime.isBefore(borrowTime)) {
+            borrowRecord.setOverdueFlag(0);
+            borrowRecord.setOverdueDays(0);
+        }
+    }
+
+    private String generateBorrowNo() {
+        return "BR" + IdUtil.getSnowflakeNextIdStr();
     }
 }

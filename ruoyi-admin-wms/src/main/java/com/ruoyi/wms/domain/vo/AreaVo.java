@@ -43,6 +43,24 @@ public class AreaVo implements Serializable {
     private Long warehouseId;
 
     /**
+     * 启用状态
+     */
+    @ExcelProperty(value = "启用状态")
+    private String status;
+
+    /**
+     * 库区类型
+     */
+    @ExcelProperty(value = "库区类型")
+    private String areaType;
+
+    /**
+     * 排序
+     */
+    @ExcelProperty(value = "排序")
+    private Long orderNum;
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")

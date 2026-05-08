@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.math.BigDecimal;
 
 /**
  * 货位对象 wms_location
@@ -56,6 +57,51 @@ public class Location extends BaseEntity {
      * 货位类型
      */
     private String locationType;
+
+    /**
+     * 行号
+     */
+    private Integer rowNo;
+
+    /**
+     * 列号
+     */
+    private Integer columnNo;
+
+    /**
+     * 长
+     */
+    private BigDecimal length;
+
+    /**
+     * 宽
+     */
+    private BigDecimal width;
+
+    /**
+     * 高
+     */
+    private BigDecimal height;
+
+    /**
+     * 容积
+     */
+    private BigDecimal volume;
+
+    /**
+     * 承重
+     */
+    private BigDecimal maxWeight;
+
+    /**
+     * 是否占用
+     */
+    private Integer occupiedFlag;
+
+    /**
+     * 排序
+     */
+    private Long sortNo;
 
     /**
      * 备注
