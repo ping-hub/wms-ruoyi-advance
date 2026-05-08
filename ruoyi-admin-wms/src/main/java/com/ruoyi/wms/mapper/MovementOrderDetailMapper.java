@@ -5,7 +5,7 @@ import com.ruoyi.wms.domain.vo.MovementOrderDetailVo;
 import com.ruoyi.common.mybatis.core.mapper.BaseMapperPlus;
 
 /**
- * 库存移动详情Mapper接口
+ * 调拨单明细 Mapper 接口
  *
  * @author zcc
  * @date 2024-08-09

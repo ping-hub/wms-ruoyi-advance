@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 移库单业务对象 wms_movement_order
+ * 调拨单业务对象 wms_movement_order
  *
  * @author zcc
  * @date 2024-08-09
@@ -32,9 +32,9 @@ public class MovementOrderBo extends BaseEntity {
     private Long id;
 
     /**
-     * 移库单号
+     * 调拨单号
      */
-    @NotBlank(message = "移库单号不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "调拨单号不能为空", groups = { AddGroup.class, EditGroup.class })
     private String movementOrderNo;
 
     /**

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 库存移动详情
+ * 调拨单明细
  *
  * @author zcc
  * @date 2024-08-09
@@ -38,7 +38,7 @@ public class MovementOrderDetailController extends BaseController {
     private final MovementOrderDetailService movementOrderDetailService;
 
     /**
-     * 查询库存移动详情列表
+     * 查询调拨单明细列表
      */
     @SaCheckPermission("wms:movement:all")
     @GetMapping("/list")
@@ -47,18 +47,18 @@ public class MovementOrderDetailController extends BaseController {
     }
 
     /**
-     * 导出库存移动详情列表
+     * 导出调拨单明细列表
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "库存移动详情", businessType = BusinessType.EXPORT)
+    @Log(title = "调拨单明细", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(MovementOrderDetailBo bo, HttpServletResponse response) {
         List<MovementOrderDetailVo> list = movementOrderDetailService.queryList(bo);
-        ExcelUtil.exportExcel(list, "库存移动详情", MovementOrderDetailVo.class, response);
+        ExcelUtil.exportExcel(list, "调拨单明细", MovementOrderDetailVo.class, response);
     }
 
     /**
-     * 获取库存移动详情详细信息
+     * 获取调拨单明细详细信息
      *
      * @param id 主键
      */
@@ -70,10 +70,10 @@ public class MovementOrderDetailController extends BaseController {
     }
 
     /**
-     * 新增库存移动详情
+     * 新增调拨单明细
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "库存移动详情", businessType = BusinessType.INSERT)
+    @Log(title = "调拨单明细", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping()
     public R<Void> add(@Validated(AddGroup.class) @RequestBody MovementOrderDetailBo bo) {
@@ -82,10 +82,10 @@ public class MovementOrderDetailController extends BaseController {
     }
 
     /**
-     * 修改库存移动详情
+     * 修改调拨单明细
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "库存移动详情", businessType = BusinessType.UPDATE)
+    @Log(title = "调拨单明细", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping()
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody MovementOrderDetailBo bo) {
@@ -94,12 +94,12 @@ public class MovementOrderDetailController extends BaseController {
     }
 
     /**
-     * 删除库存移动详情
+     * 删除调拨单明细
      *
      * @param ids 主键串
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "库存移动详情", businessType = BusinessType.DELETE)
+    @Log(title = "调拨单明细", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public R<Void> remove(@NotEmpty(message = "主键不能为空")
                           @PathVariable Long[] ids) {
@@ -108,7 +108,7 @@ public class MovementOrderDetailController extends BaseController {
     }
 
     /**
-     * 根据移库单id查询移库单详情列表
+     * 根据调拨单 id 查询调拨单明细列表
      */
     @SaCheckPermission("wms:movement:all")
     @GetMapping("/list/{movementOrderId}")

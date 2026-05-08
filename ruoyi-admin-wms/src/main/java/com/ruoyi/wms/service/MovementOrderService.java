@@ -36,7 +36,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * 移库单Service业务层处理
+ * 调拨单 Service 业务层处理
  *
  * @author zcc
  * @date 2024-08-09
@@ -56,19 +56,19 @@ public class MovementOrderService {
 
 
     /**
-     * 查询移库单
+     * 查询调拨单
      */
     public MovementOrderVo queryById(Long id) {
         MovementOrderVo movementOrderVo = movementOrderMapper.selectVoById(id);
         if (movementOrderVo == null) {
-            throw new BaseException("移库单不存在");
+            throw new BaseException("调拨单不存在");
         }
         movementOrderVo.setDetails(movementOrderDetailService.queryByMovementOrderId(id));
         return movementOrderVo;
     }
 
     /**
-     * 查询移库单列表
+     * 查询调拨单列表
      */
     public TableDataInfo<MovementOrderVo> queryPageList(MovementOrderBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<MovementOrder> lqw = buildQueryWrapper(bo);
@@ -77,7 +77,7 @@ public class MovementOrderService {
     }
 
     /**
-     * 查询移库单列表
+     * 查询调拨单列表
      */
     public List<MovementOrderVo> queryList(MovementOrderBo bo) {
         LambdaQueryWrapper<MovementOrder> lqw = buildQueryWrapper(bo);
@@ -107,18 +107,18 @@ public class MovementOrderService {
     }
 
     /**
-     * 新增移库单
+     * 新增调拨单
      */
     @Transactional
     public void insertByBo(MovementOrderBo bo) {
-        // 1.校验移库单号唯一性
+        // 1.校验调拨单号唯一性
         validateMovementOrderNo(bo.getMovementOrderNo());
         fillHeaderLocationByDetails(bo);
-        // 2.创建移库单
+        // 2.创建调拨单
         MovementOrder add = MapstructUtils.convert(bo, MovementOrder.class);
         movementOrderMapper.insert(add);
         bo.setId(add.getId());
-        // 3.创建移库单明细
+        // 3.创建调拨单明细
         List<MovementOrderDetail> addDetailList = MapstructUtils.convert(bo.getDetails(), MovementOrderDetail.class);
         addDetailList.forEach(it -> {
             it.setMovementOrderId(add.getId());
@@ -130,27 +130,27 @@ public class MovementOrderService {
         LambdaQueryWrapper<MovementOrder> lambdaQueryWrapper = Wrappers.lambdaQuery();
         lambdaQueryWrapper.eq(MovementOrder::getMovementOrderNo, movementOrderNo);
         if (movementOrderMapper.exists(lambdaQueryWrapper)) {
-            throw new BaseException("移库单号重复，请手动修改");
+            throw new BaseException("调拨单号重复，请手动修改");
         }
     }
 
     /**
-     * 修改移库单
+     * 修改调拨单
      */
     @Transactional
     public void updateByBo(MovementOrderBo bo) {
-        // 1.更新移库单
+        // 1.更新调拨单
         fillHeaderLocationByDetails(bo);
         MovementOrder update = MapstructUtils.convert(bo, MovementOrder.class);
         movementOrderMapper.updateById(update);
-        // 2.保存移库单明细
+        // 2.保存调拨单明细
         List<MovementOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), MovementOrderDetail.class);
         detailList.forEach(it -> it.setMovementOrderId(bo.getId()));
         movementOrderDetailService.saveDetails(detailList);
     }
 
     /**
-     * 删除移库单
+     * 删除调拨单
      * @param id
      */
     public void deleteById(Long id) {
@@ -161,22 +161,22 @@ public class MovementOrderService {
     private void validateIdBeforeDelete(Long id) {
         MovementOrderVo movementOrderVo = queryById(id);
         if (movementOrderVo == null) {
-            throw new BaseException("移库单不存在");
+            throw new BaseException("调拨单不存在");
         }
         if (ServiceConstants.MovementOrderStatus.FINISH.equals(movementOrderVo.getMovementOrderStatus())) {
-            throw new ServiceException("移库单【" + movementOrderVo.getMovementOrderNo() + "】已移库，无法删除！");
+            throw new ServiceException("调拨单【" + movementOrderVo.getMovementOrderNo() + "】已执行，无法删除！");
         }
     }
 
     /**
-     * 批量删除移库单
+     * 批量删除调拨单
      */
     public void deleteByIds(Collection<Long> ids) {
         movementOrderMapper.deleteBatchIds(ids);
     }
 
     /**
-     * 移库
+     * 调拨执行
      * @param bo
      */
     @Transactional
@@ -193,7 +193,7 @@ public class MovementOrderService {
         // 2.1 专装调拨校验
         validateSpecialMovement(bo);
 
-        // 3.保存移库单核移库单明细
+        // 3.保存调拨单和调拨单明细
         if (Objects.isNull(bo.getId())) {
             insertByBo(bo);
         } else {
@@ -287,7 +287,7 @@ public class MovementOrderService {
     }
 
     /**
-     * 移库完成创建入库记录
+     * 调拨完成创建入库记录
      * @param bo
      */
     @Transactional
@@ -322,7 +322,7 @@ public class MovementOrderService {
     }
 
     /**
-     * 移库完成创建库存记录
+     * 调拨完成创建库存记录
      * @param bo
      */
     @Transactional

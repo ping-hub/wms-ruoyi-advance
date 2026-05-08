@@ -30,7 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 库存移动详情Service业务层处理
+ * 调拨单明细 Service 业务层处理
  *
  * @author zcc
  * @date 2024-08-09
@@ -46,14 +46,14 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     private final BoxMapper boxMapper;
 
     /**
-     * 查询库存移动详情
+     * 查询调拨单明细
      */
     public MovementOrderDetailVo queryById(Long id){
         return movementOrderDetailMapper.selectVoById(id);
     }
 
     /**
-     * 查询库存移动详情列表
+     * 查询调拨单明细列表
      */
     public TableDataInfo<MovementOrderDetailVo> queryPageList(MovementOrderDetailBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<MovementOrderDetail> lqw = buildQueryWrapper(bo);
@@ -62,7 +62,7 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     /**
-     * 查询库存移动详情列表
+     * 查询调拨单明细列表
      */
     public List<MovementOrderDetailVo> queryList(MovementOrderDetailBo bo) {
         LambdaQueryWrapper<MovementOrderDetail> lqw = buildQueryWrapper(bo);
@@ -90,7 +90,7 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     /**
-     * 新增库存移动详情
+     * 新增调拨单明细
      */
     public void insertByBo(MovementOrderDetailBo bo) {
         MovementOrderDetail add = MapstructUtils.convert(bo, MovementOrderDetail.class);
@@ -98,7 +98,7 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     /**
-     * 修改库存移动详情
+     * 修改调拨单明细
      */
     public void updateByBo(MovementOrderDetailBo bo) {
         MovementOrderDetail update = MapstructUtils.convert(bo, MovementOrderDetail.class);
@@ -106,7 +106,7 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     /**
-     * 批量删除库存移动详情
+     * 批量删除调拨单明细
      */
     public void deleteByIds(Collection<Long> ids) {
         movementOrderDetailMapper.deleteBatchIds(ids);
@@ -121,7 +121,7 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     /**
-     * 根据移库单id查询移库单详情
+     * 根据调拨单 id 查询调拨单明细
      * @param movementOrderId
      * @return
      */

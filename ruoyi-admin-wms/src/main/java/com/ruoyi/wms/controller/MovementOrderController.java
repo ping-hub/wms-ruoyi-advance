@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 移库单
+ * 调拨单
  *
  * @author zcc
  * @date 2024-08-09
@@ -40,7 +40,7 @@ public class MovementOrderController extends BaseController {
     private final InventoryDetailService inventoryDetailService;
 
     /**
-     * 查询移库单列表
+     * 查询调拨单列表
      */
     @SaCheckPermission("wms:movement:all")
     @GetMapping("/list")
@@ -49,18 +49,18 @@ public class MovementOrderController extends BaseController {
     }
 
     /**
-     * 导出移库单列表
+     * 导出调拨单列表
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "移库单", businessType = BusinessType.EXPORT)
+    @Log(title = "调拨单", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(MovementOrderBo bo, HttpServletResponse response) {
         List<MovementOrderVo> list = movementOrderService.queryList(bo);
-        ExcelUtil.exportExcel(list, "移库单", MovementOrderVo.class, response);
+        ExcelUtil.exportExcel(list, "调拨单", MovementOrderVo.class, response);
     }
 
     /**
-     * 获取移库单详细信息
+     * 获取调拨单详细信息
      *
      * @param id 主键
      */
@@ -72,10 +72,10 @@ public class MovementOrderController extends BaseController {
     }
 
     /**
-     * 新增移库单
+     * 新增调拨单
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "移库单", businessType = BusinessType.INSERT)
+    @Log(title = "调拨单", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping()
     public R<Void> add(@Validated(AddGroup.class) @RequestBody MovementOrderBo bo) {
@@ -85,10 +85,10 @@ public class MovementOrderController extends BaseController {
     }
 
     /**
-     * 修改移库单
+     * 修改调拨单
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "移库单", businessType = BusinessType.UPDATE)
+    @Log(title = "调拨单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping()
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody MovementOrderBo bo) {
@@ -97,10 +97,10 @@ public class MovementOrderController extends BaseController {
     }
 
     /**
-     * 移库
+     * 执行调拨
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "移库单", businessType = BusinessType.UPDATE)
+    @Log(title = "调拨单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PostMapping("/move")
     public R<Void> move(@Validated(AddGroup.class) @RequestBody MovementOrderBo bo) {
@@ -111,12 +111,12 @@ public class MovementOrderController extends BaseController {
     }
 
     /**
-     * 删除移库单
+     * 删除调拨单
      *
      * @param id 主键
      */
     @SaCheckPermission("wms:movement:all")
-    @Log(title = "移库单", businessType = BusinessType.DELETE)
+    @Log(title = "调拨单", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public R<Void> remove(@NotNull(message = "主键不能为空")
                           @PathVariable Long id) {

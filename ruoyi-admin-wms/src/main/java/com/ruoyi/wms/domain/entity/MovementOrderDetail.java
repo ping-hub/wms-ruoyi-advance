@@ -13,7 +13,7 @@ import java.io.Serial;
 import java.time.LocalDateTime;
 
 /**
- * 库存移动详情对象 wms_movement_order_detail
+ * 调拨单明细对象 wms_movement_order_detail
  *
  * @author zcc
  * @date 2024-08-09
@@ -32,7 +32,7 @@ public class MovementOrderDetail extends BaseEntity {
     @TableId(value = "id")
     private Long id;
     /**
-     * 移库单Id
+     * 调拨单Id
      */
     private Long movementOrderId;
     /**

@@ -146,6 +146,10 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         gridVo.setAreaName(rackVo.getAreaName());
         gridVo.setRowCount(rackVo.getRowCount());
         gridVo.setColumnCount(rackVo.getColumnCount());
+        gridVo.setLength(rackVo.getLength());
+        gridVo.setWidth(rackVo.getWidth());
+        gridVo.setHeight(rackVo.getHeight());
+        gridVo.setOrderNum(rackVo.getOrderNum());
         gridVo.setCells(locations.stream()
             .sorted(java.util.Comparator.comparing(LocationVo::getRowNo, java.util.Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(LocationVo::getColumnNo, java.util.Comparator.nullsLast(Integer::compareTo))

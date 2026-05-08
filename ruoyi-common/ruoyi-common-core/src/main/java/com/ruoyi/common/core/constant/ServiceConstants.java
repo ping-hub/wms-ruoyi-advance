@@ -18,6 +18,7 @@ public class ServiceConstants {
         public static final Integer MOVEMENT = 2;
         public static final Integer CHECK = 3;
         public static final Integer ADJUST = 4;
+        public static final Integer INTERNAL_MOVE = 5;
 
     }
 
@@ -41,6 +42,7 @@ public class ServiceConstants {
         public static final Integer BORROW = 5;
         public static final Integer RETURN = 6;
         public static final Integer ADJUST = 7;
+        public static final Integer INTERNAL_MOVE = 8;
     }
 
     /**
@@ -71,6 +73,15 @@ public class ServiceConstants {
     }
 
     /**
+     * 库内移库单状态
+     */
+    public class InternalMoveOrderStatus {
+        public static final Integer INVALID = -1;
+        public static final Integer PENDING = 0;
+        public static final Integer FINISH = 1;
+    }
+
+    /**
      * 单品实例状态
      */
     public class ItemInstanceStatus {
@@ -88,10 +99,12 @@ public class ServiceConstants {
         public static final String RECEIPT = "receipt";
         public static final String SHIPMENT = "shipment";
         public static final String MOVEMENT = "movement";
+        public static final String INTERNAL_MOVE = "internal_move";
         public static final String BORROW = "borrow";
         public static final String MANUAL = "manual";
         public static final String CHECK = "check";
     }
+
 
     /**
      * 箱体状态

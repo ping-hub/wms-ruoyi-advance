@@ -16,7 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 移库单视图对象 wms_movement_order
+ * 调拨单视图对象 wms_movement_order
  *
  * @author zcc
  * @date 2024-08-09

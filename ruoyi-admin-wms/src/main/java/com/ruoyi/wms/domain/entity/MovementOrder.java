@@ -11,7 +11,7 @@ import java.io.Serial;
 import java.time.LocalDate;
 
 /**
- * 移库单对象 wms_movement_order
+ * 调拨单对象 wms_movement_order
  *
  * @author zcc
  * @date 2024-08-09

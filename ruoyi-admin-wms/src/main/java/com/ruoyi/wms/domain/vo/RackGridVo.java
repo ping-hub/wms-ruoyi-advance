@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,14 @@ public class RackGridVo implements Serializable {
     private Integer rowCount;
 
     private Integer columnCount;
+
+    private BigDecimal length;
+
+    private BigDecimal width;
+
+    private BigDecimal height;
+
+    private Long orderNum;
 
     private List<RackGridCellVo> cells = new ArrayList<>();
 }
