@@ -180,11 +180,11 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             detail.setItemSku(itemSkuMap.get(detail.getSkuId()));
-            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            ItemInstance itemInstance = detail.getItemInstanceId() == null ? null : itemInstanceMap.get(detail.getItemInstanceId());
             if (itemInstance != null) {
                 detail.setInstanceCode(itemInstance.getInstanceCode());
             }
-            Box box = boxMap.get(detail.getBoxId());
+            Box box = detail.getBoxId() == null ? null : boxMap.get(detail.getBoxId());
             if (box != null) {
                 detail.setBoxCode(box.getBoxCode());
             }

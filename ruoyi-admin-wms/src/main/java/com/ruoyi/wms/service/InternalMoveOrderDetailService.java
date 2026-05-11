@@ -128,7 +128,7 @@ public class InternalMoveOrderDetailService extends ServiceImpl<InternalMoveOrde
             .map(InternalMoveOrderDetailVo::getInventoryDetailId)
             .filter(Objects::nonNull)
             .toList();
-        Map<Long, BigDecimal> remainQuantityMap = inventoryDetailIds.isEmpty() ? Map.of() :
+        Map<Long, BigDecimal> remainQuantityMap = inventoryDetailIds.isEmpty() ? java.util.Collections.emptyMap() :
             inventoryDetailMapper.selectVoBatchIds(inventoryDetailIds).stream()
                 .collect(Collectors.toMap(InventoryDetailVo::getId, InventoryDetailVo::getRemainQuantity));
         details.forEach(detail -> {
@@ -144,9 +144,9 @@ public class InternalMoveOrderDetailService extends ServiceImpl<InternalMoveOrde
         }
         Set<Long> itemInstanceIds = details.stream().map(InternalMoveOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = details.stream().map(InternalMoveOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty() ? Map.of() :
+        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty() ? java.util.Collections.emptyMap() :
             itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
-        Map<Long, Box> boxMap = boxIds.isEmpty() ? Map.of() :
+        Map<Long, Box> boxMap = boxIds.isEmpty() ? java.util.Collections.emptyMap() :
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
@@ -160,3 +160,4 @@ public class InternalMoveOrderDetailService extends ServiceImpl<InternalMoveOrde
         });
     }
 }
+

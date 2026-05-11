@@ -376,7 +376,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 bo.setAreaId(rack.getAreaId());
             }
             if (bo.getWarehouseId() != null) {
-                Assert.isTrue(Objects.equals(bo.getWarehouseId(), rack.getWarehouseId()), "货架与仓库不匹配");
+                Assert.isTrue(Objects.equals(bo.getWarehouseId(), rack.getWarehouseId()), "璐ф灦涓庝粨搴撲笉鍖归厤");
             } else {
                 bo.setWarehouseId(rack.getWarehouseId());
             }
@@ -428,13 +428,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Set<Long> rackIds = validList.stream().map(ItemInstanceVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = validList.stream().map(ItemInstanceVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? Map.of() :
+        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
-        Map<Long, Area> areaMap = areaIds.isEmpty() ? Map.of() :
+        Map<Long, Area> areaMap = areaIds.isEmpty() ? java.util.Collections.emptyMap() :
             areaMapper.selectBatchIds(areaIds).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
-        Map<Long, Rack> rackMap = rackIds.isEmpty() ? Map.of() :
+        Map<Long, Rack> rackMap = rackIds.isEmpty() ? java.util.Collections.emptyMap() :
             rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
-        Map<Long, Location> locationMap = locationIds.isEmpty() ? Map.of() :
+        Map<Long, Location> locationMap = locationIds.isEmpty() ? java.util.Collections.emptyMap() :
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
         validList.forEach(vo -> {
             ItemSkuVo skuVo = skuMap.get(vo.getSkuId());
@@ -463,3 +463,4 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         });
     }
 }
+

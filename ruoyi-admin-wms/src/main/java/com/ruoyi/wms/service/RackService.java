@@ -178,9 +178,9 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         }
         Set<Long> warehouseIds = validList.stream().map(RackVo::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> areaIds = validList.stream().map(RackVo::getAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? Map.of() :
+        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
-        Map<Long, Area> areaMap = areaIds.isEmpty() ? Map.of() :
+        Map<Long, Area> areaMap = areaIds.isEmpty() ? java.util.Collections.emptyMap() :
             areaMapper.selectBatchIds(areaIds).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
         validList.forEach(rackVo -> {
             Warehouse warehouse = warehouseMap.get(rackVo.getWarehouseId());
@@ -194,3 +194,4 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         });
     }
 }
+

@@ -177,11 +177,11 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         Map<Long, Box> boxMap = boxIds.isEmpty() ? Map.of() :
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
-            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            ItemInstance itemInstance = detail.getItemInstanceId() == null ? null : itemInstanceMap.get(detail.getItemInstanceId());
             if (itemInstance != null) {
                 detail.setInstanceCode(itemInstance.getInstanceCode());
             }
-            Box box = boxMap.get(detail.getBoxId());
+            Box box = detail.getBoxId() == null ? null : boxMap.get(detail.getBoxId());
             if (box != null) {
                 detail.setBoxCode(box.getBoxCode());
             }

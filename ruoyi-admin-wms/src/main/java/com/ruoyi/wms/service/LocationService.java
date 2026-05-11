@@ -376,11 +376,11 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Set<Long> warehouseIds = validList.stream().map(LocationVo::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> areaIds = validList.stream().map(LocationVo::getAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> rackIds = validList.stream().map(LocationVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? Map.of() :
+        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
-        Map<Long, Area> areaMap = areaIds.isEmpty() ? Map.of() :
+        Map<Long, Area> areaMap = areaIds.isEmpty() ? java.util.Collections.emptyMap() :
             areaMapper.selectBatchIds(areaIds).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
-        Map<Long, Rack> rackMap = rackIds.isEmpty() ? Map.of() :
+        Map<Long, Rack> rackMap = rackIds.isEmpty() ? java.util.Collections.emptyMap() :
             rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
         validList.forEach(locationVo -> {
             Warehouse warehouse = warehouseMap.get(locationVo.getWarehouseId());
@@ -399,3 +399,4 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         });
     }
 }
+

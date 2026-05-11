@@ -287,7 +287,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         ids.addAll(firstIds);
         ids.addAll(secondIds);
         if (ids.isEmpty()) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         return warehouseMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
     }
@@ -297,7 +297,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         ids.addAll(firstIds);
         ids.addAll(secondIds);
         if (ids.isEmpty()) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         return areaMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
     }
@@ -307,7 +307,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         ids.addAll(firstIds);
         ids.addAll(secondIds);
         if (ids.isEmpty()) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         return rackMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
     }
@@ -317,7 +317,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         ids.addAll(firstIds);
         ids.addAll(secondIds);
         if (ids.isEmpty()) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         return locationMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
     }
@@ -460,3 +460,4 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return "BR" + IdUtil.getSnowflakeNextIdStr();
     }
 }
+

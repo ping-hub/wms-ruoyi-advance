@@ -160,10 +160,10 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
         Set<Long> itemInstanceIds = details.stream().map(CheckOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = details.stream().map(CheckOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
@@ -177,3 +177,4 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
         });
     }
 }
+

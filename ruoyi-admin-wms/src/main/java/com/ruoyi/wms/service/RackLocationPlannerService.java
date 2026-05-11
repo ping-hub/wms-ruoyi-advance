@@ -350,9 +350,9 @@ public class RackLocationPlannerService {
         location.setLocationName(buildLocationName(rack, row, column));
         location.setLocationStatus(DEFAULT_LOCATION_STATUS);
         location.setLocationType(DEFAULT_LOCATION_TYPE);
-        location.setLength(rack.getLength());
+        location.setLength(rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP));
         location.setWidth(rack.getWidth());
-        location.setHeight(rack.getHeight());
+        location.setHeight(rack.getHeight().divide(BigDecimal.valueOf(rack.getRowCount()), BigDecimal.ROUND_HALF_UP));
         location.setVolume(calcVolume(rack.getLength(), rack.getWidth(), rack.getHeight()));
         location.setOccupiedFlag(0);
         location.setSortNo(buildSortNo(row, column));

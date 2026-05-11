@@ -157,7 +157,7 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     public Map<Long, Long> queryItemBoxMap(Set<Long> itemInstanceIds) {
         if (CollUtil.isEmpty(itemInstanceIds)) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         List<ItemInstanceVo> list = itemInstanceService.queryVosByIds(itemInstanceIds);
         return list.stream()
@@ -348,13 +348,13 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         Set<Long> rackIds = validList.stream().map(BoxVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = validList.stream().map(BoxVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = validList.stream().map(BoxVo::getId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? Map.of() :
+        Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
-        Map<Long, Area> areaMap = areaIds.isEmpty() ? Map.of() :
+        Map<Long, Area> areaMap = areaIds.isEmpty() ? java.util.Collections.emptyMap() :
             areaMapper.selectBatchIds(areaIds).stream().collect(Collectors.toMap(Area::getId, Function.identity()));
-        Map<Long, Rack> rackMap = rackIds.isEmpty() ? Map.of() :
+        Map<Long, Rack> rackMap = rackIds.isEmpty() ? java.util.Collections.emptyMap() :
             rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
-        Map<Long, Location> locationMap = locationIds.isEmpty() ? Map.of() :
+        Map<Long, Location> locationMap = locationIds.isEmpty() ? java.util.Collections.emptyMap() :
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
         ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
         List<ItemInstanceVo> boxItems = boxIds.isEmpty() ? List.of() : itemInstanceService.queryList(itemInstanceBo).stream()
@@ -386,3 +386,4 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         });
     }
 }
+

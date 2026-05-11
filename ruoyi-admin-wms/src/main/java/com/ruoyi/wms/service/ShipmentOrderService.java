@@ -290,7 +290,7 @@ public class ShipmentOrderService {
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
         if (CollUtil.isEmpty(inventoryDetailIds)) {
-            return Map.of();
+            return java.util.Collections.emptyMap();
         }
         return inventoryDetailMapper.selectBatchIds(inventoryDetailIds).stream()
             .collect(Collectors.toMap(InventoryDetail::getId, java.util.function.Function.identity()));
@@ -389,3 +389,4 @@ public class ShipmentOrderService {
         boxIds.forEach(boxService::markOutbound);
     }
 }
+

@@ -118,17 +118,17 @@ public class AdjustOrderDetailService extends ServiceImpl<AdjustOrderDetailMappe
             .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
         List<Long> inventoryDetailIds = details.stream().map(AdjustOrderDetailVo::getInventoryDetailId).filter(Objects::nonNull).toList();
         Map<Long, BigDecimal> remainQuantityMap = inventoryDetailIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : inventoryDetailMapper.selectVoBatchIds(inventoryDetailIds)
                 .stream()
                 .collect(Collectors.toMap(InventoryDetailVo::getId, InventoryDetailVo::getRemainQuantity));
         Set<Long> itemInstanceIds = details.stream().map(AdjustOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = details.stream().map(AdjustOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             detail.setItemSku(itemSkuMap.get(detail.getSkuId()));
@@ -144,3 +144,4 @@ public class AdjustOrderDetailService extends ServiceImpl<AdjustOrderDetailMappe
         });
     }
 }
+
