@@ -134,11 +134,6 @@ public class ItemInstance extends BaseEntity {
     private LocalDateTime lastOperationTime;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

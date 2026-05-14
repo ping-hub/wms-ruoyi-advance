@@ -58,8 +58,6 @@ public class AdjustOrderDetail extends BaseEntity {
 
     private BigDecimal differenceQuantity;
 
-    private String batchNo;
-
     private LocalDateTime productionDate;
 
     private LocalDateTime expirationDate;

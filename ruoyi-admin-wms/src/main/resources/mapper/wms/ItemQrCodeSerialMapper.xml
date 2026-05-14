@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.ItemQrCodeSerialMapper">
+
+    <insert id="initIfAbsent">
+        insert ignore into wms_item_qr_code_serial(item_key, current_value)
+        values (#{itemKey}, 1000000001)
+    </insert>
+
+    <select id="selectByItemKeyForUpdate" resultType="com.ruoyi.wms.domain.entity.ItemQrCodeSerial">
+        select
+            item_key as itemKey,
+            current_value as currentValue
+        from wms_item_qr_code_serial
+        where item_key = #{itemKey}
+        for update
+    </select>
+
+    <update id="updateCurrentValue">
+        update wms_item_qr_code_serial
+        set current_value = #{currentValue}
+        where item_key = #{itemKey}
+    </update>
+</mapper>

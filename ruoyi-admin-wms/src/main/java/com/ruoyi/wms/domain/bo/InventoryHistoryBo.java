@@ -56,11 +56,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private Long skuId;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

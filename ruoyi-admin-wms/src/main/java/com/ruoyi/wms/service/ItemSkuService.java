@@ -75,10 +75,7 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         LambdaQueryWrapper<ItemSku> lqw = Wrappers.lambdaQuery();
         lqw.like(StrUtil.isNotBlank(bo.getSkuName()), ItemSku::getSkuName, bo.getSkuName());
         lqw.eq(bo.getItemId() != null, ItemSku::getItemId, bo.getItemId());
-        lqw.eq(StrUtil.isNotBlank(bo.getBarcode()), ItemSku::getBarcode, bo.getBarcode());
         lqw.like(StrUtil.isNotBlank(bo.getSpecModel()), ItemSku::getSpecModel, bo.getSpecModel());
-        lqw.eq(bo.getDefaultUnitPrice() != null, ItemSku::getDefaultUnitPrice, bo.getDefaultUnitPrice());
-        lqw.eq(StrUtil.isNotBlank(bo.getDefaultQualityGrade()), ItemSku::getDefaultQualityGrade, bo.getDefaultQualityGrade());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), ItemSku::getStatus, bo.getStatus());
         lqw.orderByDesc(ItemSku::getItemId);
         return lqw;
@@ -103,21 +100,7 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
     }
 
     public void deleteById(Long id) {
-        validateIdBeforeDelete(id);
         itemSkuMapper.deleteById(id);
-    }
-
-    private void validateIdBeforeDelete(Long id) {
-        // 只有一个不能删除
-        ItemSku itemSku = itemSkuMapper.selectById(id);
-
-        if(queryListByItemId(itemSku.getItemId()).size() > 1){
-            throw new BaseException("至少包含一个商品规格");
-        }
-        // 校验库存是否已关联
-        if (inventoryService.existsBySkuIds(List.of(id))) {
-            throw new ServiceException("规格" + itemSku.getSkuName() + "已有业务关联，无法删除！", HttpStatus.CONFLICT.value());
-        }
     }
 
     private void validateSkuIdsBeforeDelete(Collection<Long> skuIds) {
@@ -146,23 +129,9 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         saveOrUpdateBatch(itemSkuList);
     }
 
-    /**
-     * 填充sku的编码
-     * @param itemSkuList
-     */
-    public void setOutSkuId(List<ItemSkuBo> itemSkuList) {
-        for (ItemSkuBo itemSkuBo : itemSkuList) {
-            if (StrUtil.isBlank(itemSkuBo.getBarcode())) {
-                itemSkuBo.setBarcode(RandomUtil.randomNumbers(8));
-            }
-        }
-    }
-
     public void setItemId(List<ItemSkuBo> itemSkuList,Long itemId) {
         for (ItemSkuBo itemSkuBo : itemSkuList) {
-            if (StrUtil.isBlank(itemSkuBo.getBarcode())) {
-                itemSkuBo.setItemId(itemId);
-            }
+            itemSkuBo.setItemId(itemId);
         }
     }
 

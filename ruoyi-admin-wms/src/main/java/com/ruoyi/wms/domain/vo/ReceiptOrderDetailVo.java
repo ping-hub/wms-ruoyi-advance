@@ -10,6 +10,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 入库单详情视图对象 wms_receipt_order_detail
@@ -92,12 +93,6 @@ public class ReceiptOrderDetailVo implements Serializable {
     private BigDecimal lineAmount;
 
     /**
-     * 批号
-     */
-    @ExcelProperty(value = "批号")
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     @ExcelProperty(value = "生产日期")
@@ -152,4 +147,6 @@ public class ReceiptOrderDetailVo implements Serializable {
     private Integer generatedInstanceQuantity;
 
     private ItemSkuVo itemSku;
+
+    private List<ReceiptItemInstanceVo> receiptItemInstances;
 }

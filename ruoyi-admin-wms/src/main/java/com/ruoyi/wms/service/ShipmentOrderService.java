@@ -91,6 +91,10 @@ public class ShipmentOrderService {
         lqw.eq(bo.getShipmentOrderType() != null, ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ShipmentOrder::getOrderNo, bo.getOrderNo());
         lqw.eq(bo.getMerchantId() != null, ShipmentOrder::getMerchantId, bo.getMerchantId());
+        lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ShipmentOrder::getBasisNo, bo.getBasisNo());
+        lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ShipmentOrder::getDispatchMode, bo.getDispatchMode());
+        lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ShipmentOrder::getNoticeOrg, bo.getNoticeOrg());
+        lqw.like(StringUtils.isNotBlank(bo.getReceiveUnit()), ShipmentOrder::getReceiveUnit, bo.getReceiveUnit());
         lqw.eq(bo.getReceivableAmount() != null, ShipmentOrder::getReceivableAmount, bo.getReceivableAmount());
         lqw.eq(bo.getTotalQuantity() != null, ShipmentOrder::getTotalQuantity, bo.getTotalQuantity());
         lqw.eq(bo.getShipmentOrderStatus() != null, ShipmentOrder::getShipmentOrderStatus, bo.getShipmentOrderStatus());
@@ -265,8 +269,6 @@ public class ShipmentOrderService {
                 (inventoryDetail != null ? inventoryDetail.getItemInstanceId() : null));
             inventoryHistory.setBoxId(detail.getBoxId() != null ? detail.getBoxId() :
                 (inventoryDetail != null ? inventoryDetail.getBoxId() : null));
-            inventoryHistory.setBatchNo(detail.getBatchNo() != null ? detail.getBatchNo() :
-                (inventoryDetail != null ? inventoryDetail.getBatchNo() : null));
             inventoryHistory.setProductionDate(detail.getProductionDate() != null ? detail.getProductionDate() :
                 (inventoryDetail != null ? inventoryDetail.getProductionDate() : null));
             inventoryHistory.setExpirationDate(detail.getExpirationDate() != null ? detail.getExpirationDate() :
@@ -389,4 +391,3 @@ public class ShipmentOrderService {
         boxIds.forEach(boxService::markOutbound);
     }
 }
-

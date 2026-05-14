@@ -229,8 +229,6 @@ public class RackLocationPlannerService {
             changed = true;
         }
 
-        BigDecimal oldVolume = calcVolume(beforeRack.getLength(), beforeRack.getWidth(), beforeRack.getHeight());
-        BigDecimal newVolume = calcVolume(afterRack.getLength(), afterRack.getWidth(), afterRack.getHeight());
         if (shouldSyncDerivedValue(location.getLength(), beforeRack.getLength()) && !Objects.equals(location.getLength(), afterRack.getLength())) {
             update.setLength(afterRack.getLength());
             changed = true;
@@ -241,10 +239,6 @@ public class RackLocationPlannerService {
         }
         if (shouldSyncDerivedValue(location.getHeight(), beforeRack.getHeight()) && !Objects.equals(location.getHeight(), afterRack.getHeight())) {
             update.setHeight(afterRack.getHeight());
-            changed = true;
-        }
-        if (shouldSyncDerivedValue(location.getVolume(), oldVolume) && !Objects.equals(location.getVolume(), newVolume)) {
-            update.setVolume(newVolume);
             changed = true;
         }
         Long expectedSortNo = buildSortNo(location.getRowNo(), location.getColumnNo());
@@ -353,7 +347,6 @@ public class RackLocationPlannerService {
         location.setLength(rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP));
         location.setWidth(rack.getWidth());
         location.setHeight(rack.getHeight().divide(BigDecimal.valueOf(rack.getRowCount()), BigDecimal.ROUND_HALF_UP));
-        location.setVolume(calcVolume(rack.getLength(), rack.getWidth(), rack.getHeight()));
         location.setOccupiedFlag(0);
         location.setSortNo(buildSortNo(row, column));
         return location;
@@ -371,13 +364,6 @@ public class RackLocationPlannerService {
 
     private Long buildSortNo(Integer row, Integer column) {
         return row == null || column == null ? null : row * 1000L + column;
-    }
-
-    private BigDecimal calcVolume(BigDecimal length, BigDecimal width, BigDecimal height) {
-        if (length == null || width == null || height == null) {
-            return null;
-        }
-        return length.multiply(width).multiply(height);
     }
 
     private boolean isWithinRange(Location location, Rack rack) {

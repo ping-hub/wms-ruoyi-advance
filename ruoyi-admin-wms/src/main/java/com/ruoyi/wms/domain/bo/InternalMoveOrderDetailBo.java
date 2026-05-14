@@ -46,8 +46,6 @@ public class InternalMoveOrderDetailBo extends BaseEntity {
 
     private String remark;
 
-    private String batchNo;
-
     private LocalDateTime productionDate;
 
     private LocalDateTime expirationDate;

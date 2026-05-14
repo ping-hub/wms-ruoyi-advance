@@ -34,6 +34,7 @@ import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -88,7 +89,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         update.setLength(bo.getLength());
         update.setWidth(bo.getWidth());
         update.setHeight(bo.getHeight());
-        update.setVolume(bo.getVolume());
         update.setMaxWeight(bo.getMaxWeight());
         update.setOccupiedFlag(bo.getOccupiedFlag());
         update.setSortNo(bo.getSortNo());
@@ -225,7 +225,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         summaryVo.setLength(locationVo.getLength());
         summaryVo.setWidth(locationVo.getWidth());
         summaryVo.setHeight(locationVo.getHeight());
-        summaryVo.setVolume(locationVo.getVolume());
         summaryVo.setMaxWeight(locationVo.getMaxWeight());
         summaryVo.setOccupiedFlag(locationVo.getOccupiedFlag());
         summaryVo.setBoxCount(boxes.size());
@@ -348,9 +347,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         if (bo.getHeight() != null) {
             Assert.isTrue(bo.getHeight().signum() > 0, "货位高度必须大于0");
         }
-        if (bo.getVolume() != null) {
-            Assert.isTrue(bo.getVolume().signum() > 0, "货位容积必须大于0");
-        }
         if (bo.getMaxWeight() != null) {
             Assert.isTrue(bo.getMaxWeight().signum() > 0, "货位承重必须大于0");
         }
@@ -399,4 +395,3 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         });
     }
 }
-

@@ -64,8 +64,6 @@ public class AdjustOrderDetailBo extends BaseEntity implements PlaceAndItem {
 
     private BigDecimal differenceQuantity;
 
-    private String batchNo;
-
     private LocalDateTime productionDate;
 
     private LocalDateTime expirationDate;

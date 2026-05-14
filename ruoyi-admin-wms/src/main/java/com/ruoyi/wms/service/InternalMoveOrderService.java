@@ -331,7 +331,6 @@ public class InternalMoveOrderService {
             addInventoryDetail.setItemInstanceId(detail.getItemInstanceId());
             addInventoryDetail.setBoxId(detail.getBoxId());
             addInventoryDetail.setQuantity(detail.getQuantity());
-            addInventoryDetail.setBatchNo(detail.getBatchNo());
             addInventoryDetail.setProductionDate(detail.getProductionDate());
             addInventoryDetail.setExpirationDate(detail.getExpirationDate());
             addInventoryDetail.setEquipmentCode(detail.getEquipmentCode());
@@ -361,7 +360,6 @@ public class InternalMoveOrderService {
             shipmentInventoryHistory.setBoxId(detail.getBoxId());
             shipmentInventoryHistory.setSkuId(detail.getSkuId());
             shipmentInventoryHistory.setQuantity(detail.getQuantity().negate());
-            shipmentInventoryHistory.setBatchNo(detail.getBatchNo());
             shipmentInventoryHistory.setProductionDate(detail.getProductionDate());
             shipmentInventoryHistory.setExpirationDate(detail.getExpirationDate());
             shipmentInventoryHistory.setOrderId(bo.getId());
@@ -384,7 +382,6 @@ public class InternalMoveOrderService {
             receiptInventoryHistory.setBoxId(detail.getBoxId());
             receiptInventoryHistory.setSkuId(detail.getSkuId());
             receiptInventoryHistory.setQuantity(detail.getQuantity());
-            receiptInventoryHistory.setBatchNo(detail.getBatchNo());
             receiptInventoryHistory.setProductionDate(detail.getProductionDate());
             receiptInventoryHistory.setExpirationDate(detail.getExpirationDate());
             receiptInventoryHistory.setOrderId(bo.getId());

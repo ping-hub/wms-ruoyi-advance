@@ -56,24 +56,6 @@ public class ItemVo implements Serializable {
     private Long itemBrand;
 
     /**
-     * 物品类型
-     */
-    @ExcelProperty(value = "物品类型")
-    private String itemType;
-
-    /**
-     * 追踪模式
-     */
-    @ExcelProperty(value = "追踪模式")
-    private String trackingMode;
-
-    /**
-     * 是否允许装箱
-     */
-    @ExcelProperty(value = "允许装箱")
-    private Integer allowBox;
-
-    /**
      * 规格等级
      */
     @ExcelProperty(value = "规格等级")
@@ -98,28 +80,10 @@ public class ItemVo implements Serializable {
     private String status;
 
     /**
-     * 默认追踪方式
+     * 产品标识
      */
-    @ExcelProperty(value = "默认追踪方式")
-    private String defaultTrackingMode;
-
-    /**
-     * 默认所属单位
-     */
-    @ExcelProperty(value = "默认所属单位")
-    private String defaultBelongUnit;
-
-    /**
-     * 默认质量等级
-     */
-    @ExcelProperty(value = "默认质量等级")
-    private String defaultQualityGrade;
-
-    /**
-     * 产品标识规则
-     */
-    @ExcelProperty(value = "产品标识规则")
-    private String productMarkRule;
+    @ExcelProperty(value = "产品标识")
+    private String productMark;
 
     /**
      * 规格型号文本

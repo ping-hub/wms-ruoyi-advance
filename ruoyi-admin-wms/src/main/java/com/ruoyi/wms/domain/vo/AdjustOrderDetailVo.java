@@ -82,9 +82,6 @@ public class AdjustOrderDetailVo implements Serializable {
     @ExcelProperty(value = "差异数量")
     private BigDecimal differenceQuantity;
 
-    @ExcelProperty(value = "批号")
-    private String batchNo;
-
     @ExcelProperty(value = "生产日期")
     private LocalDateTime productionDate;
 

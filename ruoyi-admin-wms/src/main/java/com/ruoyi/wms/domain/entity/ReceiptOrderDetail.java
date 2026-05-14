@@ -83,10 +83,6 @@ public class ReceiptOrderDetail extends BaseEntity {
     @TableField(exist = false)
     private BigDecimal lineAmount;
     /**
-     * 批号
-     */
-    private String batchNo;
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

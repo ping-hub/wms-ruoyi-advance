@@ -101,11 +101,6 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long areaId;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

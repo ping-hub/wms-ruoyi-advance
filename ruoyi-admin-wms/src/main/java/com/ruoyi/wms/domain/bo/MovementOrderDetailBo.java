@@ -85,11 +85,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private String remark;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

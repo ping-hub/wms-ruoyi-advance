@@ -118,12 +118,6 @@ public class LocationVo implements Serializable {
     private BigDecimal height;
 
     /**
-     * 容积
-     */
-    @ExcelProperty(value = "容积")
-    private BigDecimal volume;
-
-    /**
      * 承重
      */
     @ExcelProperty(value = "承重")

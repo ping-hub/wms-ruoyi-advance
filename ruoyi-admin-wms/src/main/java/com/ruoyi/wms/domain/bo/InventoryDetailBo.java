@@ -121,11 +121,6 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
     private BigDecimal quantity;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

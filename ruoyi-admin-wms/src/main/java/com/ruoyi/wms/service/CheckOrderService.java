@@ -228,7 +228,6 @@ public class CheckOrderService {
                 inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
                 inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setBatchNo(filteredDetail.getBatchNo());
                 inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
                 inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
@@ -255,7 +254,6 @@ public class CheckOrderService {
                 inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
                 inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setBatchNo(filteredDetail.getBatchNo());
                 inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
                 inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());

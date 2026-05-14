@@ -84,11 +84,6 @@ public class Location extends BaseEntity {
     private BigDecimal height;
 
     /**
-     * 容积
-     */
-    private BigDecimal volume;
-
-    /**
      * 承重
      */
     private BigDecimal maxWeight;

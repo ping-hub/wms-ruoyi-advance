@@ -70,10 +70,6 @@ public class CheckOrderDetail extends BaseEntity {
      */
     private Long locationId;
     /**
-     * 批号
-     */
-    private String batchNo;
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

@@ -11,6 +11,8 @@ import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
+import com.ruoyi.wms.domain.bo.BatchPrintQrCodeBo;
+import com.ruoyi.wms.domain.vo.BatchPrintQrCodeResultVo;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -92,6 +94,17 @@ public class ItemController extends BaseController {
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody ItemBo form) {
         itemService.updateByForm(form);
         return R.ok();
+    }
+
+    /**
+     * 批量打印器材二维码
+     */
+    @Log(title = "物料", businessType = BusinessType.OTHER)
+    @RepeatSubmit()
+    @PostMapping("/batchPrintQrCode")
+    @SaCheckPermission("wms:item:edit")
+    public R<BatchPrintQrCodeResultVo> batchPrintQrCode(@Validated @RequestBody BatchPrintQrCodeBo form) {
+        return R.ok(itemService.batchPrintQrCode(form));
     }
 
     /**

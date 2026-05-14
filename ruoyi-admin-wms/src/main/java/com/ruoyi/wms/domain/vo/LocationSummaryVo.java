@@ -46,8 +46,6 @@ public class LocationSummaryVo implements Serializable {
 
     private BigDecimal height;
 
-    private BigDecimal volume;
-
     private BigDecimal maxWeight;
 
     private Integer occupiedFlag;

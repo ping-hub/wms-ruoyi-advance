@@ -305,7 +305,6 @@ public class MovementOrderService {
             addInventoryDetail.setItemInstanceId(it.getItemInstanceId());
             addInventoryDetail.setBoxId(it.getBoxId());
             addInventoryDetail.setQuantity(it.getQuantity());
-            addInventoryDetail.setBatchNo(it.getBatchNo());
             addInventoryDetail.setProductionDate(it.getProductionDate());
             addInventoryDetail.setExpirationDate(it.getExpirationDate());
             addInventoryDetail.setEquipmentCode(it.getEquipmentCode());
@@ -338,7 +337,6 @@ public class MovementOrderService {
             shipmentInventoryHistory.setBoxId(detail.getBoxId());
             shipmentInventoryHistory.setSkuId(detail.getSkuId());
             shipmentInventoryHistory.setQuantity(detail.getQuantity().negate());
-            shipmentInventoryHistory.setBatchNo(detail.getBatchNo());
             shipmentInventoryHistory.setProductionDate(detail.getProductionDate());
             shipmentInventoryHistory.setExpirationDate(detail.getExpirationDate());
             shipmentInventoryHistory.setOrderId(bo.getId());
@@ -361,7 +359,6 @@ public class MovementOrderService {
             receiptInventoryHistory.setBoxId(detail.getBoxId());
             receiptInventoryHistory.setSkuId(detail.getSkuId());
             receiptInventoryHistory.setQuantity(detail.getQuantity());
-            receiptInventoryHistory.setBatchNo(detail.getBatchNo());
             receiptInventoryHistory.setProductionDate(detail.getProductionDate());
             receiptInventoryHistory.setExpirationDate(detail.getExpirationDate());
             receiptInventoryHistory.setOrderId(bo.getId());

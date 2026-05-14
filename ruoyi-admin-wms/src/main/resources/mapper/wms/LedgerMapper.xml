@@ -12,10 +12,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             coalesce(detail.spec_model, sku.spec_model, item.model_text) as specModel,
             detail.product_mark as productMark,
             detail.quality_grade as qualityGrade,
-            coalesce(detail.unit_price, sku.default_unit_price, 0) as unitPrice,
+            detail.unit_price as unitPrice,
             sum(detail.remain_quantity) as quantity,
             item.unit as unit,
-            sum(detail.remain_quantity * coalesce(detail.unit_price, sku.default_unit_price, 0)) as lineAmount,
+            sum(detail.remain_quantity * detail.unit_price) as lineAmount,
             detail.belong_unit as belongUnit
         from wms_inventory_detail detail
         left join wms_item_sku sku on detail.sku_id = sku.id
@@ -44,7 +44,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 and detail.belong_unit like concat('%', #{bo.belongUnit}, '%')
             </if>
             <if test="bo.unitPrice != null">
-                and coalesce(detail.unit_price, sku.default_unit_price, 0) = #{bo.unitPrice}
+                and detail.unit_price = #{bo.unitPrice}
             </if>
             <if test="bo.createStartTime != null and bo.createEndTime != null">
                 and detail.create_time between #{bo.createStartTime} and #{bo.createEndTime}
@@ -57,7 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             coalesce(detail.spec_model, sku.spec_model, item.model_text),
             detail.product_mark,
             detail.quality_grade,
-            coalesce(detail.unit_price, sku.default_unit_price, 0),
+            detail.unit_price,
             item.unit,
             detail.belong_unit
     </sql>

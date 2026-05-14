@@ -12,17 +12,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="itemCategory" column="item_category"/>
             <result property="unit" column="item_unit"/>
             <result property="itemBrand" column="item_brand"/>
-            <result property="itemType" column="item_type"/>
-            <result property="trackingMode" column="tracking_mode"/>
-            <result property="allowBox" column="allow_box"/>
             <result property="specLevel" column="spec_level"/>
             <result property="equipmentName" column="equipment_name"/>
             <result property="equipmentType" column="equipment_type"/>
             <result property="status" column="item_status"/>
-            <result property="defaultTrackingMode" column="default_tracking_mode"/>
-            <result property="defaultBelongUnit" column="default_belong_unit"/>
-            <result property="defaultQualityGrade" column="item_default_quality_grade"/>
-            <result property="productMarkRule" column="product_mark_rule"/>
+            <result property="productMark" column="product_mark"/>
             <result property="modelText" column="model_text"/>
             <result property="remark" column="item_remark"/>
         </association>
@@ -33,13 +27,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             sku.id,
             sku.item_id,
             sku.sku_name,
-            sku.barcode,
-            sku.sku_code,
             sku.spec_model,
-            sku.default_unit_price,
-            sku.default_quality_grade,
             sku.status,
-            sku.volume,
             sku.length,
             sku.width,
             sku.height,
@@ -57,17 +46,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.item_category,
             item.unit as item_unit,
             item.item_brand,
-            item.item_type,
-            item.tracking_mode,
-            item.allow_box,
             item.spec_level,
             item.equipment_name,
             item.equipment_type,
             item.status as item_status,
-            item.default_tracking_mode,
-            item.default_belong_unit,
-            item.default_quality_grade as item_default_quality_grade,
-            item.product_mark_rule,
+            item.product_mark,
             item.model_text,
             item.remark as item_remark
         from wms_item_sku sku
@@ -88,9 +71,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
-            </if>
-            <if test="bo.barcode != null and bo.barcode != ''">
-                and sku.barcode like concat('%', #{bo.barcode}, '%')
             </if>
             <if test="bo.specModel != null and bo.specModel != ''">
                 and sku.spec_model like concat('%', #{bo.specModel}, '%')

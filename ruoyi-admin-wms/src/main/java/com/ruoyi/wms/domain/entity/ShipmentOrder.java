@@ -1,6 +1,7 @@
 package com.ruoyi.wms.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -41,58 +42,22 @@ public class ShipmentOrder extends BaseEntity {
      */
     private String orderNo;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String basisNo;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String dispatchMode;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String noticeOrg;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String receiveUnit;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private LocalDate purchaseDate;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private LocalDate shipmentDate;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String purchaserName;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String acceptorName;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String keeperName;
     /**
      * 客户

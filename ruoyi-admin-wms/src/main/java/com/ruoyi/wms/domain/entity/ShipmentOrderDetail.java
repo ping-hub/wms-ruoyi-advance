@@ -90,10 +90,6 @@ public class ShipmentOrderDetail extends BaseEntity {
      */
     private Long areaId;
     /**
-     * 批号
-     */
-    private String batchNo;
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;

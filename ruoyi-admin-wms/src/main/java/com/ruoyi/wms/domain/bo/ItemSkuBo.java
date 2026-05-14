@@ -36,39 +36,14 @@ public class ItemSkuBo extends BaseEntity {
     private Long itemId;
 
     /**
-     * sku条码
-     */
-    private String barcode;
-
-    /**
-     * 编码
-     */
-    private String skuCode;
-
-    /**
      * 规格型号
      */
     private String specModel;
 
     /**
-     * 默认单价
-     */
-    private BigDecimal defaultUnitPrice;
-
-    /**
-     * 默认质量等级
-     */
-    private String defaultQualityGrade;
-
-    /**
      * 启用状态
      */
     private String status;
-
-    /**
-     * 体积
-     */
-    private BigDecimal volume;
 
     /**
      * 长(cm)

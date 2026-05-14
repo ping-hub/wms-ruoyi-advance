@@ -131,11 +131,6 @@ public class ItemInstanceBo extends BaseEntity {
     private LocalDateTime lastOperationTime;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;
@@ -149,6 +144,11 @@ public class ItemInstanceBo extends BaseEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 是否仅查询未入库实例
+     */
+    private Boolean unreceivedOnly;
 
     /**
      * 用于更新状态

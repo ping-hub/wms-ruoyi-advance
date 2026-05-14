@@ -239,7 +239,6 @@ public class AdjustOrderService {
             inventoryDetailBo.setWarehouseId(detail.getWarehouseId());
             inventoryDetailBo.setAreaId(detail.getAreaId());
             inventoryDetailBo.setQuantity(detail.getDifferenceQuantity());
-            inventoryDetailBo.setBatchNo(detail.getBatchNo());
             inventoryDetailBo.setProductionDate(detail.getProductionDate());
             inventoryDetailBo.setExpirationDate(detail.getExpirationDate());
             inventoryDetailBo.setShipmentQuantity(detail.getDifferenceQuantity().abs());
@@ -269,7 +268,6 @@ public class AdjustOrderService {
             addInventoryDetail.setSourceOrderId(bo.getId());
             addInventoryDetail.setLineNo(detail.getLineNo());
             addInventoryDetail.setQuantity(detail.getDifferenceQuantity());
-            addInventoryDetail.setBatchNo(detail.getBatchNo());
             addInventoryDetail.setProductionDate(detail.getProductionDate());
             addInventoryDetail.setExpirationDate(detail.getExpirationDate());
             addInventoryDetail.setEquipmentCode(detail.getEquipmentCode());
@@ -322,7 +320,6 @@ public class AdjustOrderService {
             inventoryHistory.setLocationId(detail.getLocationId());
             inventoryHistory.setItemInstanceId(detail.getItemInstanceId());
             inventoryHistory.setBoxId(detail.getBoxId());
-            inventoryHistory.setBatchNo(detail.getBatchNo());
             inventoryHistory.setProductionDate(detail.getProductionDate());
             inventoryHistory.setExpirationDate(detail.getExpirationDate());
             inventoryHistory.setEquipmentCode(detail.getEquipmentCode());

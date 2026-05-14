@@ -379,7 +379,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setLocationId(borrowRecord.getOriginalLocationId());
         history.setItemInstanceId(borrowRecord.getItemInstanceId());
         history.setBoxId(itemInstance.getBoxId());
-        history.setBatchNo(itemInstance.getBatchNo());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
         history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
@@ -405,7 +404,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setLocationId(borrowRecord.getOriginalLocationId());
         history.setItemInstanceId(borrowRecord.getItemInstanceId());
         history.setBoxId(itemInstance.getBoxId());
-        history.setBatchNo(itemInstance.getBatchNo());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
         history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
@@ -460,4 +458,3 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return "BR" + IdUtil.getSnowflakeNextIdStr();
     }
 }
-

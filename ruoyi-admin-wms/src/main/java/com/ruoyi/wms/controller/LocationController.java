@@ -14,7 +14,6 @@ import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.LocationBo;
 import com.ruoyi.wms.domain.vo.LocationHealthCheckResultVo;
 import com.ruoyi.wms.domain.vo.LocationRebuildResultVo;
-import com.ruoyi.wms.domain.vo.LocationStockVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
 import com.ruoyi.wms.service.LocationService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -57,12 +56,6 @@ public class LocationController extends BaseController {
     @GetMapping("/{id}")
     public R<LocationVo> getInfo(@NotNull(message = "主键不能为空") @PathVariable Long id) {
         return R.ok(locationService.queryById(id));
-    }
-
-    @SaCheckPermission("wms:location:list")
-    @GetMapping("/stock/{id}")
-    public R<LocationStockVo> getStock(@NotNull(message = "主键不能为空") @PathVariable Long id) {
-        return R.ok(locationService.queryStockById(id));
     }
 
     @SaCheckPermission("wms:location:edit")

@@ -15,6 +15,8 @@ import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.ItemInstanceBo;
+import com.ruoyi.wms.domain.bo.ReceiptItemInstanceBo;
+import com.ruoyi.wms.domain.bo.ReceiptOrderDetailBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.ItemInstance;
@@ -27,6 +29,7 @@ import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ItemVo;
 import com.ruoyi.wms.mapper.AreaMapper;
+import com.ruoyi.wms.mapper.BoxMapper;
 import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
@@ -56,6 +59,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final AreaMapper areaMapper;
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
+    private final BoxMapper boxMapper;
     private final ReceiptOrderDetailMapper receiptOrderDetailMapper;
 
     public ItemInstanceVo queryById(Long id) {
@@ -242,6 +246,20 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         return list;
     }
 
+    public Map<Long, List<ItemInstanceVo>> queryVoMapByReceiptDetailIds(Set<Long> receiptOrderDetailIds) {
+        if (CollUtil.isEmpty(receiptOrderDetailIds)) {
+            return Map.of();
+        }
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.in(ItemInstance::getReceiptOrderDetailId, receiptOrderDetailIds);
+        lqw.orderByAsc(ItemInstance::getId);
+        List<ItemInstanceVo> list = itemInstanceMapper.selectVoList(lqw);
+        enrich(list);
+        return list.stream()
+            .filter(it -> it.getReceiptOrderDetailId() != null)
+            .collect(Collectors.groupingBy(ItemInstanceVo::getReceiptOrderDetailId));
+    }
+
     public long countByReceiptOrderId(Long receiptOrderId) {
         LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
         lqw.eq(ItemInstance::getSourceType, ServiceConstants.ItemInstanceSourceType.RECEIPT);
@@ -249,34 +267,114 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         return itemInstanceMapper.selectCount(lqw);
     }
 
-    @Transactional
-    public void generateByReceiptOrder(ReceiptOrder receiptOrder, List<ReceiptOrderDetail> detailList, String belongUnit) {
+    public void reserveForReceiptDetails(List<ReceiptOrderDetailBo> detailList) {
         if (CollUtil.isEmpty(detailList)) {
             return;
         }
-        Assert.isTrue(countByReceiptOrderId(receiptOrder.getId()) == 0, "该入库单已生成单品实例，请勿重复入库");
-        Set<Long> skuIds = detailList.stream().map(ReceiptOrderDetail::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream()
-            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        List<ItemInstance> addList = new ArrayList<>();
-        for (ReceiptOrderDetail detail : detailList) {
-            ItemSkuVo skuVo = skuMap.get(detail.getSkuId());
-            Assert.notNull(skuVo, "入库单明细规格不存在");
-            ItemVo item = skuVo.getItem();
-            Assert.notNull(item, "规格未关联物品定义");
-            boolean shouldGenerate = Integer.valueOf(1).equals(detail.getGenerateItemInstance())
-                || StrUtil.equals(item.getTrackingMode(), "instance");
-            if (!shouldGenerate) {
+        Set<Long> instanceIds = new java.util.HashSet<>();
+        Set<String> instanceCodes = new java.util.HashSet<>();
+        detailList.forEach(detail -> {
+            if (CollUtil.isEmpty(detail.getReceiptItemInstances())) {
+                return;
+            }
+            detail.getReceiptItemInstances().forEach(item -> {
+                if (item.getId() != null) {
+                    instanceIds.add(item.getId());
+                }
+                String instanceCode = StrUtil.trim(item.getInstanceCode());
+                if (StrUtil.isNotBlank(instanceCode)) {
+                    instanceCodes.add(instanceCode);
+                }
+            });
+        });
+        if (instanceIds.isEmpty() && instanceCodes.isEmpty()) {
+            return;
+        }
+        Map<Long, ItemInstance> itemInstanceMap = queryByIds(instanceIds).stream()
+            .collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
+        Map<String, ItemInstance> itemInstanceCodeMap = queryByCodes(instanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
+        List<ItemInstance> updateList = new ArrayList<>();
+        for (ReceiptOrderDetailBo detail : detailList) {
+            if (CollUtil.isEmpty(detail.getReceiptItemInstances())) {
                 continue;
             }
-            int instanceCount = convertInstanceCount(detail.getQuantity(), skuVo.getSkuName());
-            for (int i = 0; i < instanceCount; i++) {
-                ItemInstance itemInstance = new ItemInstance();
-                itemInstance.setInstanceCode(generateInstanceCode());
-                itemInstance.setItemId(item.getId());
-                itemInstance.setSkuId(detail.getSkuId());
-                itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
-                itemInstance.setInBox(0);
+            for (ReceiptItemInstanceBo receiptItemInstance : detail.getReceiptItemInstances()) {
+                String instanceCode = StrUtil.trim(receiptItemInstance.getInstanceCode());
+                ItemInstance itemInstance = resolveReceiptItemInstance(receiptItemInstance, itemInstanceMap, itemInstanceCodeMap);
+                validateAvailableForReceipt(itemInstance, instanceCode, detail.getId());
+                Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "器材实例编码" + itemInstance.getInstanceCode() + "与当前明细规格不匹配");
+                ItemInstance update = new ItemInstance();
+                update.setId(itemInstance.getId());
+                update.setReceiptOrderDetailId(detail.getId());
+                updateList.add(update);
+            }
+        }
+        if (CollUtil.isNotEmpty(updateList)) {
+            updateBatchById(updateList);
+        }
+    }
+
+    public void releaseReceiptReservationsByDetailIds(java.util.Collection<Long> detailIds) {
+        if (CollUtil.isEmpty(detailIds)) {
+            return;
+        }
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.in(ItemInstance::getReceiptOrderDetailId, detailIds);
+        wrapper.isNull(ItemInstance::getWarehouseId);
+        wrapper.isNull(ItemInstance::getAreaId);
+        wrapper.isNull(ItemInstance::getRackId);
+        wrapper.isNull(ItemInstance::getLocationId);
+        wrapper.isNull(ItemInstance::getBoxId);
+        wrapper.set(ItemInstance::getReceiptOrderDetailId, null);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    @Transactional
+    public List<ItemInstance> receiveByReceiptOrder(ReceiptOrder receiptOrder, List<ReceiptOrderDetailBo> detailList,
+                                                    String belongUnit, Map<String, Box> receiptBoxMap) {
+        if (CollUtil.isEmpty(detailList)) {
+            return List.of();
+        }
+        Assert.isTrue(countByReceiptOrderId(receiptOrder.getId()) == 0, "该入库单已生成单品实例，请勿重复入库");
+        Set<Long> instanceIds = new java.util.HashSet<>();
+        Set<String> instanceCodes = new java.util.HashSet<>();
+        detailList.forEach(detail -> {
+            if (CollUtil.isEmpty(detail.getReceiptItemInstances())) {
+                return;
+            }
+            detail.getReceiptItemInstances().forEach(item -> {
+                if (item.getId() != null) {
+                    instanceIds.add(item.getId());
+                }
+                String instanceCode = StrUtil.trim(item.getInstanceCode());
+                if (StrUtil.isNotBlank(instanceCode)) {
+                    instanceCodes.add(instanceCode);
+                }
+            });
+        });
+        Map<Long, ItemInstance> itemInstanceMap = queryByIds(instanceIds).stream()
+            .collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
+        Map<String, ItemInstance> itemInstanceCodeMap = queryByCodes(instanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
+        List<ItemInstance> updateList = new ArrayList<>();
+        for (ReceiptOrderDetailBo detail : detailList) {
+            List<ReceiptItemInstanceBo> receiptItemInstances = detail.getReceiptItemInstances();
+            Assert.isTrue(CollUtil.isNotEmpty(receiptItemInstances), "请先录入器材实例");
+            int instanceCount = convertInstanceCount(detail.getQuantity(), detail.getSpecModel());
+            Assert.isTrue(receiptItemInstances.size() == instanceCount, "器材实例数量与入库数量不一致");
+            for (ReceiptItemInstanceBo receiptItemInstance : receiptItemInstances) {
+                String instanceCode = StrUtil.trim(receiptItemInstance.getInstanceCode());
+                ItemInstance itemInstance = resolveReceiptItemInstance(receiptItemInstance, itemInstanceMap, itemInstanceCodeMap);
+                validateAvailableForReceipt(itemInstance, instanceCode, detail.getId());
+                Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "器材实例编码" + itemInstance.getInstanceCode() + "与当前明细规格不匹配");
+                Box box = StrUtil.isBlank(receiptItemInstance.getBoxCode()) ? null :
+                    receiptBoxMap.get(StrUtil.trim(receiptItemInstance.getBoxCode()));
+                if (StrUtil.isNotBlank(receiptItemInstance.getBoxCode())) {
+                    Assert.notNull(box, "箱码" + receiptItemInstance.getBoxCode() + "未完成预处理");
+                }
+                itemInstance.setInstanceStatus(box == null ? ServiceConstants.ItemInstanceStatus.IN_STOCK : ServiceConstants.ItemInstanceStatus.IN_BOX);
+                itemInstance.setInBox(box == null ? 0 : 1);
                 itemInstance.setBorrowed(0);
                 itemInstance.setWarehouseId(detail.getWarehouseId());
                 itemInstance.setAreaId(detail.getAreaId());
@@ -287,26 +385,26 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setSourceOrderId(receiptOrder.getId());
                 itemInstance.setSourceOrderNo(receiptOrder.getReceiptOrderNo());
                 itemInstance.setReceiptOrderDetailId(detail.getId());
-                itemInstance.setProductMark(StrUtil.blankToDefault(detail.getProductMark(), item.getProductMarkRule()));
-                itemInstance.setQualityGrade(StrUtil.blankToDefault(detail.getQualityGrade(), item.getDefaultQualityGrade()));
+                itemInstance.setBoxId(box == null ? null : box.getId());
+                itemInstance.setProductMark(StrUtil.blankToDefault(receiptItemInstance.getProductMark(),
+                    StrUtil.blankToDefault(detail.getProductMark(), itemInstance.getProductMark())));
+                itemInstance.setQualityGrade(StrUtil.blankToDefault(receiptItemInstance.getQualityGrade(), detail.getQualityGrade()));
                 itemInstance.setBelongUnit(belongUnit);
-                itemInstance.setBatchNo(detail.getBatchNo());
                 itemInstance.setProductionDate(detail.getProductionDate());
                 itemInstance.setExpirationDate(detail.getExpirationDate());
-                itemInstance.setRemark(detail.getRemark());
-                addList.add(itemInstance);
+                itemInstance.setRemark(StrUtil.blankToDefault(receiptItemInstance.getRemark(), detail.getRemark()));
+                updateList.add(itemInstance);
             }
             ReceiptOrderDetail update = new ReceiptOrderDetail();
             update.setId(detail.getId());
             update.setGeneratedInstanceQuantity(instanceCount);
-            if (detail.getGenerateItemInstance() == null) {
-                update.setGenerateItemInstance(1);
-            }
+            update.setGenerateItemInstance(1);
             receiptOrderDetailMapper.updateById(update);
         }
-        if (CollUtil.isNotEmpty(addList)) {
-            saveBatch(addList);
+        if (CollUtil.isNotEmpty(updateList)) {
+            updateBatchById(updateList);
         }
+        return updateList;
     }
 
     private LambdaQueryWrapper<ItemInstance> buildQueryWrapper(ItemInstanceBo bo) {
@@ -330,6 +428,17 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), ItemInstance::getQualityGrade, bo.getQualityGrade());
         lqw.like(StrUtil.isNotBlank(bo.getBelongUnit()), ItemInstance::getBelongUnit, bo.getBelongUnit());
         lqw.like(StrUtil.isNotBlank(bo.getCurrentOwnerUnit()), ItemInstance::getCurrentOwnerUnit, bo.getCurrentOwnerUnit());
+        if (Boolean.TRUE.equals(bo.getUnreceivedOnly())) {
+            lqw.eq(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+            lqw.eq(ItemInstance::getBorrowed, 0);
+            lqw.eq(ItemInstance::getInBox, 0);
+            lqw.isNull(ItemInstance::getWarehouseId);
+            lqw.isNull(ItemInstance::getAreaId);
+            lqw.isNull(ItemInstance::getRackId);
+            lqw.isNull(ItemInstance::getLocationId);
+            lqw.isNull(ItemInstance::getBoxId);
+            lqw.isNull(ItemInstance::getReceiptOrderDetailId);
+        }
         lqw.orderByDesc(ItemInstance::getCreateTime);
         return lqw;
     }
@@ -376,7 +485,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 bo.setAreaId(rack.getAreaId());
             }
             if (bo.getWarehouseId() != null) {
-                Assert.isTrue(Objects.equals(bo.getWarehouseId(), rack.getWarehouseId()), "璐ф灦涓庝粨搴撲笉鍖归厤");
+                Assert.isTrue(Objects.equals(bo.getWarehouseId(), rack.getWarehouseId()), "货架与仓库不匹配");
             } else {
                 bo.setWarehouseId(rack.getWarehouseId());
             }
@@ -414,6 +523,48 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         return "II" + IdUtil.getSnowflakeNextIdStr();
     }
 
+    private List<ItemInstance> queryByCodes(Set<String> instanceCodes) {
+        if (CollUtil.isEmpty(instanceCodes)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.in(ItemInstance::getInstanceCode, instanceCodes);
+        return itemInstanceMapper.selectList(lqw);
+    }
+
+    private ItemInstance resolveReceiptItemInstance(ReceiptItemInstanceBo receiptItemInstance,
+                                                    Map<Long, ItemInstance> itemInstanceMap,
+                                                    Map<String, ItemInstance> itemInstanceCodeMap) {
+        if (receiptItemInstance.getId() != null) {
+            ItemInstance itemInstance = itemInstanceMap.get(receiptItemInstance.getId());
+            Assert.notNull(itemInstance, "器材实例不存在");
+            return itemInstance;
+        }
+        String instanceCode = StrUtil.trim(receiptItemInstance.getInstanceCode());
+        Assert.isTrue(StrUtil.isNotBlank(instanceCode), "器材实例编码不能为空");
+        ItemInstance itemInstance = itemInstanceCodeMap.get(instanceCode);
+        Assert.notNull(itemInstance, "器材实例编码" + instanceCode + "不存在");
+        return itemInstance;
+    }
+
+    private void validateAvailableForReceipt(ItemInstance itemInstance, String instanceCode, Long currentReceiptDetailId) {
+        String displayCode = StrUtil.blankToDefault(instanceCode, itemInstance.getInstanceCode());
+        Assert.notNull(itemInstance.getId(), "器材实例编码" + displayCode + "无效");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "器材实例编码" + displayCode + "已停用");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "器材实例编码" + displayCode + "已出库");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()) || Integer.valueOf(1).equals(itemInstance.getBorrowed()),
+            "器材实例编码" + displayCode + "已借出");
+        Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()) || itemInstance.getBoxId() != null,
+            "器材实例编码" + displayCode + "已绑定箱体");
+        boolean reservedByCurrentDetail = Objects.equals(itemInstance.getReceiptOrderDetailId(), currentReceiptDetailId);
+        Assert.isTrue(itemInstance.getWarehouseId() == null
+                && itemInstance.getAreaId() == null
+                && itemInstance.getRackId() == null
+                && itemInstance.getLocationId() == null
+                && (itemInstance.getReceiptOrderDetailId() == null || reservedByCurrentDetail),
+            "器材实例编码" + displayCode + "已入库或已被入库单占用");
+    }
+
     private void enrich(List<ItemInstanceVo> list) {
         if (CollUtil.isEmpty(list)) {
             return;
@@ -427,6 +578,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Set<Long> areaIds = validList.stream().map(ItemInstanceVo::getAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> rackIds = validList.stream().map(ItemInstanceVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = validList.stream().map(ItemInstanceVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> boxIds = validList.stream().map(ItemInstanceVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
         Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
@@ -436,12 +588,17 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Function.identity()));
         Map<Long, Location> locationMap = locationIds.isEmpty() ? java.util.Collections.emptyMap() :
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
+        Map<Long, Box> boxMap = boxIds.isEmpty() ? java.util.Collections.emptyMap() :
+            boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         validList.forEach(vo -> {
             ItemSkuVo skuVo = skuMap.get(vo.getSkuId());
             if (skuVo != null) {
                 vo.setSkuName(skuVo.getSkuName());
+                vo.setSpecModel(skuVo.getSpecModel());
                 if (skuVo.getItem() != null) {
                     vo.setItemName(skuVo.getItem().getItemName());
+                    vo.setItemCode(skuVo.getItem().getItemCode());
+                    vo.setItemBrand(skuVo.getItem().getItemBrand());
                 }
             }
             Warehouse warehouse = warehouseMap.get(vo.getWarehouseId());
@@ -460,7 +617,10 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             if (location != null) {
                 vo.setLocationName(location.getLocationName());
             }
+            Box box = boxMap.get(vo.getBoxId());
+            if (box != null) {
+                vo.setBoxCode(box.getBoxCode());
+            }
         });
     }
 }
-

@@ -1,6 +1,5 @@
 package com.ruoyi.wms.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
@@ -47,58 +46,22 @@ public class ReceiptOrder extends BaseEntity {
      */
     private String orderNo;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String basisNo;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String dispatchMode;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String noticeOrg;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String receiveUnit;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private LocalDate purchaseDate;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private LocalDate receiptDate;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String purchaserName;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String acceptorName;
 
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private String keeperName;
     /**
      * 商品总数

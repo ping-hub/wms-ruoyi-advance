@@ -27,9 +27,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
             </if>
-            <if test="bo.skuCode != null and bo.skuCode != ''">
-                and sku.sku_code like concat('%', #{bo.skuCode}, '%')
-            </if>
             <if test="bo.itemCategory != null">
                 and item.item_category=#{bo.itemCategory}
             </if>
@@ -81,9 +78,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
-            </if>
-            <if test="bo.skuCode != null and bo.skuCode != ''">
-                and sku.sku_code like concat('%', #{bo.skuCode}, '%')
             </if>
             <if test="bo.itemCategory != null">
                 and item.item_category=#{bo.itemCategory}

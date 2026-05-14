@@ -102,6 +102,60 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     @Transactional
     public void pack(BoxOperationBo bo) {
+        throw new ServiceException("装箱关系已停用，请在入库作业中录入箱码完成绑定", HttpStatus.CONFLICT.value());
+    }
+
+    @Transactional
+    public void unpack(BoxOperationBo bo) {
+        throw new ServiceException("拆箱关系已停用，请通过新的入库/出库作业维护当前箱码状态", HttpStatus.CONFLICT.value());
+    }
+
+    public Box getOrCreateForReceipt(String boxCode, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+        Assert.isTrue(StrUtil.isNotBlank(boxCode), "箱码不能为空");
+        Box box = queryEntityByCode(boxCode);
+        if (box == null) {
+            Box add = new Box();
+            add.setBoxCode(boxCode);
+            add.setBoxName(boxCode);
+            add.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+            add.setWarehouseId(warehouseId);
+            add.setAreaId(areaId);
+            add.setRackId(rackId);
+            add.setLocationId(locationId);
+            add.setItemCount(0);
+            boxMapper.insert(add);
+            return add;
+        }
+        Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "箱体已停用，无法入库绑定");
+        int itemCount = countItemsByBoxId(box.getId());
+        LocationContext targetLocation = new LocationContext(warehouseId, areaId, rackId, locationId);
+        if (itemCount > 0) {
+            Assert.isTrue(sameLocation(box, targetLocation), "箱码" + boxCode + "当前已在其他位置存在装箱关系，请先处理原状态");
+        }
+        Box update = new Box();
+        update.setId(box.getId());
+        update.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+        update.setWarehouseId(warehouseId);
+        update.setAreaId(areaId);
+        update.setRackId(rackId);
+        update.setLocationId(locationId);
+        boxMapper.updateById(update);
+        box.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+        box.setWarehouseId(warehouseId);
+        box.setAreaId(areaId);
+        box.setRackId(rackId);
+        box.setLocationId(locationId);
+        return box;
+    }
+
+    private Box queryEntityByCode(String boxCode) {
+        LambdaQueryWrapper<Box> lqw = Wrappers.lambdaQuery();
+        lqw.eq(Box::getBoxCode, boxCode);
+        return boxMapper.selectOne(lqw);
+    }
+
+    @Transactional
+    public void legacyPack(BoxOperationBo bo) {
         Box box = requireBox(bo.getBoxId());
         Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "箱体已停用，无法装箱");
         Assert.isFalse(ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus()), "已出库箱体无法装箱");
@@ -134,7 +188,7 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     }
 
     @Transactional
-    public void unpack(BoxOperationBo bo) {
+    public void legacyUnpack(BoxOperationBo bo) {
         Box box = requireBox(bo.getBoxId());
         Set<Long> itemIds = Set.copyOf(bo.getItemInstanceIds());
         List<ItemInstance> items = itemInstanceService.queryByIds(itemIds);
@@ -275,7 +329,6 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(item.getInstanceStatus()), "已出库单品无法装箱");
         Assert.notNull(skuVo, "单品实例规格不存在");
         Assert.notNull(skuVo.getItem(), "规格未关联物品定义");
-        Assert.isTrue(Integer.valueOf(1).equals(skuVo.getItem().getAllowBox()), "物品未开启装箱，不允许装箱");
     }
 
     private void validateItemLocationForPack(ItemInstanceVo item, LocationContext targetLocation) {
@@ -386,4 +439,3 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         });
     }
 }
-

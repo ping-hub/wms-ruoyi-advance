@@ -55,9 +55,6 @@ public class InternalMoveOrderDetailVo implements Serializable {
     @ExcelProperty(value = "备注")
     private String remark;
 
-    @ExcelProperty(value = "批号")
-    private String batchNo;
-
     @ExcelProperty(value = "生产日期")
     private LocalDateTime productionDate;
 

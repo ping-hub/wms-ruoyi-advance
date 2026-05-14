@@ -85,11 +85,6 @@ public class LocationBo extends BaseEntity {
     private BigDecimal height;
 
     /**
-     * 容积
-     */
-    private BigDecimal volume;
-
-    /**
      * 承重
      */
     private BigDecimal maxWeight;

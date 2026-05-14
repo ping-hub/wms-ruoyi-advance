@@ -32,9 +32,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         inner join wms_item_sku sku on detail.sku_id=sku.id
         inner join wms_item item on sku.item_id=item.id
         <where>
-            <if test="bo.batchNo != null and bo.batchNo != ''">
-                and detail.batch_no like concat('%', #{bo.batchNo}, '%')
-            </if>
             <if test="bo.itemName != null and bo.itemName != ''">
                 and item.item_name like concat('%', #{bo.itemName}, '%')
             </if>
@@ -49,9 +46,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
-            </if>
-            <if test="bo.skuCode != null and bo.skuCode != ''">
-                and sku.sku_code like concat('%', #{bo.skuCode}, '%')
             </if>
             <if test="bo.specModel != null and bo.specModel != ''">
                 and coalesce(detail.spec_model, sku.spec_model, item.model_text) like concat('%', #{bo.specModel}, '%')
@@ -73,9 +67,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.areaId != null">
                 and detail.area_id=#{bo.areaId}
-            </if>
-            <if test="bo.batchNo != null and bo.batchNo != ''">
-                and detail.batch_no=#{bo.batchNo}
             </if>
             <if test="bo.createStartTime != null and bo.createEndTime != null">
                 and (detail.create_time between #{bo.createStartTime} and #{bo.createEndTime})

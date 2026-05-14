@@ -35,26 +35,6 @@ public class BoxBo extends BaseEntity {
     private String boxStatus;
 
     /**
-     * 长
-     */
-    private BigDecimal length;
-
-    /**
-     * 宽
-     */
-    private BigDecimal width;
-
-    /**
-     * 高
-     */
-    private BigDecimal height;
-
-    /**
-     * 容积
-     */
-    private BigDecimal volume;
-
-    /**
      * 承重
      */
     private BigDecimal maxWeight;

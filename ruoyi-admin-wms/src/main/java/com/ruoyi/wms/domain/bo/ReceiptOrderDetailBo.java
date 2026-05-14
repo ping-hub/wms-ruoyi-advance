@@ -13,6 +13,7 @@ import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 入库单详情业务对象 wms_receipt_order_detail
@@ -89,11 +90,6 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     private BigDecimal lineAmount;
 
     /**
-     * 批号
-     */
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     private LocalDateTime productionDate;
@@ -139,4 +135,9 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      * 已生成单品实例数量
      */
     private Integer generatedInstanceQuantity;
+
+    /**
+     * 入库时录入的器材实例
+     */
+    private List<ReceiptItemInstanceBo> receiptItemInstances;
 }

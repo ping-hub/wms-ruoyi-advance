@@ -94,12 +94,6 @@ public class MovementOrderDetailVo implements Serializable {
     private String remark;
 
     /**
-     * 批号
-     */
-    @ExcelProperty(value = "批号")
-    private String batchNo;
-
-    /**
      * 生产日期
      */
     @ExcelProperty(value = "生产日期")
