@@ -56,5 +56,9 @@ public class LocationSummaryVo implements Serializable {
 
     private Integer directItemCount;
 
+    private List<BoxVo> boxes = new ArrayList<>();
+
+    private List<ItemInstanceVo> itemInstances = new ArrayList<>();
+
     private List<LocationItemSummaryVo> itemSummaries = new ArrayList<>();
 }

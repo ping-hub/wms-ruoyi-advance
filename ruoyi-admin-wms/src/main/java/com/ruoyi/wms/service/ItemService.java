@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @Log4j2
 public class ItemService {
 
+    private static final String BATCH_PRINT_ITEM_KEY = "ITEM";
+
     private final ItemMapper itemMapper;
     private final ItemSkuService itemSkuService;
     private final ItemCategoryMapper itemCategoryMapper;
@@ -113,23 +115,21 @@ public class ItemService {
         Assert.notNull(item, "器材不存在");
 
         ItemBo row = bo.getRow();
-        String itemName = StrUtil.blankToDefault(row.getItemName(), item.getItemName());
         ItemSkuVo sku = resolvePrintSku(row);
-        String specName = resolveSpecName(row, sku);
-        String itemKey = itemQrCodeSerialService.buildItemKey(itemName, specName);
+        String itemKey = BATCH_PRINT_ITEM_KEY;
 
-        List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemName, specName, bo.getQrCodeCount());
+        List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, StrUtil.EMPTY, bo.getQrCodeCount());
         LocalDateTime now = LocalDateTime.now();
         List<ItemInstance> itemInstances = new ArrayList<>(serialValues.size());
         List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(serialValues.size());
 
         for (Long serialValue : serialValues) {
-            String instanceCode = String.valueOf(serialValue);
-            String qrCodeValue = itemKey + instanceCode;
+            String instanceCode = itemKey + serialValue;
+            String qrCodeValue = instanceCode;
             String qrContent = buildQrCodeContent(qrCodeValue);
 
             ItemInstance itemInstance = new ItemInstance();
-            itemInstance.setInstanceCode(qrCodeValue);
+            itemInstance.setInstanceCode(instanceCode);
             itemInstance.setItemId(row.getId());
             itemInstance.setSkuId(sku.getId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
@@ -277,13 +277,6 @@ public class ItemService {
         }
 
         throw new IllegalArgumentException("当前器材存在多个规格，无法自动识别打印规格，请补充明确规格信息");
-    }
-
-    private String resolveSpecName(ItemBo row, ItemSkuVo sku) {
-        return StrUtil.blankToDefault(
-            StrUtil.blankToDefault(row.getModelText(), sku.getSpecModel()),
-            StrUtil.blankToDefault(sku.getSkuName(), "default")
-        );
     }
 
     private String buildQrCodeContent(String qrCodeValue) {

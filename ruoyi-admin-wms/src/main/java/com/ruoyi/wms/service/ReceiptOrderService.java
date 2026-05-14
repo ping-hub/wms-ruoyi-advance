@@ -58,6 +58,7 @@ public class ReceiptOrderService {
     private final SysDictTypeService dictTypeService;
     private final ItemInstanceService itemInstanceService;
     private final BoxService boxService;
+    private final LocationService locationService;
 
     /**
      * 查询入库单
@@ -160,6 +161,18 @@ public class ReceiptOrderService {
         List<ItemInstance> receivedInstances = itemInstanceService.receiveByReceiptOrder(receiptOrder, bo.getDetails(),
             bo.getReceiveUnit(), receiptBoxMap);
         receiptBoxMap.values().forEach(box -> boxService.moveTo(box.getId(), box.getWarehouseId(), box.getAreaId(), box.getRackId(), box.getLocationId()));
+        Set<Long> locationIds = new HashSet<>();
+        receivedInstances.forEach(item -> {
+            if (item.getLocationId() != null) {
+                locationIds.add(item.getLocationId());
+            }
+        });
+        receiptBoxMap.values().forEach(box -> {
+            if (box.getLocationId() != null) {
+                locationIds.add(box.getLocationId());
+            }
+        });
+        locationService.refreshOccupiedFlagsByLocationIds(locationIds);
 
         // 4.保存库存明细
         this.saveInventoryDetails(bo, receivedInstances);

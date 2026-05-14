@@ -54,6 +54,7 @@ public class ShipmentOrderService {
     private final InventoryDetailService inventoryDetailService;
     private final ItemInstanceService itemInstanceService;
     private final BoxService boxService;
+    private final LocationService locationService;
 
     /**
      * 查询出库单
@@ -204,6 +205,10 @@ public class ShipmentOrderService {
         saveInventoryHistory(bo, inventoryDetailMap);
         // 8.同步单品实例与箱体状态
         syncShipmentObjects(bo.getDetails());
+        locationService.refreshOccupiedFlagsByLocationIds(inventoryDetailMap.values().stream()
+            .map(InventoryDetail::getLocationId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet()));
     }
 
     /**

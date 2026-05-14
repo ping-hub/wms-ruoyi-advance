@@ -13,6 +13,8 @@ import com.ruoyi.wms.domain.bo.BoxBo;
 import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.bo.LocationBo;
 import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.Warehouse;
@@ -35,10 +37,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -232,6 +231,12 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         summaryVo.setDirectItemCount((int) itemInstances.stream()
             .filter(item -> !Integer.valueOf(1).equals(item.getInBox()))
             .count());
+        summaryVo.setBoxes(boxes.stream()
+            .sorted(Comparator.comparing(BoxVo::getBoxCode, Comparator.nullsLast(String::compareTo)))
+            .toList());
+        summaryVo.setItemInstances(itemInstances.stream()
+            .sorted(Comparator.comparing(ItemInstanceVo::getInstanceCode, Comparator.nullsLast(String::compareTo)))
+            .toList());
         summaryVo.setItemSummaries(itemInstances.stream()
             .collect(Collectors.groupingBy(
                 item -> item.getItemId() + "_" + item.getSkuId(),
@@ -253,6 +258,48 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
                 .thenComparing(LocationItemSummaryVo::getSkuName, java.util.Comparator.nullsLast(String::compareTo)))
             .toList());
         return summaryVo;
+    }
+
+    public void refreshOccupiedFlagsByLocationIds(Collection<Long> locationIds) {
+        if (CollUtil.isEmpty(locationIds)) {
+            return;
+        }
+        Set<Long> ids = locationIds.stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+
+        Map<Long, Integer> boxCountMap = boxService.list(Wrappers.lambdaQuery(Box.class)
+                .in(Box::getLocationId, ids))
+            .stream()
+            .filter(box -> box.getLocationId() != null)
+            .collect(Collectors.toMap(Box::getLocationId, box -> 1, Integer::sum));
+
+        Map<Long, Integer> itemCountMap = itemInstanceService.list(Wrappers.lambdaQuery(ItemInstance.class)
+                .in(ItemInstance::getLocationId, ids))
+            .stream()
+            .filter(item -> item.getLocationId() != null)
+            .collect(Collectors.toMap(ItemInstance::getLocationId, item -> 1, Integer::sum));
+
+        Set<Long> occupiedIds = ids.stream()
+            .filter(id -> boxCountMap.getOrDefault(id, 0) + itemCountMap.getOrDefault(id, 0) > 0)
+            .collect(Collectors.toSet());
+        Set<Long> freeIds = ids.stream()
+            .filter(id -> !occupiedIds.contains(id))
+            .collect(Collectors.toSet());
+
+        if (CollUtil.isNotEmpty(occupiedIds)) {
+            locationMapper.update(null, Wrappers.lambdaUpdate(Location.class)
+                .in(Location::getId, occupiedIds)
+                .set(Location::getOccupiedFlag, 1));
+        }
+        if (CollUtil.isNotEmpty(freeIds)) {
+            locationMapper.update(null, Wrappers.lambdaUpdate(Location.class)
+                .in(Location::getId, freeIds)
+                .set(Location::getOccupiedFlag, 0));
+        }
     }
 
     private LambdaQueryWrapper<Location> buildQueryWrapper(LocationBo bo) {

@@ -1,6 +1,7 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.ruoyi.wms.domain.entity.ItemQrCodeSerial;
 import com.ruoyi.wms.mapper.ItemQrCodeSerialMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,9 @@ public class ItemQrCodeSerialService {
     }
 
     public String buildItemKey(String itemName, String specName) {
+        if (StrUtil.isBlank(specName)) {
+            return itemName;
+        }
         return itemName + ITEM_KEY_SEPARATOR + specName;
     }
 }
