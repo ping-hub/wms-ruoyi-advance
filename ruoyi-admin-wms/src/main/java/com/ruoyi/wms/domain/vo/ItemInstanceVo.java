@@ -33,9 +33,6 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "物品编码")
     private String itemCode;
 
-    @ExcelProperty(value = "物品品牌")
-    private Long itemBrand;
-
     @ExcelProperty(value = "规格ID")
     private Long skuId;
 
@@ -98,6 +95,9 @@ public class ItemInstanceVo implements Serializable {
 
     @ExcelProperty(value = "来源入库单明细ID")
     private Long receiptOrderDetailId;
+
+    @ExcelProperty(value = "来源出库单明细ID")
+    private Long shipmentOrderDetailId;
 
     @ExcelProperty(value = "产品标识")
     private String productMark;

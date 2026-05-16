@@ -104,6 +104,11 @@ public class ItemInstance extends BaseEntity {
     private Long receiptOrderDetailId;
 
     /**
+     * 来源出库单明细ID（暂存占用/出库关联）
+     */
+    private Long shipmentOrderDetailId;
+
+    /**
      * 产品标识
      */
     private String productMark;

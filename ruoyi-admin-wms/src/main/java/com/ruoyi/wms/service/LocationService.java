@@ -84,11 +84,9 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Location update = new Location();
         update.setId(bo.getId());
         update.setLocationStatus(bo.getLocationStatus());
-        update.setLocationType(bo.getLocationType());
         update.setLength(bo.getLength());
         update.setWidth(bo.getWidth());
         update.setHeight(bo.getHeight());
-        update.setMaxWeight(bo.getMaxWeight());
         update.setOccupiedFlag(bo.getOccupiedFlag());
         update.setSortNo(bo.getSortNo());
         update.setRemark(bo.getRemark());
@@ -218,13 +216,11 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         summaryVo.setRackId(locationVo.getRackId());
         summaryVo.setRackName(locationVo.getRackName());
         summaryVo.setLocationStatus(locationVo.getLocationStatus());
-        summaryVo.setLocationType(locationVo.getLocationType());
         summaryVo.setRowNo(locationVo.getRowNo());
         summaryVo.setColumnNo(locationVo.getColumnNo());
         summaryVo.setLength(locationVo.getLength());
         summaryVo.setWidth(locationVo.getWidth());
         summaryVo.setHeight(locationVo.getHeight());
-        summaryVo.setMaxWeight(locationVo.getMaxWeight());
         summaryVo.setOccupiedFlag(locationVo.getOccupiedFlag());
         summaryVo.setBoxCount(boxes.size());
         summaryVo.setItemInstanceCount(itemInstances.size());
@@ -311,7 +307,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         lqw.eq(bo.getAreaId() != null, Location::getAreaId, bo.getAreaId());
         lqw.eq(bo.getRackId() != null, Location::getRackId, bo.getRackId());
         lqw.eq(StrUtil.isNotBlank(bo.getLocationStatus()), Location::getLocationStatus, bo.getLocationStatus());
-        lqw.eq(StrUtil.isNotBlank(bo.getLocationType()), Location::getLocationType, bo.getLocationType());
         lqw.eq(bo.getRowNo() != null, Location::getRowNo, bo.getRowNo());
         lqw.eq(bo.getColumnNo() != null, Location::getColumnNo, bo.getColumnNo());
         lqw.eq(bo.getOccupiedFlag() != null, Location::getOccupiedFlag, bo.getOccupiedFlag());
@@ -393,9 +388,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         }
         if (bo.getHeight() != null) {
             Assert.isTrue(bo.getHeight().signum() > 0, "货位高度必须大于0");
-        }
-        if (bo.getMaxWeight() != null) {
-            Assert.isTrue(bo.getMaxWeight().signum() > 0, "货位承重必须大于0");
         }
     }
 

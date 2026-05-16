@@ -37,11 +37,14 @@ import java.util.stream.Collectors;
 @Service
 public class RackService extends ServiceImpl<RackMapper, Rack> {
 
+    private static final String RACK_CODE_KEY = "RACK";
+
     private final RackMapper rackMapper;
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
     private final LocationMapper locationMapper;
     private final RackLocationPlannerService rackLocationPlannerService;
+    private final ItemQrCodeSerialService itemQrCodeSerialService;
 
     public RackVo queryById(Long id) {
         RackVo rackVo = rackMapper.selectVoById(id);
@@ -65,8 +68,10 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
 
     @Transactional
     public void insertByBo(RackBo bo) {
+        bo.setRackCode(null);
         validateBoBeforeSave(bo);
         Rack rack = MapstructUtils.convert(bo, Rack.class);
+        rack.setRackCode(generateRackCodeWithRetry(bo.getWarehouseId(), bo.getAreaId()));
         rackMapper.insert(rack);
         rackLocationPlannerService.generateLocationsForNewRack(rack);
     }
@@ -193,5 +198,22 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
             }
         });
     }
-}
 
+    private String generateRackCodeWithRetry(Long warehouseId, Long areaId) {
+        int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            long serialValue = itemQrCodeSerialService.allocateSerialValues(RACK_CODE_KEY,1).get(0);
+            String rackCode = RACK_CODE_KEY + serialValue;
+            long existed = rackMapper.selectCount(
+                Wrappers.<Rack>lambdaQuery()
+                    .eq(Rack::getWarehouseId, warehouseId)
+                    .eq(Rack::getAreaId, areaId)
+                    .eq(Rack::getRackCode, rackCode)
+            );
+            if (existed == 0) {
+                return rackCode;
+            }
+        }
+        throw new ServiceException("货架编码生成失败，请重试");
+    }
+}

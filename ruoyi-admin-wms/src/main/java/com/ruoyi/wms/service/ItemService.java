@@ -26,6 +26,7 @@ import com.ruoyi.wms.mapper.ItemCategoryMapper;
 import com.ruoyi.wms.mapper.ItemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,9 @@ import java.util.stream.Collectors;
 public class ItemService {
 
     private static final String BATCH_PRINT_ITEM_KEY = "ITEM";
+
+    @Value("${warehouse}")
+    private String warehouse;
 
     private final ItemMapper itemMapper;
     private final ItemSkuService itemSkuService;
@@ -116,9 +120,9 @@ public class ItemService {
 
         ItemBo row = bo.getRow();
         ItemSkuVo sku = resolvePrintSku(row);
-        String itemKey = BATCH_PRINT_ITEM_KEY;
+        String itemKey = warehouse+BATCH_PRINT_ITEM_KEY;
 
-        List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, StrUtil.EMPTY, bo.getQrCodeCount());
+        List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, bo.getQrCodeCount());
         LocalDateTime now = LocalDateTime.now();
         List<ItemInstance> itemInstances = new ArrayList<>(serialValues.size());
         List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(serialValues.size());
@@ -179,7 +183,7 @@ public class ItemService {
             lqw.in(Item::getItemCategory, subIdList);
         }
         lqw.eq(StrUtil.isNotBlank(bo.getUnit()), Item::getUnit, bo.getUnit());
-        lqw.eq(StrUtil.isNotBlank(bo.getSpecLevel()), Item::getSpecLevel, bo.getSpecLevel());
+        lqw.eq(StrUtil.isNotBlank(bo.getLevel()), Item::getLevel, bo.getLevel());
         lqw.like(StrUtil.isNotBlank(bo.getEquipmentName()), Item::getEquipmentName, bo.getEquipmentName());
         lqw.eq(StrUtil.isNotBlank(bo.getEquipmentType()), Item::getEquipmentType, bo.getEquipmentType());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Item::getStatus, bo.getStatus());

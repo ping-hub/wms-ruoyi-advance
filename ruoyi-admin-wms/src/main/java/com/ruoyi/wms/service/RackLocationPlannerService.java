@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 public class RackLocationPlannerService {
 
     private static final String DEFAULT_LOCATION_STATUS = "enabled";
-    private static final String DEFAULT_LOCATION_TYPE = "normal";
 
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
@@ -343,7 +342,6 @@ public class RackLocationPlannerService {
         location.setLocationCode(buildLocationCode(rack, row, column));
         location.setLocationName(buildLocationName(rack, row, column));
         location.setLocationStatus(DEFAULT_LOCATION_STATUS);
-        location.setLocationType(DEFAULT_LOCATION_TYPE);
         location.setLength(rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP));
         location.setWidth(rack.getWidth());
         location.setHeight(rack.getHeight().divide(BigDecimal.valueOf(rack.getRowCount()), BigDecimal.ROUND_HALF_UP));

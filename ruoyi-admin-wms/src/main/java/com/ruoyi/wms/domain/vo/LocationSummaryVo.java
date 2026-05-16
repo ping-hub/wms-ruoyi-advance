@@ -34,8 +34,6 @@ public class LocationSummaryVo implements Serializable {
 
     private String locationStatus;
 
-    private String locationType;
-
     private Integer rowNo;
 
     private Integer columnNo;
@@ -45,8 +43,6 @@ public class LocationSummaryVo implements Serializable {
     private BigDecimal width;
 
     private BigDecimal height;
-
-    private BigDecimal maxWeight;
 
     private Integer occupiedFlag;
 

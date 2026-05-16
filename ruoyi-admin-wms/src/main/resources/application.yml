@@ -267,3 +267,4 @@ management:
       show-details: ALWAYS
     logfile:
       external-file: ./logs/sys-console.log
+warehouse: WH1

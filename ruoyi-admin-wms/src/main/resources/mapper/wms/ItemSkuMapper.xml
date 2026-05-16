@@ -11,8 +11,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="itemName" column="item_name"/>
             <result property="itemCategory" column="item_category"/>
             <result property="unit" column="item_unit"/>
-            <result property="itemBrand" column="item_brand"/>
-            <result property="specLevel" column="spec_level"/>
+            <result property="level" column="item_level"/>
             <result property="equipmentName" column="equipment_name"/>
             <result property="equipmentType" column="equipment_type"/>
             <result property="status" column="item_status"/>
@@ -29,13 +28,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             sku.sku_name,
             sku.spec_model,
             sku.status,
-            sku.length,
-            sku.width,
-            sku.height,
-            sku.gross_weight,
-            sku.net_weight,
-            sku.cost_price,
-            sku.selling_price,
             sku.create_by,
             sku.create_time,
             sku.update_by,
@@ -45,8 +37,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.item_name,
             item.item_category,
             item.unit as item_unit,
-            item.item_brand,
-            item.spec_level,
+            item.level as item_level,
             item.equipment_name,
             item.equipment_type,
             item.status as item_status,
@@ -65,9 +56,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="bo.equipmentName != null and bo.equipmentName != ''">
                 and item.equipment_name like concat('%', #{bo.equipmentName}, '%')
-            </if>
-            <if test="bo.itemBrand != null">
-                and item.item_brand=#{bo.itemBrand}
             </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')

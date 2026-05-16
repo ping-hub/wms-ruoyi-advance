@@ -43,14 +43,9 @@ public class Item extends BaseEntity {
     private String unit;
 
     /**
-     * 品牌
+     * 等级
      */
-    private Long itemBrand;
-
-    /**
-     * 规格等级
-     */
-    private String specLevel;
+    private String level;
 
     /**
      * 装备名称

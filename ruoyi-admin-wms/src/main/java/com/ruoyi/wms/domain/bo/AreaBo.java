@@ -43,11 +43,6 @@ public class AreaBo extends BaseEntity {
     private String status;
 
     /**
-     * 库区类型
-     */
-    private String areaType;
-
-    /**
      * 排序
      */
     private Long orderNum;

@@ -14,13 +14,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemQrCodeSerialService {
 
-    private static final String ITEM_KEY_SEPARATOR = "-";
-
     private final ItemQrCodeSerialMapper itemQrCodeSerialMapper;
 
-    public List<Long> allocateSerialValues(String itemName, String specName, int count) {
+    public List<Long> allocateSerialValues(String itemKey , int count) {
         Assert.isTrue(count > 0, "二维码个数必须大于0");
-        String itemKey = buildItemKey(itemName, specName);
         itemQrCodeSerialMapper.initIfAbsent(itemKey);
         ItemQrCodeSerial serial = itemQrCodeSerialMapper.selectByItemKeyForUpdate(itemKey);
         Assert.notNull(serial, "二维码序列不存在");
@@ -32,12 +29,5 @@ public class ItemQrCodeSerialService {
             values.add(value);
         }
         return values;
-    }
-
-    public String buildItemKey(String itemName, String specName) {
-        if (StrUtil.isBlank(specName)) {
-            return itemName;
-        }
-        return itemName + ITEM_KEY_SEPARATOR + specName;
     }
 }

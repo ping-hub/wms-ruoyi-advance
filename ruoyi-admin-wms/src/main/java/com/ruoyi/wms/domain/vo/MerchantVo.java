@@ -2,8 +2,6 @@ package com.ruoyi.wms.domain.vo;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.ruoyi.common.excel.annotation.ExcelDictFormat;
-import com.ruoyi.common.excel.convert.ExcelDictConvert;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
 import com.ruoyi.wms.domain.entity.Merchant;
@@ -42,19 +40,6 @@ public class MerchantVo implements Serializable {
      */
     @ExcelProperty(value = "名称")
     private String merchantName;
-
-    /**
-     * 企业类型
-     */
-    @ExcelProperty(value = "企业类型", converter = ExcelDictConvert.class)
-    @ExcelDictFormat(dictType = "merchant_type")
-    private Integer merchantType;
-
-    /**
-     * 级别
-     */
-    @ExcelProperty(value = "级别")
-    private String merchantLevel;
 
     /**
      * 联系人

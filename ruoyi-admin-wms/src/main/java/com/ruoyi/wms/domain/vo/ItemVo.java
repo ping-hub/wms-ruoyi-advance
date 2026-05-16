@@ -50,16 +50,10 @@ public class ItemVo implements Serializable {
     private String unit;
 
     /**
-     * 品牌
+     * 等级
      */
-    @ExcelProperty(value = "品牌")
-    private Long itemBrand;
-
-    /**
-     * 规格等级
-     */
-    @ExcelProperty(value = "规格等级")
-    private String specLevel;
+    @ExcelProperty(value = "等级")
+    private String level;
 
     /**
      * 装备名称

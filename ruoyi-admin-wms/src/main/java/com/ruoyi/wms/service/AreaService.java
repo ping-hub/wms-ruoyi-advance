@@ -75,7 +75,6 @@ public class AreaService {
         lqw.like(StrUtil.isNotBlank(bo.getAreaName()), Area::getAreaName, bo.getAreaName());
         lqw.eq(bo.getWarehouseId() != null, Area::getWarehouseId, bo.getWarehouseId());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Area::getStatus, bo.getStatus());
-        lqw.eq(StrUtil.isNotBlank(bo.getAreaType()), Area::getAreaType, bo.getAreaType());
         lqw.orderByAsc(Area::getOrderNum).orderByDesc(Area::getCreateTime);
         return lqw;
     }

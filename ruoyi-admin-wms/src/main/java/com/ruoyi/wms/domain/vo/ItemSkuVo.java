@@ -8,7 +8,6 @@ import com.ruoyi.wms.domain.entity.ItemSku;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.math.BigDecimal;
 
 
 
@@ -49,48 +48,6 @@ public class ItemSkuVo implements Serializable {
      */
     @ExcelProperty(value = "启用状态")
     private String status;
-
-    /**
-     * 长(cm)
-     */
-    @ExcelProperty(value = "长(cm)")
-    private BigDecimal length;
-
-    /**
-     * 宽(cm)
-     */
-    @ExcelProperty(value = "宽(cm)")
-    private BigDecimal width;
-
-    /**
-     * 高(cm)
-     */
-    @ExcelProperty(value = "高(cm)")
-    private BigDecimal height;
-
-    /**
-     * 毛重(kg)
-     */
-    @ExcelProperty(value = "毛重(kg)")
-    private BigDecimal grossWeight;
-
-    /**
-     * 净重(kg)
-     */
-    @ExcelProperty(value = "净重(kg)")
-    private BigDecimal netWeight;
-
-    /**
-     * 成本价(元)
-     */
-    @ExcelProperty(value = "成本价(元)")
-    private BigDecimal costPrice;
-
-    /**
-     * 销售价(元)
-     */
-    @ExcelProperty(value = "销售价(元)")
-    private BigDecimal sellingPrice;
 
     private ItemVo item;
 

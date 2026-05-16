@@ -42,27 +42,6 @@ public class MerchantBo extends BaseEntity {
     private String merchantName;
 
     /**
-     * 企业类型
-     */
-    @NotNull(message = "企业类型不能为空", groups = { AddGroup.class, EditGroup.class })
-    private Integer merchantType;
-
-    /**
-     * 级别
-     */
-    private String merchantLevel;
-
-    /**
-     * 开户行
-     */
-    private String bankName;
-
-    /**
-     * 银行账户
-     */
-    private String bankAccount;
-
-    /**
      * 地址
      */
     private String address;

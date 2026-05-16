@@ -82,12 +82,6 @@ public class LocationVo implements Serializable {
     private String locationStatus;
 
     /**
-     * 货位类型
-     */
-    @ExcelProperty(value = "货位类型")
-    private String locationType;
-
-    /**
      * 行号
      */
     @ExcelProperty(value = "行号")
@@ -116,12 +110,6 @@ public class LocationVo implements Serializable {
      */
     @ExcelProperty(value = "高")
     private BigDecimal height;
-
-    /**
-     * 承重
-     */
-    @ExcelProperty(value = "承重")
-    private BigDecimal maxWeight;
 
     /**
      * 是否占用

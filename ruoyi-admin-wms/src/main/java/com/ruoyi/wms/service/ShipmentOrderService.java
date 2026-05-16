@@ -118,6 +118,12 @@ public class ShipmentOrderService {
         List<ShipmentOrderDetail> addDetailList = MapstructUtils.convert(detailBoList, ShipmentOrderDetail.class);
         addDetailList.forEach(it -> it.setShipmentOrderId(add.getId()));
         shipmentOrderDetailService.saveDetails(addDetailList);
+        for (int i = 0; i < Math.min(detailBoList.size(), addDetailList.size()); i++) {
+            detailBoList.get(i).setId(addDetailList.get(i).getId());
+        }
+        if (CollUtil.isNotEmpty(detailBoList)) {
+            itemInstanceService.reserveForShipmentDetails(detailBoList);
+        }
     }
 
     public void validateShipmentOrderNo(String shipmentOrderNo) {
@@ -137,11 +143,12 @@ public class ShipmentOrderService {
         ShipmentOrder update = MapstructUtils.convert(bo, ShipmentOrder.class);
         shipmentOrderMapper.updateById(update);
         // 保存出库单明细
+        List<ShipmentOrderDetailVo> existedDetails = shipmentOrderDetailService.queryByShipmentOrderId(bo.getId());
         List<Long> incomingIds = bo.getDetails().stream()
             .map(ShipmentOrderDetailBo::getId)
             .filter(Objects::nonNull)
             .toList();
-        List<Long> existedIds = shipmentOrderDetailService.queryByShipmentOrderId(bo.getId()).stream()
+        List<Long> existedIds = existedDetails.stream()
             .map(ShipmentOrderDetailVo::getId)
             .filter(Objects::nonNull)
             .toList();
@@ -154,6 +161,13 @@ public class ShipmentOrderService {
         List<ShipmentOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), ShipmentOrderDetail.class);
         detailList.forEach(it -> it.setShipmentOrderId(bo.getId()));
         shipmentOrderDetailService.saveDetails(detailList);
+        for (int i = 0; i < Math.min(bo.getDetails().size(), detailList.size()); i++) {
+            bo.getDetails().get(i).setId(detailList.get(i).getId());
+        }
+        itemInstanceService.releaseShipmentReservationsByDetailIds(existedIds);
+        if (CollUtil.isNotEmpty(bo.getDetails())) {
+            itemInstanceService.reserveForShipmentDetails(bo.getDetails());
+        }
     }
 
     /**
@@ -161,6 +175,11 @@ public class ShipmentOrderService {
      */
     public void deleteById(Long id) {
         validateIdBeforeDelete(id);
+        List<Long> detailIds = shipmentOrderDetailService.queryByShipmentOrderId(id).stream()
+            .map(ShipmentOrderDetailVo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        itemInstanceService.releaseShipmentReservationsByDetailIds(detailIds);
         shipmentOrderMapper.deleteById(id);
     }
 

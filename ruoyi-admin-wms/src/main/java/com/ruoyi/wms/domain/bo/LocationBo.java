@@ -55,11 +55,6 @@ public class LocationBo extends BaseEntity {
     private String locationStatus;
 
     /**
-     * 货位类型
-     */
-    private String locationType;
-
-    /**
      * 行号
      */
     private Integer rowNo;
@@ -83,11 +78,6 @@ public class LocationBo extends BaseEntity {
      * 高
      */
     private BigDecimal height;
-
-    /**
-     * 承重
-     */
-    private BigDecimal maxWeight;
 
     /**
      * 是否占用

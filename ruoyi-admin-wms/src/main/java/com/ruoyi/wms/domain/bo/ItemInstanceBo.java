@@ -101,6 +101,11 @@ public class ItemInstanceBo extends BaseEntity {
     private Long receiptOrderDetailId;
 
     /**
+     * 来源出库单明细ID
+     */
+    private Long shipmentOrderDetailId;
+
+    /**
      * 产品标识
      */
     private String productMark;
@@ -149,6 +154,11 @@ public class ItemInstanceBo extends BaseEntity {
      * 是否仅查询未入库实例
      */
     private Boolean unreceivedOnly;
+
+    /**
+     * 是否仅查询未出库占用实例（排除暂存出库单占用）
+     */
+    private Boolean unshippedOnly;
 
     /**
      * 用于更新状态

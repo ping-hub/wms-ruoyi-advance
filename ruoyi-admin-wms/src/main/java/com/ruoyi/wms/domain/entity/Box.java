@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
-import java.math.BigDecimal;
 
 /**
  * 箱体对象 wms_box
@@ -37,11 +36,6 @@ public class Box extends BaseEntity {
      * 箱体状态
      */
     private String boxStatus;
-
-    /**
-     * 承重
-     */
-    private BigDecimal maxWeight;
 
     /**
      * 所属仓库

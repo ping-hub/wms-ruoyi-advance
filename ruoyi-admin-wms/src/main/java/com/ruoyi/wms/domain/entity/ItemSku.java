@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
-import java.math.BigDecimal;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -42,39 +41,4 @@ public class ItemSku extends BaseEntity {
      * 启用状态
      */
     private String status;
-
-    /**
-     * 长(cm)
-     */
-    private BigDecimal length;
-
-    /**
-     * 宽(cm)
-     */
-    private BigDecimal width;
-
-    /**
-     * 高(cm)
-     */
-    private BigDecimal height;
-
-    /**
-     * 毛重(kg)
-     */
-    private BigDecimal grossWeight;
-
-    /**
-     * 净重(kg)
-     */
-    private BigDecimal netWeight;
-
-    /**
-     * 成本价(元)
-     */
-    private BigDecimal costPrice;
-
-    /**
-     * 销售价(元)
-     */
-    private BigDecimal sellingPrice;
 }

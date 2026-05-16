@@ -10,8 +10,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import com.ruoyi.wms.domain.entity.ItemSku;
 
-import java.math.BigDecimal;
-
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AutoMapper(target = ItemSku.class, reverseConvertGenerate = false)
@@ -46,41 +44,6 @@ public class ItemSkuBo extends BaseEntity {
     private String status;
 
     /**
-     * 长(cm)
-     */
-    private BigDecimal length;
-
-    /**
-     * 宽(cm)
-     */
-    private BigDecimal width;
-
-    /**
-     * 高(cm)
-     */
-    private BigDecimal height;
-
-    /**
-     * 毛重(kg)
-     */
-    private BigDecimal grossWeight;
-
-    /**
-     * 净重(kg)
-     */
-    private BigDecimal netWeight;
-
-    /**
-     * 成本价(元)
-     */
-    private BigDecimal costPrice;
-
-    /**
-     * 销售价(元)
-     */
-    private BigDecimal sellingPrice;
-
-    /**
      * 商品名称
      */
     private String itemName;
@@ -99,6 +62,4 @@ public class ItemSkuBo extends BaseEntity {
      * 商品分类
      */
     private String itemCategory;
-
-    private Long itemBrand;
 }

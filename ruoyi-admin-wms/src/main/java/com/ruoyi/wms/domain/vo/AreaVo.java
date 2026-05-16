@@ -49,12 +49,6 @@ public class AreaVo implements Serializable {
     private String status;
 
     /**
-     * 库区类型
-     */
-    @ExcelProperty(value = "库区类型")
-    private String areaType;
-
-    /**
      * 排序
      */
     @ExcelProperty(value = "排序")

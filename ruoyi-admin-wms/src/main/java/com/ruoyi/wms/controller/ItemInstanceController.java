@@ -52,14 +52,18 @@ public class ItemInstanceController extends BaseController {
 
     @SaCheckPermission("wms:itemInstance:list")
     @GetMapping("/{id}")
-    public R<ItemInstanceVo> getInfo(@NotNull(message = "主键不能为空") @PathVariable Long id) {
-        return R.ok(itemInstanceService.queryById(id));
+    public R<ItemInstanceVo> getInfo(@NotNull(message = "主键不能为空") @PathVariable Long id, ItemInstanceBo bo) {
+        ItemInstanceVo vo = itemInstanceService.queryById(id);
+        itemInstanceService.validateSelectRules(vo, bo);
+        return R.ok(vo);
     }
 
     @SaCheckPermission("wms:itemInstance:list")
     @GetMapping("/code/{instanceCode}")
-    public R<ItemInstanceVo> getByCode(@NotBlank(message = "单品码不能为空") @PathVariable String instanceCode) {
-        return R.ok(itemInstanceService.queryByCode(instanceCode));
+    public R<ItemInstanceVo> getByCode(@NotBlank(message = "单品码不能为空") @PathVariable String instanceCode, ItemInstanceBo bo) {
+        ItemInstanceVo vo = itemInstanceService.queryByCode(instanceCode);
+        itemInstanceService.validateSelectRules(vo, bo);
+        return R.ok(vo);
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
