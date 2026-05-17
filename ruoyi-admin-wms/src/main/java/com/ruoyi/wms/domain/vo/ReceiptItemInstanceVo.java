@@ -22,9 +22,5 @@ public class ReceiptItemInstanceVo implements Serializable {
 
     private String boxCode;
 
-    private String productMark;
-
-    private String qualityGrade;
-
     private String remark;
 }

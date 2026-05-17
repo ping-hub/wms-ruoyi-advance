@@ -15,7 +15,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="equipmentName" column="equipment_name"/>
             <result property="equipmentType" column="equipment_type"/>
             <result property="status" column="item_status"/>
-            <result property="productMark" column="product_mark"/>
             <result property="modelText" column="model_text"/>
             <result property="remark" column="item_remark"/>
         </association>
@@ -41,7 +40,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.equipment_name,
             item.equipment_type,
             item.status as item_status,
-            item.product_mark,
             item.model_text,
             item.remark as item_remark
         from wms_item_sku sku

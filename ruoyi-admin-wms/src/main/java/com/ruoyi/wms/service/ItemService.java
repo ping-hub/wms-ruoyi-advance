@@ -142,7 +142,6 @@ public class ItemService {
             itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.MANUAL);
             itemInstance.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.MANUAL);
             itemInstance.setSourceOrderNo("BATCH_PRINT");
-            itemInstance.setProductMark(StrUtil.blankToDefault(row.getProductMark(), item.getProductMark()));
             itemInstance.setRemark(StrUtil.blankToDefault(row.getRemark(), item.getRemark()));
             itemInstance.setLastOperationType("batch_print");
             itemInstance.setLastOperationTime(now);
@@ -187,7 +186,6 @@ public class ItemService {
         lqw.like(StrUtil.isNotBlank(bo.getEquipmentName()), Item::getEquipmentName, bo.getEquipmentName());
         lqw.eq(StrUtil.isNotBlank(bo.getEquipmentType()), Item::getEquipmentType, bo.getEquipmentType());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Item::getStatus, bo.getStatus());
-        lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), Item::getProductMark, bo.getProductMark());
         lqw.like(StrUtil.isNotBlank(bo.getModelText()), Item::getModelText, bo.getModelText());
         return lqw;
     }

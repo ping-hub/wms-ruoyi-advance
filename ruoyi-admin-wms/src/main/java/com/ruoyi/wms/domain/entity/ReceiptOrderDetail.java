@@ -63,18 +63,6 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 兼容保留：当前库表已无此字段
      */
     @TableField(exist = false)
-    private String productMark;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private String qualityGrade;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
     private BigDecimal unitPrice;
 
     /**

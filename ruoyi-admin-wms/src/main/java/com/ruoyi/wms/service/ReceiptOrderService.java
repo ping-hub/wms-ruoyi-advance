@@ -374,8 +374,6 @@ public class ReceiptOrderService {
         vo.setInstanceCode(itemInstanceVo.getInstanceCode());
         vo.setBoxId(itemInstanceVo.getBoxId());
         vo.setBoxCode(itemInstanceVo.getBoxCode());
-        vo.setProductMark(itemInstanceVo.getProductMark());
-        vo.setQualityGrade(itemInstanceVo.getQualityGrade());
         vo.setRemark(itemInstanceVo.getRemark());
         return vo;
     }
@@ -453,8 +451,6 @@ public class ReceiptOrderService {
         inventoryDetail.setAmount(itemInstance == null ? detail.getAmount() : detail.getUnitPrice());
         inventoryDetail.setEquipmentCode(itemInstance == null ? detail.getEquipmentCode() : itemInstance.getInstanceCode());
         inventoryDetail.setSpecModel(detail.getSpecModel());
-        inventoryDetail.setProductMark(itemInstance == null ? detail.getProductMark() : itemInstance.getProductMark());
-        inventoryDetail.setQualityGrade(itemInstance == null ? detail.getQualityGrade() : itemInstance.getQualityGrade());
         inventoryDetail.setUnitPrice(detail.getUnitPrice());
         inventoryDetail.setLineAmount(itemInstance == null ? detail.getLineAmount() : detail.getUnitPrice());
         inventoryDetail.setBelongUnit(bo.getReceiveUnit());
@@ -480,8 +476,6 @@ public class ReceiptOrderService {
         inventoryHistory.setAmount(itemInstance == null ? detail.getAmount() : detail.getUnitPrice());
         inventoryHistory.setEquipmentCode(itemInstance == null ? detail.getEquipmentCode() : itemInstance.getInstanceCode());
         inventoryHistory.setSpecModel(detail.getSpecModel());
-        inventoryHistory.setProductMark(itemInstance == null ? detail.getProductMark() : itemInstance.getProductMark());
-        inventoryHistory.setQualityGrade(itemInstance == null ? detail.getQualityGrade() : itemInstance.getQualityGrade());
         inventoryHistory.setUnitPrice(detail.getUnitPrice());
         inventoryHistory.setLineAmount(itemInstance == null ? detail.getLineAmount() : detail.getUnitPrice());
         inventoryHistory.setBelongUnit(bo.getReceiveUnit());

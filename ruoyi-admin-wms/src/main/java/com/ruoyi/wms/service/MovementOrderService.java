@@ -309,8 +309,6 @@ public class MovementOrderService {
             addInventoryDetail.setExpirationDate(it.getExpirationDate());
             addInventoryDetail.setEquipmentCode(it.getEquipmentCode());
             addInventoryDetail.setSpecModel(it.getSpecModel());
-            addInventoryDetail.setProductMark(it.getProductMark());
-            addInventoryDetail.setQualityGrade(it.getQualityGrade());
             addInventoryDetail.setUnitPrice(it.getUnitPrice());
             addInventoryDetail.setLineAmount(it.getLineAmount());
             addInventoryDetail.setBelongUnit(bo.getToUnit());
@@ -344,8 +342,6 @@ public class MovementOrderService {
             shipmentInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
             shipmentInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
             shipmentInventoryHistory.setSpecModel(detail.getSpecModel());
-            shipmentInventoryHistory.setProductMark(detail.getProductMark());
-            shipmentInventoryHistory.setQualityGrade(detail.getQualityGrade());
             shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
             shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
             shipmentInventoryHistory.setBelongUnit(bo.getFromUnit());
@@ -366,8 +362,6 @@ public class MovementOrderService {
             receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
             receiptInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
             receiptInventoryHistory.setSpecModel(detail.getSpecModel());
-            receiptInventoryHistory.setProductMark(detail.getProductMark());
-            receiptInventoryHistory.setQualityGrade(detail.getQualityGrade());
             receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
             receiptInventoryHistory.setLineAmount(detail.getLineAmount());
             receiptInventoryHistory.setBelongUnit(bo.getToUnit());
@@ -409,10 +403,6 @@ public class MovementOrderService {
                 }
                 if (ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus())) {
                     throw new BaseException("已出库单品不能调拨");
-                }
-                if (detail.getProductMark() != null && itemInstance.getProductMark() != null
-                    && !Objects.equals(detail.getProductMark(), itemInstance.getProductMark())) {
-                    throw new BaseException("单品产品标识与调拨明细不一致");
                 }
             }
             if (hasBox) {

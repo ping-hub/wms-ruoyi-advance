@@ -55,12 +55,6 @@ public class BorrowRecordVo implements Serializable {
     @ExcelProperty(value = "单据日期")
     private LocalDate docDate;
 
-    @ExcelProperty(value = "产品标识")
-    private String productMark;
-
-    @ExcelProperty(value = "质量等级")
-    private String qualityGrade;
-
     @ExcelProperty(value = "借用单号")
     private String borrowNo;
 

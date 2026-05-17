@@ -74,12 +74,6 @@ public class ItemVo implements Serializable {
     private String status;
 
     /**
-     * 产品标识
-     */
-    @ExcelProperty(value = "产品标识")
-    private String productMark;
-
-    /**
      * 规格型号文本
      */
     @ExcelProperty(value = "规格型号文本")

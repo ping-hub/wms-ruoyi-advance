@@ -115,16 +115,6 @@ public class CheckOrderDetailBo extends BaseEntity {
     private String specModel;
 
     /**
-     * 产品标识
-     */
-    private String productMark;
-
-    /**
-     * 质量等级
-     */
-    private String qualityGrade;
-
-    /**
      * 物品明细ID
      */
     private Long itemInstanceId;

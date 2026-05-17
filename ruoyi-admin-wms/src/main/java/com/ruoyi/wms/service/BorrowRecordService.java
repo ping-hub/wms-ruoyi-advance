@@ -119,8 +119,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setFromPerson(bo.getFromPerson());
         add.setToPerson(bo.getToPerson());
         add.setDocDate(bo.getDocDate());
-        add.setProductMark(bo.getProductMark());
-        add.setQualityGrade(bo.getQualityGrade());
         add.setBorrowNo(StrUtil.blankToDefault(bo.getBorrowNo(), generateBorrowNo()));
         add.setPlanReturnDate(bo.getPlanReturnDate());
         add.setInstanceCode(StrUtil.blankToDefault(bo.getInstanceCode(), itemInstance.getInstanceCode()));
@@ -177,8 +175,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         lqw.like(StrUtil.isNotBlank(bo.getToUnit()), BorrowRecord::getToUnit, bo.getToUnit());
         lqw.eq(bo.getDocDate() != null, BorrowRecord::getDocDate, bo.getDocDate());
         lqw.eq(bo.getPlanReturnDate() != null, BorrowRecord::getPlanReturnDate, bo.getPlanReturnDate());
-        lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), BorrowRecord::getProductMark, bo.getProductMark());
-        lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), BorrowRecord::getQualityGrade, bo.getQualityGrade());
         if (bo.getOverdueFlag() != null) {
             if (Integer.valueOf(1).equals(bo.getOverdueFlag())) {
                 lqw.and(wrapper -> wrapper
@@ -381,8 +377,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setBoxId(itemInstance.getBoxId());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
-        history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
-        history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
         history.setBelongUnit(StrUtil.blankToDefault(borrowRecord.getToUnit(), itemInstance.getBelongUnit()));
         history.setOperationType("borrow");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getCreateBy()));
@@ -406,8 +400,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setBoxId(itemInstance.getBoxId());
         history.setProductionDate(itemInstance.getProductionDate());
         history.setExpirationDate(itemInstance.getExpirationDate());
-        history.setProductMark(StrUtil.blankToDefault(borrowRecord.getProductMark(), itemInstance.getProductMark()));
-        history.setQualityGrade(StrUtil.blankToDefault(borrowRecord.getQualityGrade(), itemInstance.getQualityGrade()));
         history.setBelongUnit(itemInstance.getBelongUnit());
         history.setOperationType("return");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getUpdateBy()));

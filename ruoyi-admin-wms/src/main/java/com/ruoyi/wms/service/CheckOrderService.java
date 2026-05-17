@@ -232,8 +232,6 @@ public class CheckOrderService {
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
                 inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
                 inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
-                inventoryDetailBo.setProductMark(filteredDetail.getProductMark());
-                inventoryDetailBo.setQualityGrade(filteredDetail.getQualityGrade());
                 inventoryDetailBo.setShipmentQuantity(filteredDetail.getProfitAndLoss().abs());
                 return inventoryDetailBo;
             }).toList();
@@ -258,8 +256,6 @@ public class CheckOrderService {
                 inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
                 inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
                 inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
-                inventoryDetailBo.setProductMark(filteredDetail.getProductMark());
-                inventoryDetailBo.setQualityGrade(filteredDetail.getQualityGrade());
                 inventoryDetailBo.setRemainQuantity(filteredDetail.getProfitAndLoss());
                 inventoryDetailBo.setCreateTime(filteredDetail.getReceiptTime());
                 return inventoryDetailBo;

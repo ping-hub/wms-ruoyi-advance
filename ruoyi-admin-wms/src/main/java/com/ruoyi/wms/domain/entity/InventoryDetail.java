@@ -124,16 +124,6 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
     private String specModel;
 
     /**
-     * 产品标识
-     */
-    private String productMark;
-
-    /**
-     * 质量等级
-     */
-    private String qualityGrade;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;

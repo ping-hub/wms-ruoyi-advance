@@ -418,9 +418,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setSourceOrderNo(receiptOrder.getReceiptOrderNo());
                 itemInstance.setReceiptOrderDetailId(detail.getId());
                 itemInstance.setBoxId(box == null ? null : box.getId());
-                itemInstance.setProductMark(StrUtil.blankToDefault(receiptItemInstance.getProductMark(),
-                    StrUtil.blankToDefault(detail.getProductMark(), itemInstance.getProductMark())));
-                itemInstance.setQualityGrade(StrUtil.blankToDefault(receiptItemInstance.getQualityGrade(), detail.getQualityGrade()));
                 itemInstance.setBelongUnit(belongUnit);
                 itemInstance.setProductionDate(detail.getProductionDate());
                 itemInstance.setExpirationDate(detail.getExpirationDate());
@@ -457,8 +454,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.eq(bo.getSourceOrderId() != null, ItemInstance::getSourceOrderId, bo.getSourceOrderId());
         lqw.eq(bo.getReceiptOrderDetailId() != null, ItemInstance::getReceiptOrderDetailId, bo.getReceiptOrderDetailId());
         lqw.eq(bo.getShipmentOrderDetailId() != null, ItemInstance::getShipmentOrderDetailId, bo.getShipmentOrderDetailId());
-        lqw.eq(StrUtil.isNotBlank(bo.getProductMark()), ItemInstance::getProductMark, bo.getProductMark());
-        lqw.eq(StrUtil.isNotBlank(bo.getQualityGrade()), ItemInstance::getQualityGrade, bo.getQualityGrade());
         lqw.like(StrUtil.isNotBlank(bo.getBelongUnit()), ItemInstance::getBelongUnit, bo.getBelongUnit());
         lqw.like(StrUtil.isNotBlank(bo.getCurrentOwnerUnit()), ItemInstance::getCurrentOwnerUnit, bo.getCurrentOwnerUnit());
         if (Boolean.TRUE.equals(bo.getUnreceivedOnly())) {

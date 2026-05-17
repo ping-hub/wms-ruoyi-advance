@@ -24,16 +24,6 @@ public class ReceiptItemInstanceBo {
     private String boxCode;
 
     /**
-     * 产品标识，可覆盖明细默认值
-     */
-    private String productMark;
-
-    /**
-     * 质量等级，可覆盖明细默认值
-     */
-    private String qualityGrade;
-
-    /**
      * 备注
      */
     private String remark;

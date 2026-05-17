@@ -99,12 +99,6 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "来源出库单明细ID")
     private Long shipmentOrderDetailId;
 
-    @ExcelProperty(value = "产品标识")
-    private String productMark;
-
-    @ExcelProperty(value = "质量等级")
-    private String qualityGrade;
-
     @ExcelProperty(value = "所在单位")
     private String belongUnit;
 

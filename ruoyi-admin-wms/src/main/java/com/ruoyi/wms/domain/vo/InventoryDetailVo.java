@@ -164,18 +164,6 @@ public class InventoryDetailVo extends BaseVo {
     private String specModel;
 
     /**
-     * 产品标识
-     */
-    @ExcelProperty(value = "产品标识")
-    private String productMark;
-
-    /**
-     * 质量等级
-     */
-    @ExcelProperty(value = "质量等级")
-    private String qualityGrade;
-
-    /**
      * 单位
      */
     @ExcelProperty(value = "计量单位")

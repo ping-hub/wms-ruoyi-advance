@@ -99,10 +99,4 @@ public class StorageLayoutController {
     public R<List<LocationVo>> receiptTargets(LocationBo bo) {
         return R.ok(locationService.queryList(bo));
     }
-
-    @SaCheckPermission("wms:location:list")
-    @GetMapping("/internal/adjustLocations")
-    public R<List<LocationVo>> adjustLocations(LocationBo bo) {
-        return R.ok(locationService.queryList(bo));
-    }
 }

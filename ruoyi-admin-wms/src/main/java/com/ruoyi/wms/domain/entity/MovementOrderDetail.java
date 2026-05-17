@@ -48,10 +48,6 @@ public class MovementOrderDetail extends BaseEntity {
 
     private String specModel;
 
-    private String productMark;
-
-    private String qualityGrade;
-
     private BigDecimal unitPrice;
 
     private BigDecimal lineAmount;

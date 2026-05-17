@@ -41,12 +41,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.specModel != null and bo.specModel != ''">
                 and coalesce(history.spec_model, sku.spec_model, item.model_text) like concat('%', #{bo.specModel}, '%')
             </if>
-            <if test="bo.productMark != null and bo.productMark != ''">
-                and history.product_mark like concat('%', #{bo.productMark}, '%')
-            </if>
-            <if test="bo.qualityGrade != null and bo.qualityGrade != ''">
-                and history.quality_grade = #{bo.qualityGrade}
-            </if>
             <if test="bo.belongUnit != null and bo.belongUnit != ''">
                 and history.belong_unit like concat('%', #{bo.belongUnit}, '%')
             </if>

@@ -69,18 +69,6 @@ public class ReceiptOrderDetailVo implements Serializable {
     private String specModel;
 
     /**
-     * 产品标识
-     */
-    @ExcelProperty(value = "产品标识")
-    private String productMark;
-
-    /**
-     * 质量等级
-     */
-    @ExcelProperty(value = "质量等级")
-    private String qualityGrade;
-
-    /**
      * 单价
      */
     @ExcelProperty(value = "单价")

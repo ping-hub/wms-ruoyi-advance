@@ -64,16 +64,6 @@ public class BorrowRecordBo extends BaseEntity {
     private LocalDate docDate;
 
     /**
-     * 产品标识
-     */
-    private String productMark;
-
-    /**
-     * 质量等级
-     */
-    private String qualityGrade;
-
-    /**
      * 借用单号
      */
     private String borrowNo;

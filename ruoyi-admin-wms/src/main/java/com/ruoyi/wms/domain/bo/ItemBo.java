@@ -71,12 +71,6 @@ public class ItemBo extends BaseEntity {
     private String status;
 
     /**
-     * 产品标识
-     * 兼容保留
-     */
-    private String productMark;
-
-    /**
      * 规格型号文本
      * 兼容保留
      */
