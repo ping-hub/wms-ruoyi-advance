@@ -203,8 +203,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         Assert.notNull(itemInstance, "单品实例不存在");
         Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()), "单品实例在箱内，不能直接借出");
         Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "单品实例已借出");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "停用单品不能借出");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "已出库单品不能借出");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
         return itemInstance;
     }
 

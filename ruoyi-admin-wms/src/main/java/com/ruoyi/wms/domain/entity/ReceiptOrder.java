@@ -36,7 +36,7 @@ public class ReceiptOrder extends BaseEntity {
     /**
      * 入库类型
      */
-    private Long receiptOrderType;
+    private String receiptOrderType;
     /**
      * 供应商
      */

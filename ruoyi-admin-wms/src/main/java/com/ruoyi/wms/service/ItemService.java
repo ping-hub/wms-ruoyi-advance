@@ -136,7 +136,7 @@ public class ItemService {
             itemInstance.setInstanceCode(instanceCode);
             itemInstance.setItemId(row.getId());
             itemInstance.setSkuId(sku.getId());
-            itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
+            itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
             itemInstance.setInBox(0);
             itemInstance.setBorrowed(0);
             itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.MANUAL);
@@ -182,11 +182,9 @@ public class ItemService {
             lqw.in(Item::getItemCategory, subIdList);
         }
         lqw.eq(StrUtil.isNotBlank(bo.getUnit()), Item::getUnit, bo.getUnit());
-        lqw.eq(StrUtil.isNotBlank(bo.getLevel()), Item::getLevel, bo.getLevel());
         lqw.like(StrUtil.isNotBlank(bo.getEquipmentName()), Item::getEquipmentName, bo.getEquipmentName());
         lqw.eq(StrUtil.isNotBlank(bo.getEquipmentType()), Item::getEquipmentType, bo.getEquipmentType());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Item::getStatus, bo.getStatus());
-        lqw.like(StrUtil.isNotBlank(bo.getModelText()), Item::getModelText, bo.getModelText());
         return lqw;
     }
 
@@ -267,17 +265,6 @@ public class ItemService {
         if (candidateList.size() == 1) {
             return candidateList.get(0);
         }
-
-        if (StrUtil.isNotBlank(row.getModelText())) {
-            List<ItemSkuVo> matched = candidateList.stream()
-                .filter(sku -> StrUtil.equals(row.getModelText(), sku.getSpecModel())
-                    || StrUtil.equals(row.getModelText(), sku.getSkuName()))
-                .toList();
-            if (matched.size() == 1) {
-                return matched.get(0);
-            }
-        }
-
         throw new IllegalArgumentException("当前器材存在多个规格，无法自动识别打印规格，请补充明确规格信息");
     }
 

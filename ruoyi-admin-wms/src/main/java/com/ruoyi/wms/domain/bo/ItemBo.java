@@ -51,11 +51,6 @@ public class ItemBo extends BaseEntity {
     private String unit;
 
     /**
-     * 等级
-     */
-    private String level;
-
-    /**
      * 装备名称
      */
     private String equipmentName;
@@ -69,13 +64,6 @@ public class ItemBo extends BaseEntity {
      * 启用状态
      */
     private String status;
-
-    /**
-     * 规格型号文本
-     * 兼容保留
-     */
-    private String modelText;
-
 
     /**
      * 备注

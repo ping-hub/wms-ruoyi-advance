@@ -88,9 +88,6 @@ public class InventoryHistoryService extends ServiceImpl<InventoryHistoryMapper,
                 if (StringUtils.isBlank(it.getItemName()) && itemSku.getItem() != null) {
                     it.setItemName(itemSku.getItem().getItemName());
                 }
-                if (StringUtils.isBlank(it.getEquipmentName()) && itemSku.getItem() != null) {
-                    it.setEquipmentName(itemSku.getItem().getEquipmentName());
-                }
                 if (StringUtils.isBlank(it.getUnit()) && itemSku.getItem() != null) {
                     it.setUnit(itemSku.getItem().getUnit());
                 }

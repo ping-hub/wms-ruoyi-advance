@@ -42,11 +42,6 @@ public class Warehouse extends BaseEntity {
     private String status;
 
     /**
-     * 仓库类型
-     */
-    private String warehouseType;
-
-    /**
      * 地址
      */
     private String address;

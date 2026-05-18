@@ -107,7 +107,6 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         lqw.eq(bo.getWarehouseId() != null, Rack::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, Rack::getAreaId, bo.getAreaId());
         lqw.eq(StrUtil.isNotBlank(bo.getRackStatus()), Rack::getRackStatus, bo.getRackStatus());
-        lqw.eq(StrUtil.isNotBlank(bo.getRackType()), Rack::getRackType, bo.getRackType());
         lqw.orderByAsc(Rack::getOrderNum).orderByDesc(Rack::getCreateTime);
         return lqw;
     }

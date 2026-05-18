@@ -11,11 +11,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="itemName" column="item_name"/>
             <result property="itemCategory" column="item_category"/>
             <result property="unit" column="item_unit"/>
-            <result property="level" column="item_level"/>
             <result property="equipmentName" column="equipment_name"/>
             <result property="equipmentType" column="equipment_type"/>
             <result property="status" column="item_status"/>
-            <result property="modelText" column="model_text"/>
             <result property="remark" column="item_remark"/>
         </association>
     </resultMap>
@@ -36,11 +34,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.item_name,
             item.item_category,
             item.unit as item_unit,
-            item.level as item_level,
             item.equipment_name,
             item.equipment_type,
             item.status as item_status,
-            item.model_text,
             item.remark as item_remark
         from wms_item_sku sku
         inner join wms_item item on sku.item_id=item.id

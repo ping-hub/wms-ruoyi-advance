@@ -163,7 +163,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private String itemCode;
     private String skuName;
     private String skuCode;
-    private String equipmentName;
     private String unit;
 
     private String startTime;

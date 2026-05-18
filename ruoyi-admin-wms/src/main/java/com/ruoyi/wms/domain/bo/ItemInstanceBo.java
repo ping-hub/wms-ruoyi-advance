@@ -86,6 +86,11 @@ public class ItemInstanceBo extends BaseEntity {
     private Long boxId;
 
     /**
+     * 箱码
+     */
+    private String boxCode;
+
+    /**
      * 来源单据ID
      */
     private Long sourceOrderId;

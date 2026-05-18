@@ -44,12 +44,6 @@ public class WarehouseVo implements Serializable {
     private String status;
 
     /**
-     * 仓库类型
-     */
-    @ExcelProperty(value = "仓库类型")
-    private String warehouseType;
-
-    /**
      * 地址
      */
     @ExcelProperty(value = "地址")

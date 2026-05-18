@@ -65,11 +65,30 @@ public class ServiceConstants {
      * 单品实例状态
      */
     public class ItemInstanceStatus {
-        public static final String IN_STOCK = "in_stock";
-        public static final String IN_BOX = "in_box";
-        public static final String BORROWED = "borrowed";
-        public static final String OUTBOUND = "outbound";
-        public static final String DISABLED = "disabled";
+        public static final String PENDING_RECEIPT = "待入库";
+        public static final String IN_STOCK = "在库";
+        public static final String OUTBOUND = "出库";
+        public static final String LOSS = "盘亏";
+        public static final String BORROWED = "借出";
+        public static final String SCRAPPED = "报废";
+    }
+
+    /**
+     * 入库单类型
+     */
+    public class ReceiptOrderType {
+        public static final String PURCHASE = "采购入库";
+        public static final String RETURN = "归还入库";
+        public static final String MOVEMENT = "调拨入库";
+    }
+
+    /**
+     * 出库单类型
+     */
+    public class ShipmentOrderType {
+        public static final String BORROW = "借用出库";
+        public static final String MOVEMENT = "调拨出库";
+        public static final String SCRAP = "报废出库";
     }
 
     /**

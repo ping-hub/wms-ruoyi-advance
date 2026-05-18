@@ -36,7 +36,7 @@ public class ShipmentOrder extends BaseEntity {
     /**
      * 出库类型
      */
-    private Long shipmentOrderType;
+    private String shipmentOrderType;
     /**
      * 出库订单
      */

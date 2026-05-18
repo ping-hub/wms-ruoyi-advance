@@ -152,12 +152,6 @@ public class InventoryDetailVo extends BaseVo {
     private String itemName;
 
     /**
-     * 装备名称
-     */
-    @ExcelProperty(value = "装备名称")
-    private String equipmentName;
-
-    /**
      * 规格型号
      */
     @ExcelProperty(value = "规格型号")

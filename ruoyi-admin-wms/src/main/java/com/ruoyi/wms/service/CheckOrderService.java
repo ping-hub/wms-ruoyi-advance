@@ -1,6 +1,7 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.Assert;
 import com.ruoyi.common.core.constant.ServiceConstants;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.exception.base.BaseException;
@@ -175,11 +176,12 @@ public class CheckOrderService {
         }
         // 计算盈亏数
         calcProfitAndLoss(details);
+        Assert.isFalse(details.stream().anyMatch(detail -> detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) > 0),
+            "盘点仅支持盘亏，实盘数量不能大于账面数量");
         // 盘点前同步单品实例状态
         syncItemInstancesBeforeCheck(details);
-        // 拆分盘盈入库和盘盈出库数据
+        // 拆分盘亏出库数据
         List<InventoryDetailBo> shipmentList = splitOutShipmentData(details);
-        List<InventoryDetailBo> receiptList = splitOutReceiptData(bo);
         // 有盘亏出库
         if (CollUtil.isNotEmpty(shipmentList)) {
             // 校验入库记录剩余数
@@ -192,17 +194,6 @@ public class CheckOrderService {
             inventoryService.updateInventoryQuantity(mergedDeductInventoryBoList);
             // 创建库存记录流水
             createInventoryHistory(shipmentList, bo.getId(), bo.getCheckOrderNo());
-        }
-        // 有盘盈入库
-        if (CollUtil.isNotEmpty(receiptList)) {
-            // 合并
-            List<InventoryBo> mergedAddInventoryBoList = mergeInventoryDetailByPlaceAndItem(receiptList);
-            // 加库存
-            inventoryService.updateInventoryQuantity(mergedAddInventoryBoList);
-            // 创建入库记录
-            inventoryDetailService.saveBatch(MapstructUtils.convert(receiptList, InventoryDetail.class));
-            // 创建库存记录流水
-            createInventoryHistory(receiptList, bo.getId(), bo.getCheckOrderNo());
         }
     }
 
@@ -306,7 +297,7 @@ public class CheckOrderService {
                 continue;
             }
             if (detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) < 0) {
-                itemInstanceService.markDisabled(detail.getItemInstanceId());
+                itemInstanceService.markLoss(detail.getItemInstanceId());
             }
         }
     }

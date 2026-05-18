@@ -42,8 +42,8 @@ public class ReceiptOrderBo extends BaseEntity {
     /**
      * 入库类型
      */
-    @NotNull(message = "入库类型不能为空", groups = { AddGroup.class, EditGroup.class })
-    private Long receiptOrderType;
+    @NotBlank(message = "入库类型不能为空", groups = { AddGroup.class, EditGroup.class })
+    private String receiptOrderType;
 
     /**
      * 供应商

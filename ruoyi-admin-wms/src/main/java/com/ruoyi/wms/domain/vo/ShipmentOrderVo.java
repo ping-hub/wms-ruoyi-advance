@@ -42,7 +42,7 @@ public class ShipmentOrderVo extends BaseVo{
      * 出库类型
      */
     @ExcelProperty(value = "出库类型")
-    private Long shipmentOrderType;
+    private String shipmentOrderType;
 
     /**
      * 出库订单

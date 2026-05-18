@@ -50,12 +50,6 @@ public class ItemVo implements Serializable {
     private String unit;
 
     /**
-     * 等级
-     */
-    @ExcelProperty(value = "等级")
-    private String level;
-
-    /**
      * 装备名称
      */
     @ExcelProperty(value = "装备名称")
@@ -72,12 +66,6 @@ public class ItemVo implements Serializable {
      */
     @ExcelProperty(value = "启用状态")
     private String status;
-
-    /**
-     * 规格型号文本
-     */
-    @ExcelProperty(value = "规格型号文本")
-    private String modelText;
 
     /**
      * 备注

@@ -325,8 +325,7 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     private void validateItemBeforePack(ItemInstanceVo item, ItemSkuVo skuVo) {
         Assert.isFalse(Integer.valueOf(1).equals(item.getInBox()), "单品实例已在箱体中");
         Assert.isFalse(Integer.valueOf(1).equals(item.getBorrowed()), "单品实例已借出，无法装箱");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(item.getInstanceStatus()), "停用单品无法装箱");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(item.getInstanceStatus()), "已出库单品无法装箱");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(item.getInstanceStatus()), "仅在库单品可以装箱");
         Assert.notNull(skuVo, "单品实例规格不存在");
         Assert.notNull(skuVo.getItem(), "规格未关联物品定义");
     }

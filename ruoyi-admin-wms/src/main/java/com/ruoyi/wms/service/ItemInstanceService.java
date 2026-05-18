@@ -26,6 +26,7 @@ import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.ReceiptOrder;
 import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
 import com.ruoyi.wms.domain.entity.Warehouse;
+import com.ruoyi.wms.domain.vo.ItemInstanceImportVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ItemVo;
@@ -98,18 +99,16 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private void validateSelectableForShipment(ItemInstanceVo vo) {
         Assert.notNull(vo, "单品实例不存在");
         String instanceCode = StrUtil.blankToDefault(vo.getInstanceCode(), "");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(vo.getInstanceStatus()), "单品实例" + instanceCode + "已停用");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(vo.getInstanceStatus()), "单品实例" + instanceCode + "已出库");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(vo.getInstanceStatus()) || Integer.valueOf(1).equals(vo.getBorrowed()),
-            "单品实例" + instanceCode + "已借出");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(vo.getInstanceStatus()),
+            "单品实例" + instanceCode + "当前状态不可出库，仅支持在库实例");
         Assert.isTrue(vo.getShipmentOrderDetailId() == null, "单品实例" + instanceCode + "已被其他出库单暂存占用");
     }
 
     private void validateSelectableForReceipt(ItemInstanceVo vo) {
         Assert.notNull(vo, "单品实例不存在");
         String instanceCode = StrUtil.blankToDefault(vo.getInstanceCode(), "");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(vo.getInstanceStatus()), "单品实例" + instanceCode + "已停用");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(vo.getInstanceStatus()), "单品实例" + instanceCode + "已入库");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT.equals(vo.getInstanceStatus()),
+            "单品实例" + instanceCode + "当前状态不可入库，仅支持待入库实例");
         Assert.isFalse(Integer.valueOf(1).equals(vo.getInBox()), "单品实例" + instanceCode + "已装箱，无法用于入库");
         Assert.isTrue(vo.getReceiptOrderDetailId() == null, "单品实例" + instanceCode + "已被其他入库单暂存占用");
     }
@@ -135,9 +134,91 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     }
 
     @Transactional
+    public String importData(List<ItemInstanceImportVo> list) {
+        if (CollUtil.isEmpty(list)) {
+            return "导入成功，共 0 条数据。";
+        }
+        int successNum = 0;
+        int failureNum = 0;
+        StringBuilder successMsg = new StringBuilder();
+        StringBuilder failureMsg = new StringBuilder();
+        for (ItemInstanceImportVo item : list) {
+            String instanceCode = StrUtil.trim(item.getInstanceCode());
+            try {
+                Assert.isTrue(StrUtil.isNotBlank(instanceCode), "单品码不能为空");
+                ItemInstanceVo existed = queryByCode(instanceCode);
+                if (existed == null) {
+                    Assert.notNull(item.getItemId(), "新增单品必须提供物品ID");
+                    Assert.notNull(item.getSkuId(), "新增单品必须提供规格ID");
+                    Assert.isTrue(StrUtil.isBlank(item.getBoxCode()), "新增待入库单品不支持直接导入箱码");
+
+                    ItemInstanceBo bo = new ItemInstanceBo();
+                    bo.setInstanceCode(instanceCode);
+                    bo.setItemId(item.getItemId());
+                    bo.setSkuId(item.getSkuId());
+                    bo.setBelongUnit(item.getBelongUnit());
+                    bo.setCurrentOwnerUnit(item.getCurrentOwnerUnit());
+                    bo.setProductionDate(item.getProductionDate());
+                    bo.setExpirationDate(item.getExpirationDate());
+                    bo.setRemark(item.getRemark());
+                    insertByBo(bo);
+                    successNum++;
+                    successMsg.append("<br/>").append(successNum).append("、单品码 ").append(instanceCode).append(" 导入成功");
+                    continue;
+                }
+
+                ItemInstanceBo bo = new ItemInstanceBo();
+                bo.setId(existed.getId());
+                bo.setBoxCode(item.getBoxCode());
+                bo.setBelongUnit(item.getBelongUnit());
+                bo.setCurrentOwnerUnit(item.getCurrentOwnerUnit());
+                bo.setProductionDate(item.getProductionDate());
+                bo.setExpirationDate(item.getExpirationDate());
+                bo.setRemark(item.getRemark());
+                updateByBo(bo);
+                successNum++;
+                successMsg.append("<br/>").append(successNum).append("、单品码 ").append(instanceCode).append(" 更新成功");
+            } catch (Exception e) {
+                failureNum++;
+                failureMsg.append("<br/>").append(failureNum).append("、单品码 ")
+                    .append(StrUtil.blankToDefault(instanceCode, "空值"))
+                    .append(" 导入失败：").append(e.getMessage());
+            }
+        }
+        if (failureNum > 0) {
+            failureMsg.insert(0, "很抱歉，导入失败！共 " + failureNum + " 条数据处理异常，错误如下：");
+            throw new ServiceException(failureMsg.toString());
+        }
+        successMsg.insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
+        return successMsg.toString();
+    }
+
+    @Transactional
     public void updateByBo(ItemInstanceBo bo) {
-        fillAndValidateBeforeSave(bo);
-        itemInstanceMapper.updateById(MapstructUtils.convert(bo, ItemInstance.class));
+        Assert.notNull(bo.getId(), "单品实例ID不能为空");
+        ItemInstance existed = itemInstanceMapper.selectById(bo.getId());
+        Assert.notNull(existed, "单品实例不存在");
+
+        ItemInstance update = new ItemInstance();
+        update.setId(existed.getId());
+        update.setBelongUnit(bo.getBelongUnit());
+        update.setCurrentOwnerUnit(bo.getCurrentOwnerUnit());
+        update.setProductionDate(bo.getProductionDate());
+        update.setExpirationDate(bo.getExpirationDate());
+        update.setRemark(bo.getRemark());
+
+        Long targetBoxId = resolveLedgerUpdateBoxId(existed, bo.getBoxCode());
+        if (targetBoxId != null) {
+            update.setBoxId(targetBoxId);
+            update.setInBox(1);
+            update.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
+        }
+
+        itemInstanceMapper.updateById(update);
+
+        if (targetBoxId != null) {
+            syncBoxSnapshot(targetBoxId, ServiceConstants.BoxStatus.PACKED);
+        }
     }
 
     public void updateStatus(Long id, String targetStatus) {
@@ -178,10 +259,10 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
-    public void markDisabled(Long id) {
+    public void markLoss(Long id) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
-        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.DISABLED);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.LOSS);
         wrapper.set(ItemInstance::getBorrowed, 0);
         wrapper.set(ItemInstance::getInBox, 0);
         wrapper.set(ItemInstance::getBoxId, null);
@@ -199,7 +280,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     public void markInBox(Long id, Box box) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
-        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_BOX);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
         wrapper.set(ItemInstance::getInBox, 1);
         wrapper.set(ItemInstance::getBoxId, box.getId());
         wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
@@ -248,10 +329,11 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
-    public void markOutbound(Long id, Integer inBox) {
+    public void markOutbound(Long id, Integer inBox, String targetStatus) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
-        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND);
+        wrapper.set(ItemInstance::getInstanceStatus,
+            StrUtil.blankToDefault(targetStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND));
         wrapper.set(ItemInstance::getBorrowed, 0);
         wrapper.set(ItemInstance::getInBox, inBox == null ? 0 : inBox);
         wrapper.set(ItemInstance::getBoxId, null);
@@ -405,7 +487,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 if (StrUtil.isNotBlank(receiptItemInstance.getBoxCode())) {
                     Assert.notNull(box, "箱码" + receiptItemInstance.getBoxCode() + "未完成预处理");
                 }
-                itemInstance.setInstanceStatus(box == null ? ServiceConstants.ItemInstanceStatus.IN_STOCK : ServiceConstants.ItemInstanceStatus.IN_BOX);
+                itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
                 itemInstance.setInBox(box == null ? 0 : 1);
                 itemInstance.setBorrowed(0);
                 itemInstance.setWarehouseId(detail.getWarehouseId());
@@ -457,7 +539,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.like(StrUtil.isNotBlank(bo.getBelongUnit()), ItemInstance::getBelongUnit, bo.getBelongUnit());
         lqw.like(StrUtil.isNotBlank(bo.getCurrentOwnerUnit()), ItemInstance::getCurrentOwnerUnit, bo.getCurrentOwnerUnit());
         if (Boolean.TRUE.equals(bo.getUnreceivedOnly())) {
-            lqw.eq(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+            lqw.eq(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
             lqw.eq(ItemInstance::getBorrowed, 0);
             lqw.eq(ItemInstance::getInBox, 0);
             lqw.isNull(ItemInstance::getWarehouseId);
@@ -512,7 +594,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         }
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.in(ItemInstance::getShipmentOrderDetailId, detailIds);
-        wrapper.ne(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND);
+        wrapper.notIn(ItemInstance::getInstanceStatus,
+            java.util.List.of(ServiceConstants.ItemInstanceStatus.OUTBOUND, ServiceConstants.ItemInstanceStatus.SCRAPPED));
         wrapper.set(ItemInstance::getShipmentOrderDetailId, null);
         itemInstanceMapper.update(null, wrapper);
     }
@@ -522,7 +605,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             bo.setInstanceCode(generateInstanceCode());
         }
         if (StrUtil.isBlank(bo.getInstanceStatus())) {
-            bo.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
+            bo.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
         }
         if (bo.getInBox() == null) {
             bo.setInBox(0);
@@ -581,6 +664,77 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         }
     }
 
+    private Long resolveLedgerUpdateBoxId(ItemInstance itemInstance, String boxCode) {
+        String trimmedBoxCode = StrUtil.trim(boxCode);
+        if (StrUtil.isBlank(trimmedBoxCode)) {
+            return null;
+        }
+        Assert.isTrue(itemInstance.getBoxId() == null, "当前单品实例已绑定箱码，不支持修改箱码");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库实例可以补录箱码");
+        Assert.notNull(itemInstance.getWarehouseId(), "当前单品实例缺少仓库信息，无法补录箱码");
+        Assert.notNull(itemInstance.getAreaId(), "当前单品实例缺少库区信息，无法补录箱码");
+        Assert.notNull(itemInstance.getRackId(), "当前单品实例缺少货架信息，无法补录箱码");
+        Assert.notNull(itemInstance.getLocationId(), "当前单品实例缺少货位信息，无法补录箱码");
+
+        Box box = queryBoxEntityByCode(trimmedBoxCode);
+        if (box == null) {
+            Box add = new Box();
+            add.setBoxCode(trimmedBoxCode);
+            add.setBoxName(trimmedBoxCode);
+            add.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+            add.setWarehouseId(itemInstance.getWarehouseId());
+            add.setAreaId(itemInstance.getAreaId());
+            add.setRackId(itemInstance.getRackId());
+            add.setLocationId(itemInstance.getLocationId());
+            add.setItemCount(0);
+            boxMapper.insert(add);
+            return add.getId();
+        }
+
+        Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "箱体已停用，无法补录箱码");
+        Assert.isFalse(ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus()), "箱体已出库，无法补录箱码");
+        if (countItemsByBoxId(box.getId()) > 0) {
+            Assert.isTrue(sameLocation(box, itemInstance), "箱码" + trimmedBoxCode + "当前已在其他位置存在装箱关系，请先处理原状态");
+        }
+
+        Box update = new Box();
+        update.setId(box.getId());
+        update.setBoxStatus(ServiceConstants.BoxStatus.PACKED);
+        update.setWarehouseId(itemInstance.getWarehouseId());
+        update.setAreaId(itemInstance.getAreaId());
+        update.setRackId(itemInstance.getRackId());
+        update.setLocationId(itemInstance.getLocationId());
+        boxMapper.updateById(update);
+        return box.getId();
+    }
+
+    private Box queryBoxEntityByCode(String boxCode) {
+        LambdaQueryWrapper<Box> lqw = Wrappers.lambdaQuery();
+        lqw.eq(Box::getBoxCode, boxCode);
+        return boxMapper.selectOne(lqw);
+    }
+
+    private long countItemsByBoxId(Long boxId) {
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.eq(ItemInstance::getBoxId, boxId);
+        return itemInstanceMapper.selectCount(lqw);
+    }
+
+    private boolean sameLocation(Box box, ItemInstance itemInstance) {
+        return Objects.equals(box.getWarehouseId(), itemInstance.getWarehouseId())
+            && Objects.equals(box.getAreaId(), itemInstance.getAreaId())
+            && Objects.equals(box.getRackId(), itemInstance.getRackId())
+            && Objects.equals(box.getLocationId(), itemInstance.getLocationId());
+    }
+
+    private void syncBoxSnapshot(Long boxId, String boxStatus) {
+        Box update = new Box();
+        update.setId(boxId);
+        update.setBoxStatus(boxStatus);
+        update.setItemCount((int) countItemsByBoxId(boxId));
+        boxMapper.updateById(update);
+    }
+
     private int convertInstanceCount(BigDecimal quantity, String skuName) {
         Assert.notNull(quantity, "入库数量不能为空");
         Assert.isTrue(quantity.compareTo(BigDecimal.ZERO) > 0, "入库数量必须大于0");
@@ -624,10 +778,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private void validateAvailableForReceipt(ItemInstance itemInstance, String instanceCode, Long currentReceiptDetailId) {
         String displayCode = StrUtil.blankToDefault(instanceCode, itemInstance.getInstanceCode());
         Assert.notNull(itemInstance.getId(), "器材实例编码" + displayCode + "无效");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "器材实例编码" + displayCode + "已停用");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "器材实例编码" + displayCode + "已出库");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()) || Integer.valueOf(1).equals(itemInstance.getBorrowed()),
-            "器材实例编码" + displayCode + "已借出");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT.equals(itemInstance.getInstanceStatus()),
+            "器材实例编码" + displayCode + "当前状态不可入库，仅支持待入库实例");
         Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()) || itemInstance.getBoxId() != null,
             "器材实例编码" + displayCode + "已绑定箱体");
         boolean reservedByCurrentDetail = Objects.equals(itemInstance.getReceiptOrderDetailId(), currentReceiptDetailId);
@@ -641,10 +793,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
 
     private void validateAvailableForShipment(ItemInstance itemInstance, Long currentShipmentDetailId) {
         Assert.notNull(itemInstance.getId(), "单品实例无效");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "单品实例" + itemInstance.getInstanceCode() + "已停用");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "单品实例" + itemInstance.getInstanceCode() + "已出库");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()) || Integer.valueOf(1).equals(itemInstance.getBorrowed()),
-            "单品实例" + itemInstance.getInstanceCode() + "已借出");
+        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()),
+            "单品实例" + itemInstance.getInstanceCode() + "当前状态不可出库，仅支持在库实例");
         boolean reservedByCurrentDetail = Objects.equals(itemInstance.getShipmentOrderDetailId(), currentShipmentDetailId);
         Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null || reservedByCurrentDetail,
             "单品实例" + itemInstance.getInstanceCode() + "已被其他出库单占用");

@@ -73,7 +73,6 @@ public class WarehouseService extends ServiceImpl<WarehouseMapper, Warehouse> {
         lqw.eq(StrUtil.isNotBlank(bo.getWarehouseCode()), Warehouse::getWarehouseCode, bo.getWarehouseCode());
         lqw.like(StrUtil.isNotBlank(bo.getWarehouseName()), Warehouse::getWarehouseName, bo.getWarehouseName());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Warehouse::getStatus, bo.getStatus());
-        lqw.eq(StrUtil.isNotBlank(bo.getWarehouseType()), Warehouse::getWarehouseType, bo.getWarehouseType());
         lqw.like(StrUtil.isNotBlank(bo.getAddress()), Warehouse::getAddress, bo.getAddress());
         lqw.like(StrUtil.isNotBlank(bo.getManagerName()), Warehouse::getManagerName, bo.getManagerName());
         lqw.like(StrUtil.isNotBlank(bo.getManagerPhone()), Warehouse::getManagerPhone, bo.getManagerPhone());

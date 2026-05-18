@@ -40,8 +40,8 @@ public class ShipmentOrderBo extends BaseEntity {
     /**
      * 出库类型
      */
-    @NotNull(message = "出库类型不能为空", groups = { AddGroup.class, EditGroup.class })
-    private Long shipmentOrderType;
+    @NotBlank(message = "出库类型不能为空", groups = { AddGroup.class, EditGroup.class })
+    private String shipmentOrderType;
 
     /**
      * 出库订单

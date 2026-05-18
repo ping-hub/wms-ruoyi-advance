@@ -49,11 +49,6 @@ public class Rack extends BaseEntity {
     private String rackStatus;
 
     /**
-     * 货架类型
-     */
-    private String rackType;
-
-    /**
      * 行数
      */
     private Integer rowCount;

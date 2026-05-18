@@ -89,7 +89,7 @@ public class ShipmentOrderService {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ShipmentOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getShipmentOrderNo()), ShipmentOrder::getShipmentOrderNo, bo.getShipmentOrderNo());
-        lqw.eq(bo.getShipmentOrderType() != null, ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
+        lqw.eq(StringUtils.isNotBlank(bo.getShipmentOrderType()), ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
         lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ShipmentOrder::getOrderNo, bo.getOrderNo());
         lqw.eq(bo.getMerchantId() != null, ShipmentOrder::getMerchantId, bo.getMerchantId());
         lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ShipmentOrder::getBasisNo, bo.getBasisNo());
@@ -223,7 +223,7 @@ public class ShipmentOrderService {
         // 7.创建库存记录
         saveInventoryHistory(bo, inventoryDetailMap);
         // 8.同步单品实例与箱体状态
-        syncShipmentObjects(bo.getDetails());
+        syncShipmentObjects(bo.getDetails(), bo.getShipmentOrderType());
         locationService.refreshOccupiedFlagsByLocationIds(inventoryDetailMap.values().stream()
             .map(InventoryDetail::getLocationId)
             .filter(Objects::nonNull)
@@ -353,8 +353,7 @@ public class ShipmentOrderService {
             Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
             Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
             Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "已借出单品不能出库");
-            Assert.isFalse(ServiceConstants.ItemInstanceStatus.DISABLED.equals(itemInstance.getInstanceStatus()), "停用单品不能出库");
-            Assert.isFalse(ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus()), "单品已出库");
+            Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以出库");
             Long boxId = itemBoxMap.get(detail.getItemInstanceId());
             if (boxId != null) {
                 selectedBoxItems.computeIfAbsent(boxId, key -> new HashSet<>()).add(detail.getItemInstanceId());
@@ -388,7 +387,7 @@ public class ShipmentOrderService {
         });
     }
 
-    private void syncShipmentObjects(List<ShipmentOrderDetailBo> details) {
+    private void syncShipmentObjects(List<ShipmentOrderDetailBo> details, String shipmentOrderType) {
         Set<Long> itemInstanceIds = details.stream()
             .map(ShipmentOrderDetailBo::getItemInstanceId)
             .filter(Objects::nonNull)
@@ -396,6 +395,9 @@ public class ShipmentOrderService {
         if (CollUtil.isEmpty(itemInstanceIds)) {
             return;
         }
+        String targetStatus = ServiceConstants.ShipmentOrderType.SCRAP.equals(shipmentOrderType)
+            ? ServiceConstants.ItemInstanceStatus.SCRAPPED
+            : ServiceConstants.ItemInstanceStatus.OUTBOUND;
         Map<Long, ItemInstance> itemMap = itemInstanceService.queryByIds(itemInstanceIds).stream()
             .collect(Collectors.toMap(ItemInstance::getId, java.util.function.Function.identity()));
         Set<Long> boxIds = new HashSet<>();
@@ -405,7 +407,7 @@ public class ShipmentOrderService {
             }
             ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
             Assert.notNull(itemInstance, "单品实例不存在");
-            itemInstanceService.markOutbound(itemInstance.getId(), itemInstance.getInBox());
+            itemInstanceService.markOutbound(itemInstance.getId(), itemInstance.getInBox(), targetStatus);
             if (detail.getBoxId() != null) {
                 boxIds.add(detail.getBoxId());
             }

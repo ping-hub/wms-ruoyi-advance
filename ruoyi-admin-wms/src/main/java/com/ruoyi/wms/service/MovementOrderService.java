@@ -401,8 +401,8 @@ public class MovementOrderService {
                 if (itemInstance.getBorrowed() != null && itemInstance.getBorrowed() == 1) {
                     throw new BaseException("已借出单品不能调拨");
                 }
-                if (ServiceConstants.ItemInstanceStatus.OUTBOUND.equals(itemInstance.getInstanceStatus())) {
-                    throw new BaseException("已出库单品不能调拨");
+                if (!ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus())) {
+                    throw new BaseException("仅在库单品可以调拨");
                 }
             }
             if (hasBox) {
