@@ -34,11 +34,6 @@ public class ItemSkuBo extends BaseEntity {
     private Long itemId;
 
     /**
-     * 规格型号
-     */
-    private String specModel;
-
-    /**
      * 启用状态
      */
     private String status;

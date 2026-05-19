@@ -25,7 +25,7 @@ public class MovementOrder extends BaseEntity {
     private static final long serialVersionUID=1L;
 
     /**
-     * 
+     *
      */
     @TableId(value = "id")
     private Long id;
@@ -39,8 +39,6 @@ public class MovementOrder extends BaseEntity {
     private String dispatchBasis;
 
     private String dispatchPurpose;
-
-    private String supportNo;
 
     private String dispatchMode;
 
@@ -63,10 +61,6 @@ public class MovementOrder extends BaseEntity {
     private LocalDate effectiveDate;
 
     private LocalDate issueDate;
-
-    private String fromHandler;
-
-    private String toHandler;
     /**
      * 源仓库
      */
@@ -77,15 +71,6 @@ public class MovementOrder extends BaseEntity {
     private Long sourceAreaId;
 
     /**
-     * 源货架
-     */
-    private Long sourceRackId;
-
-    /**
-     * 源货位
-     */
-    private Long sourceLocationId;
-    /**
      * 目标仓库
      */
     private Long targetWarehouseId;
@@ -94,20 +79,6 @@ public class MovementOrder extends BaseEntity {
      */
     private Long targetAreaId;
 
-    /**
-     * 目标货架
-     */
-    private Long targetRackId;
-
-    /**
-     * 目标货位
-     */
-    private Long targetLocationId;
-
-    /**
-     * 调拨范围
-     */
-    private String movementScope;
     /**
      * 状态
      */

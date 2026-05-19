@@ -57,42 +57,6 @@ public class ReceiptOrderDetailVo implements Serializable {
     private BigDecimal amount;
 
     /**
-     * 器材编码
-     */
-    @ExcelProperty(value = "器材编码")
-    private String equipmentCode;
-
-    /**
-     * 规格型号
-     */
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
-
-    /**
-     * 单价
-     */
-    @ExcelProperty(value = "单价")
-    private BigDecimal unitPrice;
-
-    /**
-     * 行金额
-     */
-    @ExcelProperty(value = "行金额")
-    private BigDecimal lineAmount;
-
-    /**
-     * 生产日期
-     */
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    @ExcelProperty(value = "过期时间")
-    private LocalDateTime expirationDate;
-
-    /**
      * 备注
      */
     @ExcelProperty(value = "备注")
@@ -121,18 +85,6 @@ public class ReceiptOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "所属货位")
     private Long locationId;
-
-    /**
-     * 是否生成单品实例
-     */
-    @ExcelProperty(value = "生成单品实例")
-    private Integer generateItemInstance;
-
-    /**
-     * 已生成单品实例数量
-     */
-    @ExcelProperty(value = "已生成实例数量")
-    private Integer generatedInstanceQuantity;
 
     private ItemSkuVo itemSku;
 

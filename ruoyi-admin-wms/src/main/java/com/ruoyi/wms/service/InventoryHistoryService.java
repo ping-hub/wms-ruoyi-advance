@@ -91,23 +91,8 @@ public class InventoryHistoryService extends ServiceImpl<InventoryHistoryMapper,
                 if (StringUtils.isBlank(it.getUnit()) && itemSku.getItem() != null) {
                     it.setUnit(itemSku.getItem().getUnit());
                 }
-                if (StringUtils.isBlank(it.getSpecModel())) {
-                    it.setSpecModel(itemSku.getSpecModel());
-                }
             }
         });
-    }
-
-    private LambdaQueryWrapper<InventoryHistory> buildQueryWrapper(InventoryHistoryBo bo) {
-        Map<String, Object> params = bo.getParams();
-        LambdaQueryWrapper<InventoryHistory> lqw = Wrappers.lambdaQuery();
-        lqw.eq(bo.getOrderId() != null, InventoryHistory::getOrderId, bo.getOrderId());
-        lqw.eq(bo.getOrderType() != null, InventoryHistory::getOrderType, bo.getOrderType());
-        lqw.eq(bo.getSkuId() != null, InventoryHistory::getSkuId, bo.getSkuId());
-        lqw.eq(bo.getQuantity() != null, InventoryHistory::getQuantity, bo.getQuantity());
-        lqw.eq(bo.getWarehouseId() != null, InventoryHistory::getWarehouseId, bo.getWarehouseId());
-        lqw.eq(bo.getAreaId() != null, InventoryHistory::getAreaId, bo.getAreaId());
-        return lqw;
     }
 
     /**

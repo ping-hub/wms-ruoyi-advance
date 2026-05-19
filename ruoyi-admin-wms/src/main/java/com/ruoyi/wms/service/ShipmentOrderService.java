@@ -86,12 +86,9 @@ public class ShipmentOrderService {
     }
 
     private LambdaQueryWrapper<ShipmentOrder> buildQueryWrapper(ShipmentOrderBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ShipmentOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getShipmentOrderNo()), ShipmentOrder::getShipmentOrderNo, bo.getShipmentOrderNo());
         lqw.eq(StringUtils.isNotBlank(bo.getShipmentOrderType()), ShipmentOrder::getShipmentOrderType, bo.getShipmentOrderType());
-        lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ShipmentOrder::getOrderNo, bo.getOrderNo());
-        lqw.eq(bo.getMerchantId() != null, ShipmentOrder::getMerchantId, bo.getMerchantId());
         lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ShipmentOrder::getBasisNo, bo.getBasisNo());
         lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ShipmentOrder::getDispatchMode, bo.getDispatchMode());
         lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ShipmentOrder::getNoticeOrg, bo.getNoticeOrg());
@@ -293,15 +290,7 @@ public class ShipmentOrderService {
                 (inventoryDetail != null ? inventoryDetail.getItemInstanceId() : null));
             inventoryHistory.setBoxId(detail.getBoxId() != null ? detail.getBoxId() :
                 (inventoryDetail != null ? inventoryDetail.getBoxId() : null));
-            inventoryHistory.setProductionDate(detail.getProductionDate() != null ? detail.getProductionDate() :
-                (inventoryDetail != null ? inventoryDetail.getProductionDate() : null));
-            inventoryHistory.setExpirationDate(detail.getExpirationDate() != null ? detail.getExpirationDate() :
-                (inventoryDetail != null ? inventoryDetail.getExpirationDate() : null));
             inventoryHistory.setAmount(detail.getAmount());
-            inventoryHistory.setEquipmentCode(detail.getEquipmentCode());
-            inventoryHistory.setSpecModel(detail.getSpecModel());
-            inventoryHistory.setUnitPrice(detail.getUnitPrice());
-            inventoryHistory.setLineAmount(detail.getLineAmount());
             inventoryHistory.setBelongUnit(bo.getReceiveUnit());
             inventoryHistoryList.add(inventoryHistory);
         });

@@ -88,18 +88,6 @@ public class CheckOrderDetailVo implements Serializable {
     private Long locationId;
 
     /**
-     * 生产日期
-     */
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期日期
-     */
-    @ExcelProperty(value = "过期日期")
-    private LocalDateTime expirationDate;
-
-    /**
      * 入库时间
      */
     @ExcelProperty(value = "入库时间")
@@ -116,12 +104,6 @@ public class CheckOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "器材编码")
     private String equipmentCode;
-
-    /**
-     * 规格型号
-     */
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
 
     /**
      * 物品明细ID

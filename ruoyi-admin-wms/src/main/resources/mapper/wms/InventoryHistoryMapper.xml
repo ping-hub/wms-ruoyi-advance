@@ -34,9 +34,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
             </if>
-            <if test="bo.specModel != null and bo.specModel != ''">
-                and coalesce(history.spec_model, sku.spec_model) like concat('%', #{bo.specModel}, '%')
-            </if>
             <if test="bo.belongUnit != null and bo.belongUnit != ''">
                 and history.belong_unit like concat('%', #{bo.belongUnit}, '%')
             </if>

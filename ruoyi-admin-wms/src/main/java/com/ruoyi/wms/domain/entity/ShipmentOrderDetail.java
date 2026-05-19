@@ -47,29 +47,6 @@ public class ShipmentOrderDetail extends BaseEntity {
     private BigDecimal amount;
 
     /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private String equipmentCode;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private String specModel;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private BigDecimal unitPrice;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private BigDecimal lineAmount;
-    /**
      * 所属仓库
      */
     private Long warehouseId;
@@ -77,14 +54,6 @@ public class ShipmentOrderDetail extends BaseEntity {
      * 所属库区
      */
     private Long areaId;
-    /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
     /**
      * 入库记录id
      */

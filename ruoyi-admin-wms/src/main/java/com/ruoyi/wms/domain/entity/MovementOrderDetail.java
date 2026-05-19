@@ -46,8 +46,6 @@ public class MovementOrderDetail extends BaseEntity {
 
     private String equipmentCode;
 
-    private String specModel;
-
     private BigDecimal unitPrice;
 
     private BigDecimal lineAmount;
@@ -64,14 +62,7 @@ public class MovementOrderDetail extends BaseEntity {
      * 源库区
      */
     private Long sourceAreaId;
-    /**
-     * 源货架
-     */
-    private Long sourceRackId;
-    /**
-     * 源货位
-     */
-    private Long sourceLocationId;
+
     /**
      * 目标仓库
      */
@@ -80,22 +71,7 @@ public class MovementOrderDetail extends BaseEntity {
      * 目标库区
      */
     private Long targetAreaId;
-    /**
-     * 目标货架
-     */
-    private Long targetRackId;
-    /**
-     * 目标货位
-     */
-    private Long targetLocationId;
-    /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
+
     /**
      * 入库记录id
      */

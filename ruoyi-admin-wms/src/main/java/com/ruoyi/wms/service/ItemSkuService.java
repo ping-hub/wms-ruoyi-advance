@@ -1,14 +1,12 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.exception.ServiceException;
-import com.ruoyi.common.core.exception.base.BaseException;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
@@ -37,7 +35,6 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
 
 
     private final ItemSkuMapper itemSkuMapper;
-    private final ItemService itemService;
     private final ItemCategoryMapper itemCategoryMapper;
     private final InventoryService inventoryService;
     private final ItemMapper itemMapper;
@@ -75,7 +72,6 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         LambdaQueryWrapper<ItemSku> lqw = Wrappers.lambdaQuery();
         lqw.like(StrUtil.isNotBlank(bo.getSkuName()), ItemSku::getSkuName, bo.getSkuName());
         lqw.eq(bo.getItemId() != null, ItemSku::getItemId, bo.getItemId());
-        lqw.like(StrUtil.isNotBlank(bo.getSpecModel()), ItemSku::getSpecModel, bo.getSpecModel());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), ItemSku::getStatus, bo.getStatus());
         lqw.orderByDesc(ItemSku::getItemId);
         return lqw;

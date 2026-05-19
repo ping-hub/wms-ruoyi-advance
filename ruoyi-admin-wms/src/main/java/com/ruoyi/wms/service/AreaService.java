@@ -55,18 +55,6 @@ public class AreaService {
         return areaMapper.selectVoList(lqw);
     }
 
-    /**
-     * 获取该仓库下的库区数量
-     *
-     * @param id 仓库id
-     */
-
-    public Long countByWarehouseId(Long id) {
-        LambdaQueryWrapper<Area> lqw = Wrappers.lambdaQuery();
-        lqw.eq(Area::getWarehouseId, id);
-        return areaMapper.selectCount(lqw);
-    }
-
     private LambdaQueryWrapper<Area> buildQueryWrapper(AreaBo bo) {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<Area> lqw = Wrappers.lambdaQuery();

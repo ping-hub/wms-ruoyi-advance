@@ -60,12 +60,6 @@ public class MovementOrderVo extends BaseVo{
     private String dispatchPurpose;
 
     /**
-     * 物资保障号
-     */
-    @ExcelProperty(value = "物资保障号")
-    private String supportNo;
-
-    /**
      * 调拨方式
      */
     @ExcelProperty(value = "调拨方式")
@@ -132,18 +126,6 @@ public class MovementOrderVo extends BaseVo{
     private LocalDate issueDate;
 
     /**
-     * 发货经手人
-     */
-    @ExcelProperty(value = "发货经手人")
-    private String fromHandler;
-
-    /**
-     * 收货经手人
-     */
-    @ExcelProperty(value = "收货经手人")
-    private String toHandler;
-
-    /**
      * 源仓库
      */
     @ExcelProperty(value = "源仓库")
@@ -156,18 +138,6 @@ public class MovementOrderVo extends BaseVo{
     private Long sourceAreaId;
 
     /**
-     * 源货架
-     */
-    @ExcelProperty(value = "源货架")
-    private Long sourceRackId;
-
-    /**
-     * 源货位
-     */
-    @ExcelProperty(value = "源货位")
-    private Long sourceLocationId;
-
-    /**
      * 目标仓库
      */
     @ExcelProperty(value = "目标仓库")
@@ -178,24 +148,6 @@ public class MovementOrderVo extends BaseVo{
      */
     @ExcelProperty(value = "目标库区")
     private Long targetAreaId;
-
-    /**
-     * 目标货架
-     */
-    @ExcelProperty(value = "目标货架")
-    private Long targetRackId;
-
-    /**
-     * 目标货位
-     */
-    @ExcelProperty(value = "目标货位")
-    private Long targetLocationId;
-
-    /**
-     * 调拨范围
-     */
-    @ExcelProperty(value = "调拨范围")
-    private String movementScope;
 
     /**
      * 状态

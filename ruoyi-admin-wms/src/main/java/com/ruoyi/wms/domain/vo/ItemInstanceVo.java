@@ -39,9 +39,6 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "规格名称")
     private String skuName;
 
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
-
     @ExcelProperty(value = "单品状态")
     private String instanceStatus;
 

@@ -61,7 +61,6 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
     }
 
     private LambdaQueryWrapper<ReceiptOrderDetail> buildQueryWrapper(ReceiptOrderDetailBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ReceiptOrderDetail> lqw = Wrappers.lambdaQuery();
         lqw.eq(bo.getReceiptOrderId() != null, ReceiptOrderDetail::getReceiptOrderId, bo.getReceiptOrderId());
         lqw.eq(bo.getSkuId() != null, ReceiptOrderDetail::getSkuId, bo.getSkuId());
@@ -95,15 +94,6 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
      */
     public void deleteByIds(Collection<Long> ids) {
         receiptOrderDetailMapper.deleteBatchIds(ids);
-    }
-
-    /**
-     * 根据入库单id删除入库单详情
-     */
-    public void deleteByReceiptOrderId(@NotNull Long receiptOrderId) {
-        LambdaQueryWrapper<ReceiptOrderDetail> lqw = Wrappers.lambdaQuery();
-        lqw.eq(ReceiptOrderDetail::getReceiptOrderId, receiptOrderId);
-        receiptOrderDetailMapper.delete(lqw);
     }
 
     @Transactional

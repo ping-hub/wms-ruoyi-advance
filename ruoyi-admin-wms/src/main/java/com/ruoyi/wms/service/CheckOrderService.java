@@ -219,36 +219,8 @@ public class CheckOrderService {
                 inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
                 inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
-                inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
                 inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
-                inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
                 inventoryDetailBo.setShipmentQuantity(filteredDetail.getProfitAndLoss().abs());
-                return inventoryDetailBo;
-            }).toList();
-    }
-
-    public List<InventoryDetailBo> splitOutReceiptData(CheckOrderBo bo) {
-        return bo.getDetails().stream()
-            .filter(detail -> detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) > 0)
-            .map(filteredDetail -> {
-                InventoryDetailBo inventoryDetailBo = new InventoryDetailBo();
-                inventoryDetailBo.setReceiptOrderId(bo.getId());
-                inventoryDetailBo.setType(ServiceConstants.InventoryDetailType.CHECK);
-                inventoryDetailBo.setSkuId(filteredDetail.getSkuId());
-                inventoryDetailBo.setWarehouseId(filteredDetail.getWarehouseId());
-                inventoryDetailBo.setAreaId(filteredDetail.getAreaId());
-                inventoryDetailBo.setRackId(filteredDetail.getRackId());
-                inventoryDetailBo.setLocationId(filteredDetail.getLocationId());
-                inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
-                inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
-                inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setProductionDate(filteredDetail.getProductionDate());
-                inventoryDetailBo.setExpirationDate(filteredDetail.getExpirationDate());
-                inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
-                inventoryDetailBo.setSpecModel(filteredDetail.getSpecModel());
-                inventoryDetailBo.setRemainQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setCreateTime(filteredDetail.getReceiptTime());
                 return inventoryDetailBo;
             }).toList();
     }

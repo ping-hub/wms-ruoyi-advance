@@ -37,10 +37,6 @@ public class ShipmentOrder extends BaseEntity {
      * 出库类型
      */
     private String shipmentOrderType;
-    /**
-     * 出库订单
-     */
-    private String orderNo;
 
     private String basisNo;
 
@@ -54,15 +50,6 @@ public class ShipmentOrder extends BaseEntity {
 
     private LocalDate shipmentDate;
 
-    private String purchaserName;
-
-    private String acceptorName;
-
-    private String keeperName;
-    /**
-     * 客户
-     */
-    private Long merchantId;
     /**
      * 订单金额
      */

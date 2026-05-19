@@ -154,52 +154,6 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         return boxMapper.selectOne(lqw);
     }
 
-    @Transactional
-    public void legacyPack(BoxOperationBo bo) {
-        Box box = requireBox(bo.getBoxId());
-        Assert.isFalse(ServiceConstants.BoxStatus.DISABLED.equals(box.getBoxStatus()), "箱体已停用，无法装箱");
-        Assert.isFalse(ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus()), "已出库箱体无法装箱");
-        Set<Long> itemIds = Set.copyOf(bo.getItemInstanceIds());
-        List<ItemInstanceVo> items = itemInstanceService.queryVosByIds(itemIds);
-        Assert.isTrue(items.size() == itemIds.size(), "存在不存在的单品实例");
-        Assert.isTrue(items.stream().noneMatch(item -> item.getBoxId() != null), "存在已装箱的单品实例");
-        Set<Long> skuIds = items.stream().map(ItemInstanceVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream()
-            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        LocationContext targetLocation = resolvePackTargetLocation(box, items);
-        for (ItemInstanceVo item : items) {
-            validateItemBeforePack(item, skuMap.get(item.getSkuId()));
-            validateItemLocationForPack(item, targetLocation);
-        }
-        if (!sameLocation(box, targetLocation)) {
-            Box update = new Box();
-            update.setId(box.getId());
-            update.setWarehouseId(targetLocation.warehouseId());
-            update.setAreaId(targetLocation.areaId());
-            update.setRackId(targetLocation.rackId());
-            update.setLocationId(targetLocation.locationId());
-            boxMapper.updateById(update);
-            box = requireBox(box.getId());
-        }
-        for (ItemInstanceVo item : items) {
-            itemInstanceService.markInBox(item.getId(), box);
-        }
-        syncBoxSnapshot(box.getId(), ServiceConstants.BoxStatus.PACKED);
-    }
-
-    @Transactional
-    public void legacyUnpack(BoxOperationBo bo) {
-        Box box = requireBox(bo.getBoxId());
-        Set<Long> itemIds = Set.copyOf(bo.getItemInstanceIds());
-        List<ItemInstance> items = itemInstanceService.queryByIds(itemIds);
-        Assert.isTrue(items.size() == itemIds.size(), "存在不存在的单品实例");
-        Assert.isTrue(items.stream().allMatch(item -> Objects.equals(item.getBoxId(), bo.getBoxId())), "存在不属于当前箱体的单品实例");
-        for (ItemInstance item : items) {
-            itemInstanceService.restoreFromBox(item.getId(), box);
-        }
-        syncBoxSnapshot(box.getId(), countItemsByBoxId(box.getId()) > 0 ? ServiceConstants.BoxStatus.PACKED : ServiceConstants.BoxStatus.IDLE);
-    }
-
     public List<BoxVo> queryByLocationId(Long locationId) {
         LambdaQueryWrapper<Box> lqw = Wrappers.lambdaQuery();
         lqw.eq(Box::getLocationId, locationId);
@@ -322,42 +276,6 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         }
     }
 
-    private void validateItemBeforePack(ItemInstanceVo item, ItemSkuVo skuVo) {
-        Assert.isFalse(Integer.valueOf(1).equals(item.getInBox()), "单品实例已在箱体中");
-        Assert.isFalse(Integer.valueOf(1).equals(item.getBorrowed()), "单品实例已借出，无法装箱");
-        Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(item.getInstanceStatus()), "仅在库单品可以装箱");
-        Assert.notNull(skuVo, "单品实例规格不存在");
-        Assert.notNull(skuVo.getItem(), "规格未关联物品定义");
-    }
-
-    private void validateItemLocationForPack(ItemInstanceVo item, LocationContext targetLocation) {
-        Assert.isTrue(Objects.equals(item.getWarehouseId(), targetLocation.warehouseId()), "待装箱单品不在同一仓库，无法装入同一箱体");
-        Assert.isTrue(Objects.equals(item.getAreaId(), targetLocation.areaId()), "待装箱单品不在同一库区，无法装入同一箱体");
-        Assert.isTrue(Objects.equals(item.getRackId(), targetLocation.rackId()), "待装箱单品不在同一货架，无法装入同一箱体");
-        Assert.isTrue(Objects.equals(item.getLocationId(), targetLocation.locationId()), "待装箱单品不在同一货位，无法装入同一箱体");
-    }
-
-    private Box requireBox(Long boxId) {
-        Box box = boxMapper.selectById(boxId);
-        Assert.notNull(box, "箱体不存在");
-        return box;
-    }
-
-    private void updateBoxStatus(Long boxId, String boxStatus) {
-        Box update = new Box();
-        update.setId(boxId);
-        update.setBoxStatus(boxStatus);
-        boxMapper.updateById(update);
-    }
-
-    private void syncBoxSnapshot(Long boxId, String boxStatus) {
-        Box update = new Box();
-        update.setId(boxId);
-        update.setBoxStatus(boxStatus);
-        update.setItemCount(countItemsByBoxId(boxId));
-        boxMapper.updateById(update);
-    }
-
     private int countItemsByBoxId(Long boxId) {
         ItemInstanceBo bo = new ItemInstanceBo();
         bo.setBoxId(boxId);
@@ -366,15 +284,6 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     private String generateBoxCode() {
         return "BOX" + IdUtil.getSnowflakeNextIdStr();
-    }
-
-    private LocationContext resolvePackTargetLocation(Box box, List<ItemInstanceVo> items) {
-        Assert.isTrue(CollUtil.isNotEmpty(items), "待装箱单品不能为空");
-        if (countItemsByBoxId(box.getId()) > 0) {
-            return new LocationContext(box.getWarehouseId(), box.getAreaId(), box.getRackId(), box.getLocationId());
-        }
-        ItemInstanceVo firstItem = items.get(0);
-        return new LocationContext(firstItem.getWarehouseId(), firstItem.getAreaId(), firstItem.getRackId(), firstItem.getLocationId());
     }
 
     private boolean sameLocation(Box box, LocationContext location) {

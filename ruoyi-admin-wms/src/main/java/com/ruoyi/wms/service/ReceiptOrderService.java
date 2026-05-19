@@ -55,7 +55,6 @@ public class ReceiptOrderService {
     private final InventoryService inventoryService;
     private final InventoryDetailService inventoryDetailService;
     private final InventoryHistoryService inventoryHistoryService;
-    private final SysDictTypeService dictTypeService;
     private final ItemInstanceService itemInstanceService;
     private final BoxService boxService;
     private final LocationService locationService;
@@ -89,12 +88,9 @@ public class ReceiptOrderService {
     }
 
     private LambdaQueryWrapper<ReceiptOrder> buildQueryWrapper(ReceiptOrderBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ReceiptOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getReceiptOrderNo()), ReceiptOrder::getReceiptOrderNo, bo.getReceiptOrderNo());
         lqw.eq(StringUtils.isNotBlank(bo.getReceiptOrderType()), ReceiptOrder::getReceiptOrderType, bo.getReceiptOrderType());
-        lqw.eq(bo.getMerchantId() != null, ReceiptOrder::getMerchantId, bo.getMerchantId());
-        lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), ReceiptOrder::getOrderNo, bo.getOrderNo());
         lqw.like(StringUtils.isNotBlank(bo.getBasisNo()), ReceiptOrder::getBasisNo, bo.getBasisNo());
         lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), ReceiptOrder::getDispatchMode, bo.getDispatchMode());
         lqw.like(StringUtils.isNotBlank(bo.getNoticeOrg()), ReceiptOrder::getNoticeOrg, bo.getNoticeOrg());
@@ -296,23 +292,6 @@ public class ReceiptOrderService {
     }
 
     /**
-     * 入库单作废
-     * @param id
-     */
-    public void editToInvalid(Long id) {
-        validateIdBeforeDelete(id);
-        List<Long> detailIds = receiptOrderDetailService.queryEntitiesByReceiptOrderId(id).stream()
-            .map(ReceiptOrderDetail::getId)
-            .filter(Objects::nonNull)
-            .toList();
-        itemInstanceService.releaseReceiptReservationsByDetailIds(detailIds);
-        LambdaUpdateWrapper<ReceiptOrder> wrapper = Wrappers.lambdaUpdate();
-        wrapper.eq(ReceiptOrder::getId, id);
-        wrapper.set(ReceiptOrder::getReceiptOrderStatus, ServiceConstants.ReceiptOrderStatus.INVALID);
-        receiptOrderMapper.update(null, wrapper);
-    }
-
-    /**
      * 删除入库单
      */
     public void deleteById(Long id) {
@@ -435,7 +414,6 @@ public class ReceiptOrderService {
     private InventoryDetail buildInventoryDetail(ReceiptOrderBo bo, ReceiptOrderDetailBo detail, ItemInstance itemInstance) {
         InventoryDetail inventoryDetail = new InventoryDetail();
         inventoryDetail.setReceiptOrderId(bo.getId());
-        inventoryDetail.setOrderNo(bo.getOrderNo());
         inventoryDetail.setType(ServiceConstants.InventoryDetailType.RECEIPT);
         inventoryDetail.setSkuId(detail.getSkuId());
         inventoryDetail.setWarehouseId(detail.getWarehouseId());
@@ -446,13 +424,6 @@ public class ReceiptOrderService {
         inventoryDetail.setRemainQuantity(itemInstance == null ? detail.getQuantity() : java.math.BigDecimal.ONE);
         inventoryDetail.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
         inventoryDetail.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
-        inventoryDetail.setProductionDate(detail.getProductionDate());
-        inventoryDetail.setExpirationDate(detail.getExpirationDate());
-        inventoryDetail.setAmount(itemInstance == null ? detail.getAmount() : detail.getUnitPrice());
-        inventoryDetail.setEquipmentCode(itemInstance == null ? detail.getEquipmentCode() : itemInstance.getInstanceCode());
-        inventoryDetail.setSpecModel(detail.getSpecModel());
-        inventoryDetail.setUnitPrice(detail.getUnitPrice());
-        inventoryDetail.setLineAmount(itemInstance == null ? detail.getLineAmount() : detail.getUnitPrice());
         inventoryDetail.setBelongUnit(bo.getReceiveUnit());
         inventoryDetail.setRemark(itemInstance == null ? detail.getRemark() : itemInstance.getRemark());
         return inventoryDetail;
@@ -471,13 +442,6 @@ public class ReceiptOrderService {
         inventoryHistory.setLocationId(detail.getLocationId());
         inventoryHistory.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
         inventoryHistory.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
-        inventoryHistory.setProductionDate(detail.getProductionDate());
-        inventoryHistory.setExpirationDate(detail.getExpirationDate());
-        inventoryHistory.setAmount(itemInstance == null ? detail.getAmount() : detail.getUnitPrice());
-        inventoryHistory.setEquipmentCode(itemInstance == null ? detail.getEquipmentCode() : itemInstance.getInstanceCode());
-        inventoryHistory.setSpecModel(detail.getSpecModel());
-        inventoryHistory.setUnitPrice(detail.getUnitPrice());
-        inventoryHistory.setLineAmount(itemInstance == null ? detail.getLineAmount() : detail.getUnitPrice());
         inventoryHistory.setBelongUnit(bo.getReceiveUnit());
         inventoryHistory.setRemark(itemInstance == null ? detail.getRemark() : itemInstance.getRemark());
         return inventoryHistory;

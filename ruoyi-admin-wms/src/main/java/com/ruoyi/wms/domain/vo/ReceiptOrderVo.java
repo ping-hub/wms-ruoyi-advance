@@ -45,18 +45,6 @@ public class ReceiptOrderVo extends BaseVo {
     private String receiptOrderType;
 
     /**
-     * 供应商
-     */
-    @ExcelProperty(value = "供应商")
-    private Long merchantId;
-
-    /**
-     * 订单号
-     */
-    @ExcelProperty(value = "订单号")
-    private String orderNo;
-
-    /**
      * 调拨根据
      */
     @ExcelProperty(value = "调拨根据")
@@ -91,24 +79,6 @@ public class ReceiptOrderVo extends BaseVo {
      */
     @ExcelProperty(value = "入库日期")
     private LocalDate receiptDate;
-
-    /**
-     * 采购配发人
-     */
-    @ExcelProperty(value = "采购配发人")
-    private String purchaserName;
-
-    /**
-     * 验收人
-     */
-    @ExcelProperty(value = "验收人")
-    private String acceptorName;
-
-    /**
-     * 保管员
-     */
-    @ExcelProperty(value = "保管员")
-    private String keeperName;
 
     /**
      * 商品总数

@@ -38,12 +38,6 @@ public class ItemSkuVo implements Serializable {
     private Long itemId;
 
     /**
-     * 规格型号
-     */
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
-
-    /**
      * 启用状态
      */
     @ExcelProperty(value = "启用状态")

@@ -45,18 +45,6 @@ public class ShipmentOrderVo extends BaseVo{
     private String shipmentOrderType;
 
     /**
-     * 出库订单
-     */
-    @ExcelProperty(value = "出库订单")
-    private String orderNo;
-
-    /**
-     * 客户
-     */
-    @ExcelProperty(value = "客户")
-    private Long merchantId;
-
-    /**
      * 调拨根据
      */
     @ExcelProperty(value = "调拨根据")
@@ -91,24 +79,6 @@ public class ShipmentOrderVo extends BaseVo{
      */
     @ExcelProperty(value = "出库日期")
     private LocalDate shipmentDate;
-
-    /**
-     * 采购配发人
-     */
-    @ExcelProperty(value = "采购配发人")
-    private String purchaserName;
-
-    /**
-     * 验收人
-     */
-    @ExcelProperty(value = "验收人")
-    private String acceptorName;
-
-    /**
-     * 保管员
-     */
-    @ExcelProperty(value = "保管员")
-    private String keeperName;
 
     /**
      * 订单金额

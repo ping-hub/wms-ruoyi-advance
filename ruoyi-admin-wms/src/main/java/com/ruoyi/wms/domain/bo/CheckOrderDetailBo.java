@@ -84,16 +84,6 @@ public class CheckOrderDetailBo extends BaseEntity {
      */
     private Long locationId;
     /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期日期
-     */
-    private LocalDateTime expirationDate;
-
-    /**
      * 入库时间
      */
     private LocalDateTime receiptTime;
@@ -108,11 +98,6 @@ public class CheckOrderDetailBo extends BaseEntity {
      * 器材编码
      */
     private String equipmentCode;
-
-    /**
-     * 规格型号
-     */
-    private String specModel;
 
     /**
      * 物品明细ID

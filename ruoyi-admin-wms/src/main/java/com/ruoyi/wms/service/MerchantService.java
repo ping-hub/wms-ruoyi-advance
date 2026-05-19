@@ -60,7 +60,6 @@ public class MerchantService {
     }
 
     private LambdaQueryWrapper<Merchant> buildQueryWrapper(MerchantBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<Merchant> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getMerchantCode()), Merchant::getMerchantCode, bo.getMerchantCode());
         lqw.like(StringUtils.isNotBlank(bo.getMerchantName()), Merchant::getMerchantName, bo.getMerchantName());
@@ -87,17 +86,7 @@ public class MerchantService {
      * 删除往来单位
      */
     public void deleteById(Long id) {
-        validateIdBeforeDelete(id);
         merchantMapper.deleteById(id);
-    }
-
-    private void validateIdBeforeDelete(Long id) {
-        LambdaQueryWrapper<ReceiptOrder> receiptOrderLqw = Wrappers.lambdaQuery();
-        receiptOrderLqw.eq(ReceiptOrder::getMerchantId, id);
-        Long receiptOrderCount = receiptOrderMapper.selectCount(receiptOrderLqw);
-        if (receiptOrderCount != null && receiptOrderCount > 0) {
-            throw new ServiceException("企业已有业务关联，无法删除！", HttpStatus.CONFLICT.value());
-        }
     }
 
     /**

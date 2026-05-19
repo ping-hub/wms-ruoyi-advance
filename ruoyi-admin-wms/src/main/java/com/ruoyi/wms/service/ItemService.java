@@ -159,8 +159,6 @@ public class ItemService {
             itemInstanceService.saveBatch(itemInstances);
         }
 
-        // TODO 调用实际打印接口，使用 printPayloads 执行批量二维码打印。
-        log.info("Prepared {} qr-code print payloads for itemId={}", printPayloads.size(), row.getId());
         BatchPrintQrCodeResultVo result = new BatchPrintQrCodeResultVo();
         result.setItemKey(itemKey);
         result.setQrCodeCount(printPayloads.size());

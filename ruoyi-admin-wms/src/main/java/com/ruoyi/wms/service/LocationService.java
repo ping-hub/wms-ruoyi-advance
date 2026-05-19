@@ -314,11 +314,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         return lqw;
     }
 
-    private void validateBoBeforeSave(LocationBo bo) {
-        validateLocationRelation(bo);
-        validateLocationNameAndCode(bo);
-    }
-
     private void validateBoBeforeUpdate(LocationBo bo) {
         validateLocationRelation(bo);
         validateMaintenanceBoundary(bo);
@@ -333,38 +328,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Assert.notNull(rack, "所属货架不存在");
         Assert.isTrue(Objects.equals(rack.getWarehouseId(), bo.getWarehouseId()), "货位所属货架与仓库不匹配");
         Assert.isTrue(Objects.equals(rack.getAreaId(), bo.getAreaId()), "货位所属货架与库区不匹配");
-    }
-
-    private void validateLocationNameAndCode(LocationBo bo) {
-        LambdaQueryWrapper<Location> queryWrapper = Wrappers.lambdaQuery();
-        queryWrapper.eq(Location::getRackId, bo.getRackId());
-        queryWrapper.eq(Location::getLocationName, bo.getLocationName());
-        queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
-        Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "同一货架下货位名称重复");
-        if (StrUtil.isBlank(bo.getLocationCode())) {
-            validateGridUnique(bo);
-            return;
-        }
-        queryWrapper.clear();
-        queryWrapper.eq(Location::getWarehouseId, bo.getWarehouseId());
-        queryWrapper.eq(Location::getAreaId, bo.getAreaId());
-        queryWrapper.eq(Location::getRackId, bo.getRackId());
-        queryWrapper.eq(Location::getLocationCode, bo.getLocationCode());
-        queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
-        Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "货位编码重复");
-        validateGridUnique(bo);
-    }
-
-    private void validateGridUnique(LocationBo bo) {
-        if (bo.getRowNo() == null || bo.getColumnNo() == null) {
-            return;
-        }
-        LambdaQueryWrapper<Location> queryWrapper = Wrappers.lambdaQuery();
-        queryWrapper.eq(Location::getRackId, bo.getRackId());
-        queryWrapper.eq(Location::getRowNo, bo.getRowNo());
-        queryWrapper.eq(Location::getColumnNo, bo.getColumnNo());
-        queryWrapper.ne(bo.getId() != null, Location::getId, bo.getId());
-        Assert.isTrue(locationMapper.selectCount(queryWrapper) == 0, "同一货架下货位格子坐标重复");
     }
 
     private void validateMaintenanceBoundary(LocationBo bo) {

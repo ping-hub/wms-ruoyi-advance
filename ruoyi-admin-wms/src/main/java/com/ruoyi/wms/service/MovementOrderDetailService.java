@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
-import com.ruoyi.common.core.utils.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -70,19 +69,14 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     }
 
     private LambdaQueryWrapper<MovementOrderDetail> buildQueryWrapper(MovementOrderDetailBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<MovementOrderDetail> lqw = Wrappers.lambdaQuery();
         lqw.eq(bo.getMovementOrderId() != null, MovementOrderDetail::getMovementOrderId, bo.getMovementOrderId());
         lqw.eq(bo.getSkuId() != null, MovementOrderDetail::getSkuId, bo.getSkuId());
         lqw.eq(bo.getQuantity() != null, MovementOrderDetail::getQuantity, bo.getQuantity());
         lqw.eq(bo.getSourceWarehouseId() != null, MovementOrderDetail::getSourceWarehouseId, bo.getSourceWarehouseId());
         lqw.eq(bo.getSourceAreaId() != null, MovementOrderDetail::getSourceAreaId, bo.getSourceAreaId());
-        lqw.eq(bo.getSourceRackId() != null, MovementOrderDetail::getSourceRackId, bo.getSourceRackId());
-        lqw.eq(bo.getSourceLocationId() != null, MovementOrderDetail::getSourceLocationId, bo.getSourceLocationId());
         lqw.eq(bo.getTargetWarehouseId() != null, MovementOrderDetail::getTargetWarehouseId, bo.getTargetWarehouseId());
         lqw.eq(bo.getTargetAreaId() != null, MovementOrderDetail::getTargetAreaId, bo.getTargetAreaId());
-        lqw.eq(bo.getTargetRackId() != null, MovementOrderDetail::getTargetRackId, bo.getTargetRackId());
-        lqw.eq(bo.getTargetLocationId() != null, MovementOrderDetail::getTargetLocationId, bo.getTargetLocationId());
         lqw.eq(bo.getInventoryDetailId() != null, MovementOrderDetail::getInventoryDetailId, bo.getInventoryDetailId());
         lqw.eq(bo.getItemInstanceId() != null, MovementOrderDetail::getItemInstanceId, bo.getItemInstanceId());
         lqw.eq(bo.getBoxId() != null, MovementOrderDetail::getBoxId, bo.getBoxId());

@@ -245,7 +245,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.updateById(update);
     }
 
-    public void moveTo(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+    public void moveTo(Long id, Long warehouseId, Long areaId) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
@@ -254,8 +254,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, warehouseId);
         wrapper.set(ItemInstance::getAreaId, areaId);
-        wrapper.set(ItemInstance::getRackId, rackId);
-        wrapper.set(ItemInstance::getLocationId, locationId);
         itemInstanceMapper.update(null, wrapper);
     }
 
@@ -283,19 +281,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
         wrapper.set(ItemInstance::getInBox, 1);
         wrapper.set(ItemInstance::getBoxId, box.getId());
-        wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
-        wrapper.set(ItemInstance::getAreaId, box.getAreaId());
-        wrapper.set(ItemInstance::getRackId, box.getRackId());
-        wrapper.set(ItemInstance::getLocationId, box.getLocationId());
-        itemInstanceMapper.update(null, wrapper);
-    }
-
-    public void restoreFromBox(Long id, Box box) {
-        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
-        wrapper.eq(ItemInstance::getId, id);
-        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
-        wrapper.set(ItemInstance::getInBox, 0);
-        wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, box.getWarehouseId());
         wrapper.set(ItemInstance::getAreaId, box.getAreaId());
         wrapper.set(ItemInstance::getRackId, box.getRackId());
@@ -475,8 +460,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         for (ReceiptOrderDetailBo detail : detailList) {
             List<ReceiptItemInstanceBo> receiptItemInstances = detail.getReceiptItemInstances();
             Assert.isTrue(CollUtil.isNotEmpty(receiptItemInstances), "请先录入器材实例");
-            int instanceCount = convertInstanceCount(detail.getQuantity(), detail.getSpecModel());
-            Assert.isTrue(receiptItemInstances.size() == instanceCount, "器材实例数量与入库数量不一致");
             for (ReceiptItemInstanceBo receiptItemInstance : receiptItemInstances) {
                 String instanceCode = StrUtil.trim(receiptItemInstance.getInstanceCode());
                 ItemInstance itemInstance = resolveReceiptItemInstance(receiptItemInstance, itemInstanceMap, itemInstanceCodeMap);
@@ -501,15 +484,11 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setReceiptOrderDetailId(detail.getId());
                 itemInstance.setBoxId(box == null ? null : box.getId());
                 itemInstance.setBelongUnit(belongUnit);
-                itemInstance.setProductionDate(detail.getProductionDate());
-                itemInstance.setExpirationDate(detail.getExpirationDate());
                 itemInstance.setRemark(StrUtil.blankToDefault(receiptItemInstance.getRemark(), detail.getRemark()));
                 updateList.add(itemInstance);
             }
             ReceiptOrderDetail update = new ReceiptOrderDetail();
             update.setId(detail.getId());
-            update.setGeneratedInstanceQuantity(instanceCount);
-            update.setGenerateItemInstance(1);
             receiptOrderDetailMapper.updateById(update);
         }
         if (CollUtil.isNotEmpty(updateList)) {
@@ -735,18 +714,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         boxMapper.updateById(update);
     }
 
-    private int convertInstanceCount(BigDecimal quantity, String skuName) {
-        Assert.notNull(quantity, "入库数量不能为空");
-        Assert.isTrue(quantity.compareTo(BigDecimal.ZERO) > 0, "入库数量必须大于0");
-        try {
-            int count = quantity.intValueExact();
-            Assert.isTrue(count > 0, "实例数量必须大于0");
-            return count;
-        } catch (ArithmeticException e) {
-            throw new ServiceException("规格" + skuName + "生成单品实例时，数量必须为整数", HttpStatus.CONFLICT.value());
-        }
-    }
-
     private String generateInstanceCode() {
         return "II" + IdUtil.getSnowflakeNextIdStr();
     }
@@ -829,7 +796,6 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             ItemSkuVo skuVo = skuMap.get(vo.getSkuId());
             if (skuVo != null) {
                 vo.setSkuName(skuVo.getSkuName());
-                vo.setSpecModel(skuVo.getSpecModel());
                 if (skuVo.getItem() != null) {
                     vo.setItemName(skuVo.getItem().getItemName());
                     vo.setItemCode(skuVo.getItem().getItemCode());

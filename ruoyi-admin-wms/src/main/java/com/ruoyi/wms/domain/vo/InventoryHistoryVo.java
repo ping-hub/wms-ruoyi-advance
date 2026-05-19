@@ -90,12 +90,6 @@ public class InventoryHistoryVo implements Serializable {
     private String itemName;
 
     /**
-     * 规格型号
-     */
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
-
-    /**
      * 单位
      */
     @ExcelProperty(value = "计量单位")

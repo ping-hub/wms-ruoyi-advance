@@ -60,36 +60,6 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     private BigDecimal amount;
 
     /**
-     * 器材编码
-     */
-    private String equipmentCode;
-
-    /**
-     * 规格型号
-     */
-    private String specModel;
-
-    /**
-     * 单价
-     */
-    private BigDecimal unitPrice;
-
-    /**
-     * 行金额
-     */
-    private BigDecimal lineAmount;
-
-    /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
-
-    /**
      * 备注
      */
     private String remark;
@@ -115,16 +85,6 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      * 所属货位
      */
     private Long locationId;
-
-    /**
-     * 是否生成单品实例
-     */
-    private Integer generateItemInstance;
-
-    /**
-     * 已生成单品实例数量
-     */
-    private Integer generatedInstanceQuantity;
 
     /**
      * 入库时录入的器材实例

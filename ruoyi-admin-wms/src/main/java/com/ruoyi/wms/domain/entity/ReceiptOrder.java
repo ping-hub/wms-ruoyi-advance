@@ -37,14 +37,6 @@ public class ReceiptOrder extends BaseEntity {
      * 入库类型
      */
     private String receiptOrderType;
-    /**
-     * 供应商
-     */
-    private Long merchantId;
-    /**
-     * 订单号
-     */
-    private String orderNo;
 
     private String basisNo;
 
@@ -58,11 +50,6 @@ public class ReceiptOrder extends BaseEntity {
 
     private LocalDate receiptDate;
 
-    private String purchaserName;
-
-    private String acceptorName;
-
-    private String keeperName;
     /**
      * 商品总数
      */

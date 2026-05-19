@@ -58,12 +58,6 @@ public class MovementOrderDetailVo implements Serializable {
     private String equipmentCode;
 
     /**
-     * 规格型号
-     */
-    @ExcelProperty(value = "规格型号")
-    private String specModel;
-
-    /**
      * 单价
      */
     @ExcelProperty(value = "单价")
@@ -82,18 +76,6 @@ public class MovementOrderDetailVo implements Serializable {
     private String remark;
 
     /**
-     * 生产日期
-     */
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    @ExcelProperty(value = "过期时间")
-    private LocalDateTime expirationDate;
-
-    /**
      * 源仓库
      */
     @ExcelProperty(value = "源仓库")
@@ -106,18 +88,6 @@ public class MovementOrderDetailVo implements Serializable {
     private Long sourceAreaId;
 
     /**
-     * 源货架
-     */
-    @ExcelProperty(value = "源货架")
-    private Long sourceRackId;
-
-    /**
-     * 源货位
-     */
-    @ExcelProperty(value = "源货位")
-    private Long sourceLocationId;
-
-    /**
      * 目标仓库
      */
     @ExcelProperty(value = "目标仓库")
@@ -128,18 +98,6 @@ public class MovementOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "目标库区")
     private Long targetAreaId;
-
-    /**
-     * 目标货架
-     */
-    @ExcelProperty(value = "目标货架")
-    private Long targetRackId;
-
-    /**
-     * 目标货位
-     */
-    @ExcelProperty(value = "目标货位")
-    private Long targetLocationId;
 
     /**
      * 入库记录id

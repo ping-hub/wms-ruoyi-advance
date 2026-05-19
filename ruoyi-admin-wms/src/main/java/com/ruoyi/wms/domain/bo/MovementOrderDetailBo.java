@@ -55,11 +55,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private String equipmentCode;
 
     /**
-     * 规格型号
-     */
-    private String specModel;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;
@@ -75,16 +70,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private String remark;
 
     /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
-
-    /**
      * 源仓库
      */
     @NotNull(message = "源仓库不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -97,16 +82,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long sourceAreaId;
 
     /**
-     * 源货架
-     */
-    private Long sourceRackId;
-
-    /**
-     * 源货位
-     */
-    private Long sourceLocationId;
-
-    /**
      * 目标仓库
      */
     @NotNull(message = "目标仓库不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -117,16 +92,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
      */
     @NotNull(message = "目标库区不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long targetAreaId;
-
-    /**
-     * 目标货架
-     */
-    private Long targetRackId;
-
-    /**
-     * 目标货位
-     */
-    private Long targetLocationId;
 
     /**
      * 入库记录id

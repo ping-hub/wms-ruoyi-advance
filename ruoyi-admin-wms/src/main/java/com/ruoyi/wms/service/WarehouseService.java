@@ -67,7 +67,6 @@ public class WarehouseService extends ServiceImpl<WarehouseMapper, Warehouse> {
     }
 
     private LambdaQueryWrapper<Warehouse> buildQueryWrapper(WarehouseBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<Warehouse> lqw = Wrappers.lambdaQuery();
         lqw.eq(bo.getId() != null, Warehouse::getId, bo.getId());
         lqw.eq(StrUtil.isNotBlank(bo.getWarehouseCode()), Warehouse::getWarehouseCode, bo.getWarehouseCode());

@@ -46,38 +46,6 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 金额
      */
     private BigDecimal amount;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private String equipmentCode;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private String specModel;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private BigDecimal unitPrice;
-
-    /**
-     * 兼容保留：当前库表已无此字段
-     */
-    @TableField(exist = false)
-    private BigDecimal lineAmount;
-    /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
     /**
      * 备注
      */
@@ -101,13 +69,4 @@ public class ReceiptOrderDetail extends BaseEntity {
      */
     private Long locationId;
 
-    /**
-     * 是否生成单品实例
-     */
-    private Integer generateItemInstance;
-
-    /**
-     * 已生成单品实例数量
-     */
-    private Integer generatedInstanceQuantity;
 }

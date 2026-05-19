@@ -87,28 +87,8 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
                 if (StringUtils.isBlank(it.getUnit()) && itemSku.getItem() != null) {
                     it.setUnit(itemSku.getItem().getUnit());
                 }
-                if (StringUtils.isBlank(it.getSpecModel())) {
-                    it.setSpecModel(itemSku.getSpecModel());
-                }
             }
         });
-    }
-
-    private LambdaQueryWrapper<InventoryDetail> buildQueryWrapper(InventoryDetailBo bo) {
-        Map<String, Object> params = bo.getParams();
-        LambdaQueryWrapper<InventoryDetail> lqw = Wrappers.lambdaQuery();
-        lqw.eq(bo.getReceiptOrderId() != null, InventoryDetail::getReceiptOrderId, bo.getReceiptOrderId());
-        lqw.eq(StringUtils.isNotBlank(bo.getReceiptOrderType()), InventoryDetail::getReceiptOrderType, bo.getReceiptOrderType());
-        lqw.eq(StringUtils.isNotBlank(bo.getOrderNo()), InventoryDetail::getOrderNo, bo.getOrderNo());
-        lqw.eq(bo.getType() != null, InventoryDetail::getType, bo.getType());
-        lqw.eq(bo.getSkuId() != null, InventoryDetail::getSkuId, bo.getSkuId());
-        lqw.eq(bo.getWarehouseId() != null, InventoryDetail::getWarehouseId, bo.getWarehouseId());
-        lqw.eq(bo.getAreaId() != null, InventoryDetail::getAreaId, bo.getAreaId());
-        lqw.eq(bo.getQuantity() != null, InventoryDetail::getQuantity, bo.getQuantity());
-        lqw.eq(bo.getExpirationDate() != null, InventoryDetail::getExpirationDate, bo.getExpirationDate());
-        lqw.eq(bo.getAmount() != null, InventoryDetail::getAmount, bo.getAmount());
-        lqw.eq(bo.getRemainQuantity() != null, InventoryDetail::getRemainQuantity, bo.getRemainQuantity());
-        return lqw;
     }
 
     /**

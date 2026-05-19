@@ -119,11 +119,6 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
     private String equipmentCode;
 
     /**
-     * 规格型号
-     */
-    private String specModel;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;
