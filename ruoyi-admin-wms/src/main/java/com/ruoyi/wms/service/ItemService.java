@@ -111,6 +111,7 @@ public class ItemService {
         Assert.notNull(bo, "打印参数不能为空");
         Assert.notNull(bo.getRow(), "器材信息不能为空");
         Assert.notNull(bo.getRow().getId(), "器材ID不能为空");
+        Assert.notNull(bo.getSkuId(), "打印规格不能为空");
         Assert.notNull(bo.getQrCodeCount(), "二维码个数不能为空");
         Assert.isTrue(bo.getQrCodeCount() > 0, "二维码个数必须大于0");
 
@@ -118,7 +119,7 @@ public class ItemService {
         Assert.notNull(item, "器材不存在");
 
         ItemBo row = bo.getRow();
-        ItemSkuVo sku = resolvePrintSku(row);
+        ItemSkuVo sku = resolvePrintSku(row.getId(), bo.getSkuId());
         String itemKey = warehouse+BATCH_PRINT_ITEM_KEY;
 
         List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, bo.getQrCodeCount());
@@ -136,9 +137,9 @@ public class ItemService {
             itemInstance.setItemId(row.getId());
             itemInstance.setSkuId(sku.getId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
-            itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.MANUAL);
-            itemInstance.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.MANUAL);
-            itemInstance.setSourceOrderNo("BATCH_PRINT");
+            itemInstance.setSourceType(null);
+            itemInstance.setSourceOrderType(null);
+            itemInstance.setSourceOrderNo(null);
             itemInstance.setRemark(StrUtil.blankToDefault(row.getRemark(), item.getRemark()));
             itemInstance.setLastOperationType("batch_print");
             itemInstance.setLastOperationTime(now);
@@ -247,7 +248,27 @@ public class ItemService {
         validateBoBeforeSave(bo);
         itemMapper.updateById(MapstructUtils.convert(bo, Item.class));
         itemSkuService.setItemId(bo.getSku(),bo.getId());
+        deleteRemovedSku(bo);
         itemSkuService.saveOrUpdateBatchByBo(bo.getSku());
+    }
+
+    private void deleteRemovedSku(ItemBo bo) {
+        List<Long> existingSkuIds = itemSkuService.queryByItemIds(List.of(bo.getId())).stream()
+            .map(ItemSku::getId)
+            .toList();
+        if (CollUtil.isEmpty(existingSkuIds)) {
+            return;
+        }
+        Set<Long> incomingSkuIds = bo.getSku().stream()
+            .map(ItemSkuBo::getId)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toSet());
+        List<Long> removedSkuIds = existingSkuIds.stream()
+            .filter(id -> !incomingSkuIds.contains(id))
+            .toList();
+        if (CollUtil.isNotEmpty(removedSkuIds)) {
+            itemSkuService.deleteByIds(removedSkuIds);
+        }
     }
 
     /**
@@ -264,6 +285,13 @@ public class ItemService {
         itemBo.setItemCode(StrUtil.trim(itemBo.getItemCode()));
         itemBo.setItemName(StrUtil.trim(itemBo.getItemName()));
         itemBo.setItemCategory(StrUtil.trim(itemBo.getItemCategory()));
+        if (CollUtil.isNotEmpty(itemBo.getSku())) {
+            itemBo.getSku().forEach(sku -> {
+                sku.setSkuName(StrUtil.trim(sku.getSkuName()));
+                sku.setProductIdentifier(StrUtil.trim(sku.getProductIdentifier()));
+                sku.setQualityGrade(StrUtil.trim(sku.getQualityGrade()));
+            });
+        }
     }
 
     private void validateItemName(ItemBo item) {
@@ -282,24 +310,23 @@ public class ItemService {
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {
+         Assert.isTrue(CollUtil.isNotEmpty(skuVoList), "至少维护一个器材规格");
+         Assert.isTrue(
+             skuVoList.stream().allMatch(sku -> StrUtil.isNotBlank(sku.getSkuName())),
+             "器材规格名称不能为空"
+         );
          Assert.isTrue(
              skuVoList.stream().map(ItemSkuBo::getSkuName).distinct().count() == skuVoList.size(),
              "器材规格重复"
          );
     }
 
-    private ItemSkuVo resolvePrintSku(ItemBo row) {
-        List<ItemSkuVo> skuList = itemSkuService.queryListByItemId(row.getId());
-        Assert.isTrue(CollUtil.isNotEmpty(skuList), "当前器材未维护规格，无法批量打印二维码");
-
-        List<ItemSkuVo> activeSkuList = skuList.stream()
-            .filter(sku -> StrUtil.isBlank(sku.getStatus()) || "1".equals(sku.getStatus()))
-            .toList();
-        List<ItemSkuVo> candidateList = CollUtil.isNotEmpty(activeSkuList) ? activeSkuList : skuList;
-        if (candidateList.size() == 1) {
-            return candidateList.get(0);
-        }
-        throw new IllegalArgumentException("当前器材存在多个规格，无法自动识别打印规格，请补充明确规格信息");
+    private ItemSkuVo resolvePrintSku(Long itemId, Long skuId) {
+        ItemSkuVo sku = itemSkuService.queryById(skuId);
+        Assert.notNull(sku, "打印规格不存在");
+        Assert.isTrue(itemId.equals(sku.getItemId()), "打印规格与器材不匹配");
+        Assert.isTrue(StrUtil.isBlank(sku.getStatus()) || "1".equals(sku.getStatus()), "停用规格不能打印二维码");
+        return sku;
     }
 
     private String buildQrCodeContent(String qrCodeValue) {

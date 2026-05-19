@@ -16,7 +16,7 @@ public class ItemQrCodeSerialService {
 
     private final ItemQrCodeSerialMapper itemQrCodeSerialMapper;
 
-    public List<Long> allocateSerialValues(String itemKey , int count) {
+    public List<Long> allocateSerialValues(String itemKey, int count) {
         Assert.isTrue(count > 0, "二维码个数必须大于0");
         itemQrCodeSerialMapper.initIfAbsent(itemKey);
         ItemQrCodeSerial serial = itemQrCodeSerialMapper.selectByItemKeyForUpdate(itemKey);

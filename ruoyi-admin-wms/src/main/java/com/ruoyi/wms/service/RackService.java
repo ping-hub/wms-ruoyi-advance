@@ -21,6 +21,7 @@ import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,8 @@ import java.util.stream.Collectors;
 @Service
 public class RackService extends ServiceImpl<RackMapper, Rack> {
 
+    @Value("${warehouse}")
+    private String warehouse;
     private static final String RACK_CODE_KEY = "RACK";
 
     private final RackMapper rackMapper;
@@ -201,8 +204,8 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
     private String generateRackCodeWithRetry(Long warehouseId, Long areaId) {
         int maxAttempts = 5;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            long serialValue = itemQrCodeSerialService.allocateSerialValues(RACK_CODE_KEY,1).get(0);
-            String rackCode = RACK_CODE_KEY + serialValue;
+            long serialValue = itemQrCodeSerialService.allocateSerialValues(warehouse + RACK_CODE_KEY, 1).get(0);
+            String rackCode = warehouse + RACK_CODE_KEY + serialValue;
             long existed = rackMapper.selectCount(
                 Wrappers.<Rack>lambdaQuery()
                     .eq(Rack::getWarehouseId, warehouseId)

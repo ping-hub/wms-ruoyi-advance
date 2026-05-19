@@ -95,12 +95,12 @@ public class ServiceConstants {
      * 单品实例来源类型
      */
     public class ItemInstanceSourceType {
-        public static final String RECEIPT = "receipt";
-        public static final String SHIPMENT = "shipment";
-        public static final String MOVEMENT = "movement";
-        public static final String BORROW = "borrow";
-        public static final String MANUAL = "manual";
-        public static final String CHECK = "check";
+        public static final String RECEIPT = "入库单";
+        public static final String SHIPMENT = "出库单";
+        public static final String MOVEMENT = "调拨单";
+        public static final String BORROW = "借还单";
+        public static final String MANUAL = "批量打印";
+        public static final String CHECK = "盘点单";
     }
 
 
