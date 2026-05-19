@@ -32,6 +32,18 @@ public class ItemSkuVo implements Serializable {
     private String skuName;
 
     /**
+     * 产品标识
+     */
+    @ExcelProperty(value = "产品标识")
+    private String productIdentifier;
+
+    /**
+     * 质量等级
+     */
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
+
+    /**
      *
      */
     @ExcelProperty(value = "")

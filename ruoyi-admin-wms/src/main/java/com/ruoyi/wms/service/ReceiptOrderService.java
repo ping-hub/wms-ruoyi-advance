@@ -3,7 +3,6 @@ package com.ruoyi.wms.service;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.core.constant.ServiceConstants;
@@ -14,7 +13,6 @@ import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
-import com.ruoyi.system.service.SysDictTypeService;
 import com.ruoyi.wms.domain.bo.InventoryBo;
 import com.ruoyi.wms.domain.bo.ReceiptItemInstanceBo;
 import com.ruoyi.wms.domain.bo.ReceiptOrderBo;
@@ -26,15 +24,16 @@ import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ReceiptOrder;
 import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
+import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ReceiptItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ReceiptOrderVo;
-import com.ruoyi.wms.mapper.ReceiptOrderDetailMapper;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,11 +50,11 @@ public class ReceiptOrderService {
 
     private final ReceiptOrderMapper receiptOrderMapper;
     private final ReceiptOrderDetailService receiptOrderDetailService;
-    private final ReceiptOrderDetailMapper receiptOrderDetailMapper;
     private final InventoryService inventoryService;
     private final InventoryDetailService inventoryDetailService;
     private final InventoryHistoryService inventoryHistoryService;
     private final ItemInstanceService itemInstanceService;
+    private final ItemSkuService itemSkuService;
     private final BoxService boxService;
     private final LocationService locationService;
 
@@ -106,6 +105,7 @@ public class ReceiptOrderService {
      */
     @Transactional
     public void insertByBo(ReceiptOrderBo bo) {
+        normalizeReceiptDetails(bo.getDetails());
         // 校验入库单号唯一性
         validateReceiptOrderNo(bo.getReceiptOrderNo());
         // 创建入库单
@@ -155,7 +155,7 @@ public class ReceiptOrderService {
         // 3.录入器材实例与箱体绑定
         Map<String, Box> receiptBoxMap = prepareReceiptBoxes(bo.getDetails());
         List<ItemInstance> receivedInstances = itemInstanceService.receiveByReceiptOrder(receiptOrder, bo.getDetails(),
-            bo.getReceiveUnit(), receiptBoxMap);
+            receiptBoxMap);
         receiptBoxMap.values().forEach(box -> boxService.moveTo(box.getId(), box.getWarehouseId(), box.getAreaId(), box.getRackId(), box.getLocationId()));
         Set<Long> locationIds = new HashSet<>();
         receivedInstances.forEach(item -> {
@@ -259,6 +259,7 @@ public class ReceiptOrderService {
      */
     @Transactional
     public void updateByBo(ReceiptOrderBo bo) {
+        normalizeReceiptDetails(bo.getDetails());
         // 更新入库单
         ReceiptOrder update = MapstructUtils.convert(bo, ReceiptOrder.class);
         receiptOrderMapper.updateById(update);
@@ -424,7 +425,8 @@ public class ReceiptOrderService {
         inventoryDetail.setRemainQuantity(itemInstance == null ? detail.getQuantity() : java.math.BigDecimal.ONE);
         inventoryDetail.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
         inventoryDetail.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
-        inventoryDetail.setBelongUnit(bo.getReceiveUnit());
+        inventoryDetail.setUnitPrice(detail.getUnitPrice());
+        inventoryDetail.setLineAmount(detail.getLineAmount());
         inventoryDetail.setRemark(itemInstance == null ? detail.getRemark() : itemInstance.getRemark());
         return inventoryDetail;
     }
@@ -442,8 +444,49 @@ public class ReceiptOrderService {
         inventoryHistory.setLocationId(detail.getLocationId());
         inventoryHistory.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
         inventoryHistory.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
-        inventoryHistory.setBelongUnit(bo.getReceiveUnit());
+        inventoryHistory.setUnitPrice(detail.getUnitPrice());
+        inventoryHistory.setLineAmount(detail.getLineAmount());
         inventoryHistory.setRemark(itemInstance == null ? detail.getRemark() : itemInstance.getRemark());
         return inventoryHistory;
+    }
+
+    private void normalizeReceiptDetails(List<ReceiptOrderDetailBo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(details.stream()
+            .map(ReceiptOrderDetailBo::getSkuId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet()))
+            .stream()
+            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+        details.forEach(detail -> {
+            ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
+            Assert.notNull(itemSku, "规格不存在");
+            fillReceiptSnapshot(detail, itemSku);
+            if (detail.getQuantity() == null) {
+                detail.setQuantity(BigDecimal.ONE);
+            }
+            BigDecimal lineAmount = calcLineAmount(detail.getQuantity(), detail.getUnitPrice());
+            detail.setLineAmount(lineAmount);
+        });
+    }
+
+    private void fillReceiptSnapshot(ReceiptOrderDetailBo detail, ItemSkuVo itemSku) {
+        detail.setSkuName(itemSku.getSkuName());
+        detail.setProductIdentifier(itemSku.getProductIdentifier());
+        detail.setQualityGrade(itemSku.getQualityGrade());
+        if (itemSku.getItem() != null) {
+            detail.setItemCode(itemSku.getItem().getItemCode());
+            detail.setItemName(itemSku.getItem().getItemName());
+            detail.setUnit(itemSku.getItem().getUnit());
+        }
+    }
+
+    private BigDecimal calcLineAmount(BigDecimal quantity, BigDecimal unitPrice) {
+        if (quantity == null || unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        return quantity.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 }

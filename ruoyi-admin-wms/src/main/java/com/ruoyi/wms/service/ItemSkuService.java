@@ -143,6 +143,16 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
         return itemSkuMapper.selectVoList(lqw);
     }
 
+    public List<ItemSkuVo> queryVoListByItemIds(Collection<Long> itemIds) {
+        if (CollUtil.isEmpty(itemIds)) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<ItemSku> lqw = Wrappers.lambdaQuery();
+        lqw.in(ItemSku::getItemId, itemIds);
+        lqw.orderByAsc(ItemSku::getItemId).orderByAsc(ItemSku::getId);
+        return itemSkuMapper.selectVoList(lqw);
+    }
+
     public List<ItemSku> queryByItemIds(Collection<Long> itemIds) {
         if (CollUtil.isEmpty(itemIds)) {
             return Collections.emptyList();

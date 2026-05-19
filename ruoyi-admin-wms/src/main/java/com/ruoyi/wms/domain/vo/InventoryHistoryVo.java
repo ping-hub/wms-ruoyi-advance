@@ -72,18 +72,6 @@ public class InventoryHistoryVo implements Serializable {
     private LocalDateTime expirationDate;
 
     /**
-     * 金额
-     */
-    @ExcelProperty(value = "金额")
-    private BigDecimal amount;
-
-    /**
-     * 器材编码
-     */
-    @ExcelProperty(value = "器材编码")
-    private String equipmentCode;
-
-    /**
      * 器材名称
      */
     @ExcelProperty(value = "器材名称")
@@ -106,12 +94,6 @@ public class InventoryHistoryVo implements Serializable {
      */
     @ExcelProperty(value = "总价")
     private BigDecimal lineAmount;
-
-    /**
-     * 所在单位
-     */
-    @ExcelProperty(value = "所在单位")
-    private String belongUnit;
 
     /**
      * 库存变化

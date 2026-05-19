@@ -100,21 +100,15 @@ public class CheckOrderDetailVo implements Serializable {
     private Long inventoryDetailId;
 
     /**
-     * 器材编码
-     */
-    @ExcelProperty(value = "器材编码")
-    private String equipmentCode;
-
-    /**
      * 物品明细ID
      */
     @ExcelProperty(value = "物品明细ID")
     private Long itemInstanceId;
 
     /**
-     * 单品码
+     * 器材实例编码
      */
-    @ExcelProperty(value = "单品码")
+    @ExcelProperty(value = "器材实例编码")
     private String instanceCode;
 
     /**

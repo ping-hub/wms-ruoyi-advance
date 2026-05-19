@@ -65,7 +65,6 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
         lqw.eq(bo.getReceiptOrderId() != null, ReceiptOrderDetail::getReceiptOrderId, bo.getReceiptOrderId());
         lqw.eq(bo.getSkuId() != null, ReceiptOrderDetail::getSkuId, bo.getSkuId());
         lqw.eq(bo.getQuantity() != null, ReceiptOrderDetail::getQuantity, bo.getQuantity());
-        lqw.eq(bo.getAmount() != null, ReceiptOrderDetail::getAmount, bo.getAmount());
         lqw.eq(bo.getWarehouseId() != null, ReceiptOrderDetail::getWarehouseId, bo.getWarehouseId());
         lqw.eq(bo.getAreaId() != null, ReceiptOrderDetail::getAreaId, bo.getAreaId());
         lqw.eq(bo.getRackId() != null, ReceiptOrderDetail::getRackId, bo.getRackId());
@@ -118,7 +117,11 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
         Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds)
             .stream()
             .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        details.forEach(detail -> detail.setItemSku(itemSkuMap.get(detail.getSkuId())));
+        details.forEach(detail -> {
+            ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
+            detail.setItemSku(itemSku);
+            fillSnapshotFields(detail, itemSku);
+        });
         return details;
     }
 
@@ -127,5 +130,32 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
         lqw.eq(ReceiptOrderDetail::getReceiptOrderId, receiptOrderId);
         lqw.orderByAsc(ReceiptOrderDetail::getId);
         return receiptOrderDetailMapper.selectList(lqw);
+    }
+
+    private void fillSnapshotFields(ReceiptOrderDetailVo detail, ItemSkuVo itemSku) {
+        if (detail == null || itemSku == null) {
+            return;
+        }
+        if (StringUtils.isBlank(detail.getSkuName())) {
+            detail.setSkuName(itemSku.getSkuName());
+        }
+        if (StringUtils.isBlank(detail.getProductIdentifier())) {
+            detail.setProductIdentifier(itemSku.getProductIdentifier());
+        }
+        if (StringUtils.isBlank(detail.getQualityGrade())) {
+            detail.setQualityGrade(itemSku.getQualityGrade());
+        }
+        if (itemSku.getItem() == null) {
+            return;
+        }
+        if (StringUtils.isBlank(detail.getItemCode())) {
+            detail.setItemCode(itemSku.getItem().getItemCode());
+        }
+        if (StringUtils.isBlank(detail.getItemName())) {
+            detail.setItemName(itemSku.getItem().getItemName());
+        }
+        if (StringUtils.isBlank(detail.getUnit())) {
+            detail.setUnit(itemSku.getItem().getUnit());
+        }
     }
 }

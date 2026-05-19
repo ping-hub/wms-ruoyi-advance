@@ -29,20 +29,21 @@ public class ItemBo extends BaseEntity {
     private List<Long> ids;
 
     /**
-     * 编号
+     * 器材编码
      */
+    @NotBlank(message = "器材编码不能为空", groups = { AddGroup.class, EditGroup.class })
     private String itemCode;
 
     /**
-     * 名称
+     * 器材名称
      */
-    @NotBlank(message = "名称不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "器材名称不能为空", groups = { AddGroup.class, EditGroup.class })
     private String itemName;
 
     /**
-     * 分类
+     * 器材分类
      */
-    @NotBlank(message = "分类不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "器材分类不能为空", groups = { AddGroup.class, EditGroup.class })
     private String itemCategory;
 
     /**

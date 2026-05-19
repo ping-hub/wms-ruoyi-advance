@@ -81,11 +81,25 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
             it.setItemSku(itemSku);
             if (itemSku != null) {
                 it.setItem(itemSku.getItem());
+                if (StringUtils.isBlank(it.getSkuName())) {
+                    it.setSkuName(itemSku.getSkuName());
+                }
+                if (StringUtils.isBlank(it.getProductIdentifier())) {
+                    it.setProductIdentifier(itemSku.getProductIdentifier());
+                }
+                if (StringUtils.isBlank(it.getQualityGrade())) {
+                    it.setQualityGrade(itemSku.getQualityGrade());
+                }
                 if (StringUtils.isBlank(it.getItemName()) && itemSku.getItem() != null) {
                     it.setItemName(itemSku.getItem().getItemName());
                 }
-                if (StringUtils.isBlank(it.getUnit()) && itemSku.getItem() != null) {
-                    it.setUnit(itemSku.getItem().getUnit());
+                if (itemSku.getItem() != null) {
+                    if (StringUtils.isBlank(it.getItemCode())) {
+                        it.setItemCode(itemSku.getItem().getItemCode());
+                    }
+                    if (StringUtils.isBlank(it.getUnit())) {
+                        it.setUnit(itemSku.getItem().getUnit());
+                    }
                 }
             }
         });

@@ -201,8 +201,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private ItemInstance requireBorrowableItem(Long itemInstanceId) {
         ItemInstance itemInstance = itemInstanceService.getById(itemInstanceId);
         Assert.notNull(itemInstance, "单品实例不存在");
-        Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()), "单品实例在箱内，不能直接借出");
-        Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "单品实例已借出");
+        Assert.isTrue(itemInstance.getBoxId() == null, "单品实例在箱内，不能直接借出");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "单品实例已借出");
         Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
         return itemInstance;
     }
@@ -374,9 +374,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setLocationId(borrowRecord.getOriginalLocationId());
         history.setItemInstanceId(borrowRecord.getItemInstanceId());
         history.setBoxId(itemInstance.getBoxId());
-        history.setProductionDate(itemInstance.getProductionDate());
-        history.setExpirationDate(itemInstance.getExpirationDate());
-        history.setBelongUnit(StrUtil.blankToDefault(borrowRecord.getToUnit(), itemInstance.getBelongUnit()));
         history.setOperationType("borrow");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getCreateBy()));
         history.setRemark(StrUtil.blankToDefault(borrowRecord.getBorrowRemark(), "借出登记"));
@@ -397,9 +394,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setLocationId(borrowRecord.getOriginalLocationId());
         history.setItemInstanceId(borrowRecord.getItemInstanceId());
         history.setBoxId(itemInstance.getBoxId());
-        history.setProductionDate(itemInstance.getProductionDate());
-        history.setExpirationDate(itemInstance.getExpirationDate());
-        history.setBelongUnit(itemInstance.getBelongUnit());
         history.setOperationType("return");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getUpdateBy()));
         history.setRemark(StrUtil.blankToDefault(borrowRecord.getReturnRemark(), "归还登记"));

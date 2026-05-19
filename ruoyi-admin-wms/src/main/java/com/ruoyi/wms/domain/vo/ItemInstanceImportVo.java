@@ -25,12 +25,6 @@ public class ItemInstanceImportVo implements Serializable {
     @ExcelProperty(value = "箱码")
     private String boxCode;
 
-    @ExcelProperty(value = "所在单位")
-    private String belongUnit;
-
-    @ExcelProperty(value = "当前责任单位")
-    private String currentOwnerUnit;
-
     @ExcelProperty(value = "生产日期")
     private LocalDateTime productionDate;
 

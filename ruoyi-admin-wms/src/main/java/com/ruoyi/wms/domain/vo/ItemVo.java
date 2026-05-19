@@ -26,15 +26,15 @@ public class ItemVo implements Serializable {
     private Long id;
 
     /**
-     * 编号
+     * 器材编码
      */
-    @ExcelProperty(value = "编号")
+    @ExcelProperty(value = "器材编码")
     private String itemCode;
 
     /**
-     * 名称
+     * 器材名称
      */
-    @ExcelProperty(value = "名称")
+    @ExcelProperty(value = "器材名称")
     private String itemName;
 
     /**

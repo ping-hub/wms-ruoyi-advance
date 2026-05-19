@@ -52,7 +52,32 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     /**
      * 器材编码
      */
-    private String equipmentCode;
+    private String itemCode;
+
+    /**
+     * 器材名称
+     */
+    private String itemName;
+
+    /**
+     * 规格型号
+     */
+    private String skuName;
+
+    /**
+     * 计量单位
+     */
+    private String unit;
+
+    /**
+     * 产品标识
+     */
+    private String productIdentifier;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
 
     /**
      * 单价

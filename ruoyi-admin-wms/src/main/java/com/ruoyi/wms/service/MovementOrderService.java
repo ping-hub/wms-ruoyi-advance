@@ -23,6 +23,7 @@ import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.MovementOrder;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
+import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.MovementOrderVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.MovementOrderMapper;
@@ -52,6 +53,7 @@ public class MovementOrderService {
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryHistoryService inventoryHistoryService;
     private final ItemInstanceService itemInstanceService;
+    private final ItemSkuService itemSkuService;
     private final BoxService boxService;
 
 
@@ -106,6 +108,7 @@ public class MovementOrderService {
      */
     @Transactional
     public void insertByBo(MovementOrderBo bo) {
+        normalizeMovementDetails(bo.getDetails());
         // 1.校验调拨单号唯一性
         validateMovementOrderNo(bo.getMovementOrderNo());
         fillHeaderLocationByDetails(bo);
@@ -134,6 +137,7 @@ public class MovementOrderService {
      */
     @Transactional
     public void updateByBo(MovementOrderBo bo) {
+        normalizeMovementDetails(bo.getDetails());
         // 1.更新调拨单
         fillHeaderLocationByDetails(bo);
         MovementOrder update = MapstructUtils.convert(bo, MovementOrder.class);
@@ -294,10 +298,8 @@ public class MovementOrderService {
             addInventoryDetail.setItemInstanceId(it.getItemInstanceId());
             addInventoryDetail.setBoxId(it.getBoxId());
             addInventoryDetail.setQuantity(it.getQuantity());
-            addInventoryDetail.setEquipmentCode(it.getEquipmentCode());
             addInventoryDetail.setUnitPrice(it.getUnitPrice());
             addInventoryDetail.setLineAmount(it.getLineAmount());
-            addInventoryDetail.setBelongUnit(bo.getToUnit());
             addInventoryDetail.setRemainQuantity(it.getQuantity());
             return addInventoryDetail;
         }).toList();
@@ -322,10 +324,8 @@ public class MovementOrderService {
             shipmentInventoryHistory.setOrderId(bo.getId());
             shipmentInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             shipmentInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
-            shipmentInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
             shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
             shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
-            shipmentInventoryHistory.setBelongUnit(bo.getFromUnit());
             addInventoryHistoryList.add(shipmentInventoryHistory);
             InventoryHistory receiptInventoryHistory = new InventoryHistory();
             receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
@@ -337,10 +337,8 @@ public class MovementOrderService {
             receiptInventoryHistory.setOrderId(bo.getId());
             receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
-            receiptInventoryHistory.setEquipmentCode(detail.getEquipmentCode());
             receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
             receiptInventoryHistory.setLineAmount(detail.getLineAmount());
-            receiptInventoryHistory.setBelongUnit(bo.getToUnit());
             addInventoryHistoryList.add(receiptInventoryHistory);
         });
         inventoryHistoryService.saveBatch(addInventoryHistoryList);
@@ -371,10 +369,10 @@ public class MovementOrderService {
                 if (!Objects.equals(itemInstance.getSkuId(), detail.getSkuId())) {
                     throw new BaseException("单品实例与调拨规格不匹配");
                 }
-                if (itemInstance.getInBox() != null && itemInstance.getInBox() == 1) {
+                if (itemInstance.getBoxId() != null) {
                     throw new BaseException("箱内单品请按箱体整箱调拨");
                 }
-                if (itemInstance.getBorrowed() != null && itemInstance.getBorrowed() == 1) {
+                if (ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus())) {
                     throw new BaseException("已借出单品不能调拨");
                 }
                 if (!ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus())) {
@@ -418,5 +416,39 @@ public class MovementOrderService {
                 }
             }
         }
+    }
+
+    private void normalizeMovementDetails(List<MovementOrderDetailBo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(details.stream()
+            .map(MovementOrderDetailBo::getSkuId)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet()))
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(ItemSkuVo::getId, java.util.function.Function.identity()));
+        details.forEach(detail -> {
+            ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
+            if (itemSku == null) {
+                throw new BaseException("规格不存在");
+            }
+            detail.setSkuName(itemSku.getSkuName());
+            detail.setProductIdentifier(itemSku.getProductIdentifier());
+            detail.setQualityGrade(itemSku.getQualityGrade());
+            if (itemSku.getItem() != null) {
+                detail.setItemCode(itemSku.getItem().getItemCode());
+                detail.setItemName(itemSku.getItem().getItemName());
+                detail.setUnit(itemSku.getItem().getUnit());
+            }
+            detail.setLineAmount(calcLineAmount(detail.getQuantity(), detail.getUnitPrice()));
+        });
+    }
+
+    private BigDecimal calcLineAmount(BigDecimal quantity, BigDecimal unitPrice) {
+        if (quantity == null || unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        return quantity.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 }

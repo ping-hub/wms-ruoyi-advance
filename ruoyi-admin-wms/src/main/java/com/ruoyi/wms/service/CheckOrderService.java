@@ -219,7 +219,6 @@ public class CheckOrderService {
                 inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
                 inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
                 inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setEquipmentCode(filteredDetail.getEquipmentCode());
                 inventoryDetailBo.setShipmentQuantity(filteredDetail.getProfitAndLoss().abs());
                 return inventoryDetailBo;
             }).toList();

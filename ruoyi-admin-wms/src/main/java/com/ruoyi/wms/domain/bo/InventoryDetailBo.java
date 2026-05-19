@@ -132,16 +132,6 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
     private LocalDateTime expirationDate;
 
     /**
-     * 金额
-     */
-    private BigDecimal amount;
-
-    /**
-     * 器材编码
-     */
-    private String equipmentCode;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;
@@ -150,11 +140,6 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
      * 行金额
      */
     private BigDecimal lineAmount;
-
-    /**
-     * 所在单位
-     */
-    private String belongUnit;
 
     /**
      * 备注

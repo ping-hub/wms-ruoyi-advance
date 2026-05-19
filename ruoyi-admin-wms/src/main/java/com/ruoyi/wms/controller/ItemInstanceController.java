@@ -79,7 +79,7 @@ public class ItemInstanceController extends BaseController {
 
     @SaCheckPermission("wms:itemInstance:list")
     @GetMapping("/code/{instanceCode}")
-    public R<ItemInstanceVo> getByCode(@NotBlank(message = "单品码不能为空") @PathVariable String instanceCode, ItemInstanceBo bo) {
+    public R<ItemInstanceVo> getByCode(@NotBlank(message = "器材实例编码不能为空") @PathVariable String instanceCode, ItemInstanceBo bo) {
         ItemInstanceVo vo = itemInstanceService.queryByCode(instanceCode);
         itemInstanceService.validateSelectRules(vo, bo);
         return R.ok(vo);

@@ -66,16 +66,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private LocalDateTime expirationDate;
 
     /**
-     * 金额
-     */
-    private BigDecimal amount;
-
-    /**
-     * 器材编码
-     */
-    private String equipmentCode;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;
@@ -84,11 +74,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
      * 行金额
      */
     private BigDecimal lineAmount;
-
-    /**
-     * 所在单位
-     */
-    private String belongUnit;
 
     /**
      * 库存变化

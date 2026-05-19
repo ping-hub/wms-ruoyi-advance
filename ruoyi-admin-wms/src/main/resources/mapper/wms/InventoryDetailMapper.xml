@@ -25,8 +25,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="inventoryDetailColumns">
         select
             detail.*,
+            item.item_code as item_code,
             item.item_name as item_name,
-            item.unit as unit
+            item.unit as unit,
+            sku.sku_name as sku_name,
+            sku.product_identifier as product_identifier,
+            sku.quality_grade as quality_grade
         from wms_inventory_detail detail
         inner join wms_item_sku sku on detail.sku_id=sku.id
         inner join wms_item item on sku.item_id=item.id
@@ -37,14 +41,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.itemCode != null and bo.itemCode != ''">
                 and item.item_code like concat('%', #{bo.itemCode}, '%')
             </if>
-            <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
-                and coalesce(detail.equipment_code, item.item_code) like concat('%', #{bo.equipmentCode}, '%')
-            </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
-            </if>
-            <if test="bo.belongUnit != null and bo.belongUnit != ''">
-                and detail.belong_unit like concat('%', #{bo.belongUnit}, '%')
             </if>
             <if test="bo.itemId != null">
                 and item.id=#{bo.itemId}

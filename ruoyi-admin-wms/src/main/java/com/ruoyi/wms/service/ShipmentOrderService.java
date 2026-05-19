@@ -22,6 +22,7 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
 import com.ruoyi.wms.domain.entity.ShipmentOrderDetail;
+import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderDetailVo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
@@ -32,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ public class ShipmentOrderService {
     private final InventoryHistoryService inventoryHistoryService;
     private final InventoryDetailService inventoryDetailService;
     private final ItemInstanceService itemInstanceService;
+    private final ItemSkuService itemSkuService;
     private final BoxService boxService;
     private final LocationService locationService;
 
@@ -105,6 +108,7 @@ public class ShipmentOrderService {
      */
     @Transactional
     public void insertByBo(ShipmentOrderBo bo) {
+        normalizeShipmentDetails(bo.getDetails());
         // 校验出库单号唯一性
         validateShipmentOrderNo(bo.getShipmentOrderNo());
         // 创建出库单
@@ -136,6 +140,7 @@ public class ShipmentOrderService {
      */
     @Transactional
     public void updateByBo(ShipmentOrderBo bo) {
+        normalizeShipmentDetails(bo.getDetails());
         // 更新出库单
         ShipmentOrder update = MapstructUtils.convert(bo, ShipmentOrder.class);
         shipmentOrderMapper.updateById(update);
@@ -290,8 +295,8 @@ public class ShipmentOrderService {
                 (inventoryDetail != null ? inventoryDetail.getItemInstanceId() : null));
             inventoryHistory.setBoxId(detail.getBoxId() != null ? detail.getBoxId() :
                 (inventoryDetail != null ? inventoryDetail.getBoxId() : null));
-            inventoryHistory.setAmount(detail.getAmount());
-            inventoryHistory.setBelongUnit(bo.getReceiveUnit());
+            inventoryHistory.setUnitPrice(detail.getUnitPrice());
+            inventoryHistory.setLineAmount(detail.getLineAmount());
             inventoryHistoryList.add(inventoryHistory);
         });
         inventoryHistoryService.saveBatch(inventoryHistoryList);
@@ -341,13 +346,13 @@ public class ShipmentOrderService {
             Assert.notNull(itemInstance, "存在不存在的单品实例");
             Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
             Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
-            Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getBorrowed()), "已借出单品不能出库");
+            Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "已借出单品不能出库");
             Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以出库");
             Long boxId = itemBoxMap.get(detail.getItemInstanceId());
             if (boxId != null) {
                 selectedBoxItems.computeIfAbsent(boxId, key -> new HashSet<>()).add(detail.getItemInstanceId());
             } else {
-                Assert.isFalse(Integer.valueOf(1).equals(itemInstance.getInBox()), "在箱单品必须整箱出库");
+                Assert.isTrue(itemInstance.getBoxId() == null, "在箱单品必须整箱出库");
             }
         }
         for (Map.Entry<Long, Set<Long>> entry : selectedBoxItems.entrySet()) {
@@ -396,11 +401,48 @@ public class ShipmentOrderService {
             }
             ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
             Assert.notNull(itemInstance, "单品实例不存在");
-            itemInstanceService.markOutbound(itemInstance.getId(), itemInstance.getInBox(), targetStatus);
+            itemInstanceService.markOutbound(itemInstance.getId(), targetStatus);
             if (detail.getBoxId() != null) {
                 boxIds.add(detail.getBoxId());
             }
         }
         boxIds.forEach(boxService::markOutbound);
+    }
+
+    private void normalizeShipmentDetails(List<ShipmentOrderDetailBo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(details.stream()
+            .map(ShipmentOrderDetailBo::getSkuId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet()))
+            .stream()
+            .collect(Collectors.toMap(ItemSkuVo::getId, java.util.function.Function.identity()));
+        details.forEach(detail -> {
+            ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
+            Assert.notNull(itemSku, "规格不存在");
+            fillShipmentSnapshot(detail, itemSku);
+            BigDecimal lineAmount = calcLineAmount(detail.getQuantity(), detail.getUnitPrice());
+            detail.setLineAmount(lineAmount);
+        });
+    }
+
+    private void fillShipmentSnapshot(ShipmentOrderDetailBo detail, ItemSkuVo itemSku) {
+        detail.setSkuName(itemSku.getSkuName());
+        detail.setProductIdentifier(itemSku.getProductIdentifier());
+        detail.setQualityGrade(itemSku.getQualityGrade());
+        if (itemSku.getItem() != null) {
+            detail.setItemCode(itemSku.getItem().getItemCode());
+            detail.setItemName(itemSku.getItem().getItemName());
+            detail.setUnit(itemSku.getItem().getUnit());
+        }
+    }
+
+    private BigDecimal calcLineAmount(BigDecimal quantity, BigDecimal unitPrice) {
+        if (quantity == null || unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        return quantity.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 }

@@ -55,7 +55,37 @@ public class MovementOrderDetailVo implements Serializable {
      * 器材编码
      */
     @ExcelProperty(value = "器材编码")
-    private String equipmentCode;
+    private String itemCode;
+
+    /**
+     * 器材名称
+     */
+    @ExcelProperty(value = "器材名称")
+    private String itemName;
+
+    /**
+     * 规格型号
+     */
+    @ExcelProperty(value = "规格型号")
+    private String skuName;
+
+    /**
+     * 计量单位
+     */
+    @ExcelProperty(value = "计量单位")
+    private String unit;
+
+    /**
+     * 产品标识
+     */
+    @ExcelProperty(value = "产品标识")
+    private String productIdentifier;
+
+    /**
+     * 质量等级
+     */
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
 
     /**
      * 单价
@@ -112,9 +142,9 @@ public class MovementOrderDetailVo implements Serializable {
     private Long itemInstanceId;
 
     /**
-     * 单品码
+     * 器材实例编码
      */
-    @ExcelProperty(value = "单品码")
+    @ExcelProperty(value = "器材实例编码")
     private String instanceCode;
 
     /**

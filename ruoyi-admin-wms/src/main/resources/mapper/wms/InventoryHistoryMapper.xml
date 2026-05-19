@@ -28,14 +28,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.itemCode != null and bo.itemCode != ''">
                 and item.item_code like concat('%', #{bo.itemCode}, '%')
             </if>
-            <if test="bo.equipmentCode != null and bo.equipmentCode != ''">
-                and coalesce(history.equipment_code, item.item_code) like concat('%', #{bo.equipmentCode}, '%')
-            </if>
             <if test="bo.skuName != null and bo.skuName != ''">
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
-            </if>
-            <if test="bo.belongUnit != null and bo.belongUnit != ''">
-                and history.belong_unit like concat('%', #{bo.belongUnit}, '%')
             </if>
             <if test="bo.warehouseId != null">
                 and history.warehouse_id=#{bo.warehouseId}

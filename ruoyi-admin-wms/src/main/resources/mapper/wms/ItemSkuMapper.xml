@@ -23,6 +23,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             sku.id,
             sku.item_id,
             sku.sku_name,
+            sku.product_identifier,
+            sku.quality_grade,
             sku.status,
             sku.create_by,
             sku.create_time,

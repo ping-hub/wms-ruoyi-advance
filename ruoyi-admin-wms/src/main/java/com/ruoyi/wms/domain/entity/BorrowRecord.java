@@ -85,7 +85,7 @@ public class BorrowRecord extends BaseEntity {
     private Integer overdueDays;
 
     /**
-     * 物品码快照
+     * 器材实例编码快照
      */
     private String instanceCode;
 

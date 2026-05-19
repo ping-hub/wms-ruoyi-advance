@@ -24,7 +24,7 @@ public class ItemInstance extends BaseEntity {
     private Long id;
 
     /**
-     * 单品码
+     * 器材实例编码
      */
     private String instanceCode;
 
@@ -42,16 +42,6 @@ public class ItemInstance extends BaseEntity {
      * 单品状态
      */
     private String instanceStatus;
-
-    /**
-     * 是否在箱内
-     */
-    private Integer inBox;
-
-    /**
-     * 是否已借出
-     */
-    private Integer borrowed;
 
     /**
      * 所属仓库
@@ -109,16 +99,6 @@ public class ItemInstance extends BaseEntity {
     private Long shipmentOrderDetailId;
 
     /**
-     * 所在单位
-     */
-    private String belongUnit;
-
-    /**
-     * 当前责任单位
-     */
-    private String currentOwnerUnit;
-
-    /**
      * 最后一次业务动作
      */
     private String lastOperationType;
@@ -127,16 +107,6 @@ public class ItemInstance extends BaseEntity {
      * 最后动作时间
      */
     private LocalDateTime lastOperationTime;
-
-    /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期日期
-     */
-    private LocalDateTime expirationDate;
 
     /**
      * 备注

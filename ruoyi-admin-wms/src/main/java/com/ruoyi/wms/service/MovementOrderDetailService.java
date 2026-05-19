@@ -3,6 +3,7 @@ package com.ruoyi.wms.service;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.utils.MapstructUtils;
+import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -137,7 +138,9 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         Map<Long, BigDecimal> remainQuantityMap = inventoryDetailMapper.selectVoBatchIds(inventoryDetailIds)
             .stream().collect(Collectors.toMap(InventoryDetailVo::getId, InventoryDetailVo::getRemainQuantity));
         details.forEach(detail -> {
-            detail.setItemSku(itemSkuMap.get(detail.getSkuId()));
+            ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
+            detail.setItemSku(itemSku);
+            fillSnapshotFields(detail, itemSku);
             detail.setRemainQuantity(remainQuantityMap.getOrDefault(detail.getInventoryDetailId(), BigDecimal.ZERO));
         });
         enrichTrackingInfo(details);
@@ -180,5 +183,32 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
                 detail.setBoxCode(box.getBoxCode());
             }
         });
+    }
+
+    private void fillSnapshotFields(MovementOrderDetailVo detail, ItemSkuVo itemSku) {
+        if (detail == null || itemSku == null) {
+            return;
+        }
+        if (StringUtils.isBlank(detail.getSkuName())) {
+            detail.setSkuName(itemSku.getSkuName());
+        }
+        if (StringUtils.isBlank(detail.getProductIdentifier())) {
+            detail.setProductIdentifier(itemSku.getProductIdentifier());
+        }
+        if (StringUtils.isBlank(detail.getQualityGrade())) {
+            detail.setQualityGrade(itemSku.getQualityGrade());
+        }
+        if (itemSku.getItem() == null) {
+            return;
+        }
+        if (StringUtils.isBlank(detail.getItemCode())) {
+            detail.setItemCode(itemSku.getItem().getItemCode());
+        }
+        if (StringUtils.isBlank(detail.getItemName())) {
+            detail.setItemName(itemSku.getItem().getItemName());
+        }
+        if (StringUtils.isBlank(detail.getUnit())) {
+            detail.setUnit(itemSku.getItem().getUnit());
+        }
     }
 }

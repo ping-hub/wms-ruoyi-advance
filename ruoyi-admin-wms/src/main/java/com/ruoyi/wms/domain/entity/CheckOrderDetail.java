@@ -74,10 +74,6 @@ public class CheckOrderDetail extends BaseEntity {
      */
     private Long inventoryDetailId;
     /**
-     * 器材编码
-     */
-    private String equipmentCode;
-    /**
      * 物品明细ID
      */
     private Long itemInstanceId;

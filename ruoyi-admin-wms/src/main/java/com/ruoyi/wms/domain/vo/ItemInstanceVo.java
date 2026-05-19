@@ -21,7 +21,7 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "")
     private Long id;
 
-    @ExcelProperty(value = "单品码")
+    @ExcelProperty(value = "器材实例编码")
     private String instanceCode;
 
     @ExcelProperty(value = "物品ID")
@@ -39,14 +39,17 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "规格名称")
     private String skuName;
 
+    @ExcelProperty(value = "计量单位")
+    private String unit;
+
+    @ExcelProperty(value = "产品标识")
+    private String productIdentifier;
+
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
+
     @ExcelProperty(value = "单品状态")
     private String instanceStatus;
-
-    @ExcelProperty(value = "是否在箱内")
-    private Integer inBox;
-
-    @ExcelProperty(value = "是否已借出")
-    private Integer borrowed;
 
     @ExcelProperty(value = "所属仓库")
     private Long warehouseId;
@@ -96,23 +99,11 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "来源出库单明细ID")
     private Long shipmentOrderDetailId;
 
-    @ExcelProperty(value = "所在单位")
-    private String belongUnit;
-
-    @ExcelProperty(value = "当前责任单位")
-    private String currentOwnerUnit;
-
     @ExcelProperty(value = "最后一次业务动作")
     private String lastOperationType;
 
     @ExcelProperty(value = "最后动作时间")
     private LocalDateTime lastOperationTime;
-
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    @ExcelProperty(value = "过期日期")
-    private LocalDateTime expirationDate;
 
     @ExcelProperty(value = "备注")
     private String remark;

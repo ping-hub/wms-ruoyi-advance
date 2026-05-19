@@ -42,10 +42,47 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 入库数量
      */
     private BigDecimal quantity;
+
     /**
-     * 金额
+     * 器材编码
      */
-    private BigDecimal amount;
+    private String itemCode;
+
+    /**
+     * 器材名称
+     */
+    private String itemName;
+
+    /**
+     * 规格型号
+     */
+    private String skuName;
+
+    /**
+     * 计量单位
+     */
+    private String unit;
+
+    /**
+     * 产品标识
+     */
+    private String productIdentifier;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+
+    /**
+     * 总价
+     */
+    private BigDecimal lineAmount;
+
     /**
      * 备注
      */

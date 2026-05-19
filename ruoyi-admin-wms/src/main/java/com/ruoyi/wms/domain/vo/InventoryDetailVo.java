@@ -134,16 +134,10 @@ public class InventoryDetailVo extends BaseVo {
     private LocalDateTime expirationDate;
 
     /**
-     * 金额
-     */
-    @ExcelProperty(value = "金额")
-    private BigDecimal amount;
-
-    /**
      * 器材编码
      */
     @ExcelProperty(value = "器材编码")
-    private String equipmentCode;
+    private String itemCode;
 
     /**
      * 器材名称
@@ -158,6 +152,24 @@ public class InventoryDetailVo extends BaseVo {
     private String unit;
 
     /**
+     * 规格型号
+     */
+    @ExcelProperty(value = "规格型号")
+    private String skuName;
+
+    /**
+     * 产品标识
+     */
+    @ExcelProperty(value = "产品标识")
+    private String productIdentifier;
+
+    /**
+     * 质量等级
+     */
+    @ExcelProperty(value = "质量等级")
+    private String qualityGrade;
+
+    /**
      * 单价
      */
     @ExcelProperty(value = "单价")
@@ -168,12 +180,6 @@ public class InventoryDetailVo extends BaseVo {
      */
     @ExcelProperty(value = "总价")
     private BigDecimal lineAmount;
-
-    /**
-     * 所在单位
-     */
-    @ExcelProperty(value = "所在单位")
-    private String belongUnit;
 
     /**
      * 备注

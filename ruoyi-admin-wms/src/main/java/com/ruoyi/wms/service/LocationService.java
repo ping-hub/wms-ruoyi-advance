@@ -111,7 +111,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Assert.notNull(locationVo, "货位不存在");
         ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
         itemInstanceBo.setLocationId(id);
-        itemInstanceBo.setInBox(0);
         List<ItemInstanceVo> itemInstances = itemInstanceService.queryList(itemInstanceBo);
         List<BoxVo> boxes = boxService.queryByLocationId(id);
         LocationStockVo stockVo = new LocationStockVo();
@@ -153,7 +152,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
             .filter(item -> item.getLocationId() != null)
             .collect(Collectors.toMap(ItemInstanceVo::getLocationId, item -> 1, Integer::sum));
         Map<Long, Integer> directItemCountMap = itemInstances.stream()
-            .filter(item -> item.getLocationId() != null && !Integer.valueOf(1).equals(item.getInBox()))
+            .filter(item -> item.getLocationId() != null && item.getBoxId() == null)
             .collect(Collectors.toMap(ItemInstanceVo::getLocationId, item -> 1, Integer::sum));
 
         RackGridVo gridVo = new RackGridVo();
@@ -225,7 +224,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         summaryVo.setBoxCount(boxes.size());
         summaryVo.setItemInstanceCount(itemInstances.size());
         summaryVo.setDirectItemCount((int) itemInstances.stream()
-            .filter(item -> !Integer.valueOf(1).equals(item.getInBox()))
+            .filter(item -> item.getBoxId() == null)
             .count());
         summaryVo.setBoxes(boxes.stream()
             .sorted(Comparator.comparing(BoxVo::getBoxCode, Comparator.nullsLast(String::compareTo)))
@@ -358,7 +357,6 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Assert.notNull(locationMapper.selectById(id), "货位不存在");
         ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
         itemInstanceBo.setLocationId(id);
-        itemInstanceBo.setInBox(0);
         Assert.isTrue(CollUtil.isEmpty(itemInstanceService.queryList(itemInstanceBo)), "货位下仍有单品实例占用，无法删除");
         Assert.isTrue(CollUtil.isEmpty(boxService.queryByLocationId(id)), "货位下仍有箱体占用，无法删除");
     }

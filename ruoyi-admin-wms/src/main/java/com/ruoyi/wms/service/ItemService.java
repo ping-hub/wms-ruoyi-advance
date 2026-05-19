@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,7 +61,9 @@ public class ItemService {
 
     public ItemVo queryById(Long id) {
         ItemVo item = itemMapper.selectVoById(id);
-        item.setSku(itemSkuService.queryListByItemId(id));
+        if (item != null) {
+            enrichItemVos(List.of(item));
+        }
         return item;
     }
 
@@ -76,7 +79,9 @@ public class ItemService {
         }
         LambdaQueryWrapper<Item> lambdaQueryWrapper = Wrappers.lambdaQuery();
         lambdaQueryWrapper.in(Item::getId, itemIds);
-        return itemMapper.selectVoList(lambdaQueryWrapper);
+        List<ItemVo> itemVos = itemMapper.selectVoList(lambdaQueryWrapper);
+        enrichItemVos(itemVos);
+        return itemVos;
     }
 
     /**
@@ -86,15 +91,7 @@ public class ItemService {
     public TableDataInfo<ItemVo> queryPageList(ItemBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<Item> lqw = buildQueryWrapper(bo);
         Page<ItemVo> result = itemMapper.selectVoPage(pageQuery.build(), lqw);
-        List<ItemVo> itemVoList = result.getRecords();
-        if (!CollUtil.isEmpty(itemVoList)) {
-            LambdaQueryWrapper<ItemCategory> itemTypeWrapper = new LambdaQueryWrapper<>();
-            itemTypeWrapper.in(ItemCategory::getId, itemVoList.stream().map(ItemVo::getItemCategory).collect(Collectors.toSet()));
-            Map<Long, ItemCategoryVo> itemCategoryVoMap = itemCategoryMapper.selectVoList(itemTypeWrapper).stream().collect(Collectors.toMap(ItemCategoryVo::getId, Function.identity()));
-            itemVoList.forEach(itemVo -> {
-                itemVo.setItemCategoryInfo(itemCategoryVoMap.get(Long.valueOf(itemVo.getItemCategory())));
-            });
-        }
+        enrichItemVos(result.getRecords());
         return TableDataInfo.build(result);
     }
 
@@ -104,7 +101,9 @@ public class ItemService {
 
     public List<ItemVo> queryList(ItemBo bo) {
         LambdaQueryWrapper<Item> lqw = buildQueryWrapper(bo);
-        return itemMapper.selectVoList(lqw);
+        List<ItemVo> itemVos = itemMapper.selectVoList(lqw);
+        enrichItemVos(itemVos);
+        return itemVos;
     }
 
     @Transactional
@@ -137,8 +136,6 @@ public class ItemService {
             itemInstance.setItemId(row.getId());
             itemInstance.setSkuId(sku.getId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
-            itemInstance.setInBox(0);
-            itemInstance.setBorrowed(0);
             itemInstance.setSourceType(ServiceConstants.ItemInstanceSourceType.MANUAL);
             itemInstance.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.MANUAL);
             itemInstance.setSourceOrderNo("BATCH_PRINT");
@@ -192,6 +189,40 @@ public class ItemService {
         return itemCategoryMapper.selectList(itemTypeWrapper).stream().map(ItemCategory::getId).collect(Collectors.toList());
     }
 
+    private void enrichItemVos(List<ItemVo> itemVos) {
+        if (CollUtil.isEmpty(itemVos)) {
+            return;
+        }
+        List<ItemVo> validItemVos = itemVos.stream().filter(java.util.Objects::nonNull).toList();
+        if (CollUtil.isEmpty(validItemVos)) {
+            return;
+        }
+        Set<Long> itemIds = validItemVos.stream()
+            .map(ItemVo::getId)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toSet());
+        Map<Long, List<ItemSkuVo>> skuMap = itemSkuService.queryVoListByItemIds(itemIds).stream()
+            .collect(Collectors.groupingBy(ItemSkuVo::getItemId));
+
+        Set<Long> categoryIds = validItemVos.stream()
+            .map(ItemVo::getItemCategory)
+            .filter(StrUtil::isNotBlank)
+            .map(Long::valueOf)
+            .collect(Collectors.toSet());
+        Map<Long, ItemCategoryVo> itemCategoryVoMap = categoryIds.isEmpty()
+            ? java.util.Collections.emptyMap()
+            : itemCategoryMapper.selectVoList(new LambdaQueryWrapper<ItemCategory>().in(ItemCategory::getId, categoryIds))
+                .stream()
+                .collect(Collectors.toMap(ItemCategoryVo::getId, Function.identity()));
+
+        validItemVos.forEach(itemVo -> {
+            itemVo.setSku(skuMap.getOrDefault(itemVo.getId(), java.util.Collections.emptyList()));
+            if (StrUtil.isNotBlank(itemVo.getItemCategory())) {
+                itemVo.setItemCategoryInfo(itemCategoryVoMap.get(Long.valueOf(itemVo.getItemCategory())));
+            }
+        });
+    }
+
     /**
      * 新增物料
      *
@@ -223,32 +254,37 @@ public class ItemService {
      * 保存前的数据校验
      */
     private void validateBoBeforeSave(ItemBo itemBo) {
+        normalizeBoBeforeSave(itemBo);
         validateItemName(itemBo);
         validateItemCode(itemBo);
         validateItemSkuName(itemBo.getSku());
+    }
+
+    private void normalizeBoBeforeSave(ItemBo itemBo) {
+        itemBo.setItemCode(StrUtil.trim(itemBo.getItemCode()));
+        itemBo.setItemName(StrUtil.trim(itemBo.getItemName()));
+        itemBo.setItemCategory(StrUtil.trim(itemBo.getItemCategory()));
     }
 
     private void validateItemName(ItemBo item) {
         LambdaQueryWrapper<Item> queryWrapper = Wrappers.lambdaQuery();
         queryWrapper.eq(Item::getItemName, item.getItemName());
         queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
-        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "商品名称重复");
+        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材名称重复");
     }
 
     private void validateItemCode(ItemBo item) {
-        if (StrUtil.isBlank(item.getItemCode())) {
-            return;
-        }
+        Assert.isTrue(StrUtil.isNotBlank(item.getItemCode()), "器材编码不能为空");
         LambdaQueryWrapper<Item> queryWrapper = Wrappers.lambdaQuery();
         queryWrapper.eq(Item::getItemCode, item.getItemCode());
         queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
-        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "商品编码重复");
+        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材编码重复");
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {
          Assert.isTrue(
              skuVoList.stream().map(ItemSkuBo::getSkuName).distinct().count() == skuVoList.size(),
-             "商品规格重复"
+             "器材规格重复"
          );
     }
 
