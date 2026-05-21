@@ -56,16 +56,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     private Long skuId;
 
     /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;

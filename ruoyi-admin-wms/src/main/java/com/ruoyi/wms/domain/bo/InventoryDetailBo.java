@@ -121,17 +121,6 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
     private BigDecimal quantity;
 
     /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    @NotNull(message = "过期时间不能为空", groups = { AddGroup.class, EditGroup.class })
-    private LocalDateTime expirationDate;
-
-    /**
      * 单价
      */
     private BigDecimal unitPrice;
@@ -164,8 +153,4 @@ public class InventoryDetailBo extends BaseEntity implements PlaceAndItem {
 
     private LocalDateTime createStartTime;
     private LocalDateTime createEndTime;
-    private Integer daysToExpires;
-    private LocalDateTime expirationStartTime;
-    private LocalDateTime expirationEndTime;
-
 }

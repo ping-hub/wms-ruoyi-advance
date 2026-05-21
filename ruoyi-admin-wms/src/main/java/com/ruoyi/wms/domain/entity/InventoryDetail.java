@@ -101,14 +101,6 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
      */
     private BigDecimal quantity;
     /**
-     * 生产日期
-     */
-    private LocalDateTime productionDate;
-    /**
-     * 过期时间
-     */
-    private LocalDateTime expirationDate;
-    /**
      * 单价
      */
     private BigDecimal unitPrice;

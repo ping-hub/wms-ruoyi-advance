@@ -133,8 +133,10 @@ public class CheckOrderService {
         checkOrderDetailService.saveDetails(detailList);
     }
 
+    @Transactional
     public void deleteById(Long id) {
         validateIdBeforeDelete(id);
+        checkOrderDetailService.deleteByCheckOrderIds(Collections.singletonList(id));
         checkOrderMapper.deleteById(id);
     }
 
@@ -151,7 +153,13 @@ public class CheckOrderService {
     /**
      * 批量删除库存盘点单据
      */
+    @Transactional
     public void deleteByIds(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+        ids.forEach(this::validateIdBeforeDelete);
+        checkOrderDetailService.deleteByCheckOrderIds(ids);
         checkOrderMapper.deleteBatchIds(ids);
     }
 

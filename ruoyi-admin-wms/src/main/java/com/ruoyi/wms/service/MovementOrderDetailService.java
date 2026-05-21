@@ -10,12 +10,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
+import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
-import com.ruoyi.wms.domain.entity.Box;
-import com.ruoyi.wms.domain.entity.ItemInstance;
-import com.ruoyi.wms.mapper.InventoryDetailMapper;
-import com.ruoyi.wms.mapper.BoxMapper;
-import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
@@ -41,10 +37,8 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
 
     private final MovementOrderDetailMapper movementOrderDetailMapper;
     private final ItemSkuService itemSkuService;
-    private final InventoryDetailMapper inventoryDetailMapper;
-    private final ItemInstanceMapper itemInstanceMapper;
-    private final BoxMapper boxMapper;
-
+    private final InventoryDetailService inventoryDetailService;
+    private final ItemInstanceService itemInstanceService;
     /**
      * 查询调拨单明细
      */
@@ -79,8 +73,6 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         lqw.eq(bo.getTargetWarehouseId() != null, MovementOrderDetail::getTargetWarehouseId, bo.getTargetWarehouseId());
         lqw.eq(bo.getTargetAreaId() != null, MovementOrderDetail::getTargetAreaId, bo.getTargetAreaId());
         lqw.eq(bo.getInventoryDetailId() != null, MovementOrderDetail::getInventoryDetailId, bo.getInventoryDetailId());
-        lqw.eq(bo.getItemInstanceId() != null, MovementOrderDetail::getItemInstanceId, bo.getItemInstanceId());
-        lqw.eq(bo.getBoxId() != null, MovementOrderDetail::getBoxId, bo.getBoxId());
         return lqw;
     }
 
@@ -135,54 +127,37 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
             .stream()
             .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
         List<Long> inventoryDetailIds = details.stream().map(MovementOrderDetailVo::getInventoryDetailId).toList();
-        Map<Long, BigDecimal> remainQuantityMap = inventoryDetailMapper.selectVoBatchIds(inventoryDetailIds)
-            .stream().collect(Collectors.toMap(InventoryDetailVo::getId, InventoryDetailVo::getRemainQuantity));
+        Map<Long, InventoryDetailVo> inventoryDetailMap = inventoryDetailService.queryVoListByIds(inventoryDetailIds)
+            .stream().collect(Collectors.toMap(InventoryDetailVo::getId, Function.identity()));
+        Set<Long> itemInstanceIds = details.stream()
+            .map(MovementOrderDetailVo::getItemInstanceId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        Map<Long, ItemInstanceVo> itemInstanceMap = itemInstanceService.queryVosByIds(itemInstanceIds)
+            .stream()
+            .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
             detail.setItemSku(itemSku);
             fillSnapshotFields(detail, itemSku);
-            detail.setRemainQuantity(remainQuantityMap.getOrDefault(detail.getInventoryDetailId(), BigDecimal.ZERO));
-        });
-        enrichTrackingInfo(details);
-        return details;
-    }
-
-    public List<MovementOrderDetailVo> queryByItemInstanceId(Long itemInstanceId) {
-        MovementOrderDetailBo bo = new MovementOrderDetailBo();
-        bo.setItemInstanceId(itemInstanceId);
-        List<MovementOrderDetailVo> details = queryList(bo);
-        enrichTrackingInfo(details);
-        return details;
-    }
-
-    public List<MovementOrderDetailVo> queryByBoxId(Long boxId) {
-        MovementOrderDetailBo bo = new MovementOrderDetailBo();
-        bo.setBoxId(boxId);
-        List<MovementOrderDetailVo> details = queryList(bo);
-        enrichTrackingInfo(details);
-        return details;
-    }
-
-    private void enrichTrackingInfo(List<MovementOrderDetailVo> details) {
-        if (CollUtil.isEmpty(details)) {
-            return;
-        }
-        Set<Long> itemInstanceIds = details.stream().map(MovementOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> boxIds = details.stream().map(MovementOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty() ? Map.of() :
-            itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
-        Map<Long, Box> boxMap = boxIds.isEmpty() ? Map.of() :
-            boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
-        details.forEach(detail -> {
-            ItemInstance itemInstance = detail.getItemInstanceId() == null ? null : itemInstanceMap.get(detail.getItemInstanceId());
-            if (itemInstance != null) {
-                detail.setInstanceCode(itemInstance.getInstanceCode());
-            }
-            Box box = detail.getBoxId() == null ? null : boxMap.get(detail.getBoxId());
-            if (box != null) {
-                detail.setBoxCode(box.getBoxCode());
+            InventoryDetailVo inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            ItemInstanceVo itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            if (inventoryDetail != null) {
+                detail.setInventoryDetail(inventoryDetail);
+                detail.setRemainQuantity(inventoryDetail.getRemainQuantity());
+                detail.setInstanceCode(StringUtils.isNotBlank(detail.getInstanceCode())
+                    ? detail.getInstanceCode()
+                    : (itemInstance != null ? itemInstance.getInstanceCode() : inventoryDetail.getInstanceCode()));
+                detail.setSourceRackName(inventoryDetail.getRackName());
+                detail.setSourceLocationName(inventoryDetail.getLocationName());
+            } else {
+                detail.setRemainQuantity(BigDecimal.ZERO);
+                if (itemInstance != null) {
+                    detail.setInstanceCode(itemInstance.getInstanceCode());
+                }
             }
         });
+        return details;
     }
 
     private void fillSnapshotFields(MovementOrderDetailVo detail, ItemSkuVo itemSku) {

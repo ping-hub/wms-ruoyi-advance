@@ -1,26 +1,19 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ruoyi.common.core.utils.MapstructUtils;
-import com.ruoyi.common.mybatis.core.page.TableDataInfo;
-import com.ruoyi.common.mybatis.core.page.PageQuery;
-import com.ruoyi.common.core.utils.StringUtils;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.ruoyi.wms.domain.entity.MovementOrderDetail;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
-import com.ruoyi.wms.domain.vo.MovementOrderDetailVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
 import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
 import com.ruoyi.wms.domain.vo.CheckOrderDetailVo;
 import com.ruoyi.wms.domain.entity.CheckOrderDetail;
 import com.ruoyi.wms.mapper.CheckOrderDetailMapper;
@@ -47,94 +40,23 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
     private final ItemInstanceMapper itemInstanceMapper;
     private final BoxMapper boxMapper;
 
-    /**
-     * 查询库存盘点单据详情
-     */
-    public CheckOrderDetailVo queryById(Long id){
-        return checkOrderDetailMapper.selectVoById(id);
-    }
-
-    /**
-     * 查询库存盘点单据详情列表
-     */
-    public TableDataInfo<CheckOrderDetailVo> queryPageList(CheckOrderDetailBo bo, PageQuery pageQuery) {
-        LambdaQueryWrapper<CheckOrderDetail> lqw = buildQueryWrapper(bo);
-        Page<CheckOrderDetailVo> result = checkOrderDetailMapper.selectVoPage(pageQuery.build(), lqw);
-        if (CollUtil.isEmpty(result.getRecords())) {
-            return TableDataInfo.build(result);
-        }
-        Set<Long> skuIds = result.getRecords().stream().map(CheckOrderDetailVo::getSkuId).collect(Collectors.toSet());
-        Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds)
-            .stream()
-            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        result.getRecords().forEach(detail -> detail.setItemSku(itemSkuMap.get(detail.getSkuId())));
-        return TableDataInfo.build(result);
-    }
-
-    /**
-     * 查询库存盘点单据详情列表
-     */
-    public List<CheckOrderDetailVo> queryList(CheckOrderDetailBo bo) {
-        LambdaQueryWrapper<CheckOrderDetail> lqw = buildQueryWrapper(bo);
-        return checkOrderDetailMapper.selectVoList(lqw);
-    }
-
-    private LambdaQueryWrapper<CheckOrderDetail> buildQueryWrapper(CheckOrderDetailBo bo) {
-        Map<String, Object> params = bo.getParams();
-        LambdaQueryWrapper<CheckOrderDetail> lqw = Wrappers.lambdaQuery();
-        lqw.eq(bo.getCheckOrderId() != null, CheckOrderDetail::getCheckOrderId, bo.getCheckOrderId());
-        lqw.eq(bo.getSkuId() != null, CheckOrderDetail::getSkuId, bo.getSkuId());
-        lqw.eq(bo.getQuantity() != null, CheckOrderDetail::getQuantity, bo.getQuantity());
-        lqw.eq(bo.getCheckQuantity() != null, CheckOrderDetail::getCheckQuantity, bo.getCheckQuantity());
-        lqw.eq(bo.getWarehouseId() != null, CheckOrderDetail::getWarehouseId, bo.getWarehouseId());
-        lqw.eq(bo.getAreaId() != null, CheckOrderDetail::getAreaId, bo.getAreaId());
-        lqw.eq(bo.getRackId() != null, CheckOrderDetail::getRackId, bo.getRackId());
-        lqw.eq(bo.getLocationId() != null, CheckOrderDetail::getLocationId, bo.getLocationId());
-        lqw.eq(bo.getInventoryDetailId() != null, CheckOrderDetail::getInventoryDetailId, bo.getInventoryDetailId());
-        lqw.eq(bo.getItemInstanceId() != null, CheckOrderDetail::getItemInstanceId, bo.getItemInstanceId());
-        lqw.eq(bo.getBoxId() != null, CheckOrderDetail::getBoxId, bo.getBoxId());
-        lqw.apply(bo.getHaveProfitAndLoss() != null && bo.getHaveProfitAndLoss(), "quantity != check_quantity");
-        return lqw;
-    }
-
-    /**
-     * 新增库存盘点单据详情
-     */
-    public void insertByBo(CheckOrderDetailBo bo) {
-        CheckOrderDetail add = MapstructUtils.convert(bo, CheckOrderDetail.class);
-        checkOrderDetailMapper.insert(add);
-    }
-
-    /**
-     * 修改库存盘点单据详情
-     */
-    public void updateByBo(CheckOrderDetailBo bo) {
-        CheckOrderDetail update = MapstructUtils.convert(bo, CheckOrderDetail.class);
-        checkOrderDetailMapper.updateById(update);
-    }
-
-    /**
-     * 批量删除库存盘点单据详情
-     */
-    public void deleteByIds(Collection<Long> ids) {
-        checkOrderDetailMapper.deleteBatchIds(ids);
-    }
-
     @Transactional
     public void saveDetails(List<CheckOrderDetail> list) {
         if (CollUtil.isEmpty(list)) {
             return;
         }
+        fillEntityByInventoryDetail(list);
         saveOrUpdateBatch(list);
     }
 
     public List<CheckOrderDetailVo> queryByCheckOrderId(Long checkOrderId) {
-        CheckOrderDetailBo bo = new CheckOrderDetailBo();
-        bo.setCheckOrderId(checkOrderId);
-        List<CheckOrderDetailVo> details = queryList(bo);
+        LambdaQueryWrapper<CheckOrderDetail> lqw = Wrappers.lambdaQuery();
+        lqw.eq(CheckOrderDetail::getCheckOrderId, checkOrderId);
+        List<CheckOrderDetailVo> details = checkOrderDetailMapper.selectVoList(lqw);
         if (CollUtil.isEmpty(details)) {
             return Collections.emptyList();
         }
+        hydrateDetails(details);
         Set<Long> skuIds = details
             .stream()
             .map(CheckOrderDetailVo::getSkuId)
@@ -151,6 +73,16 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
         });
         enrichTrackingInfo(details);
         return details;
+    }
+
+    @Transactional
+    public void deleteByCheckOrderIds(Collection<Long> checkOrderIds) {
+        if (CollUtil.isEmpty(checkOrderIds)) {
+            return;
+        }
+        LambdaQueryWrapper<CheckOrderDetail> lqw = Wrappers.lambdaQuery();
+        lqw.in(CheckOrderDetail::getCheckOrderId, checkOrderIds);
+        checkOrderDetailMapper.delete(lqw);
     }
 
     private void enrichTrackingInfo(List<CheckOrderDetailVo> details) {
@@ -176,5 +108,96 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
             }
         });
     }
-}
 
+    private void hydrateDetails(List<CheckOrderDetailVo> details) {
+        if (CollUtil.isEmpty(details)) {
+            return;
+        }
+        Set<Long> inventoryDetailIds = details.stream()
+            .map(CheckOrderDetailVo::getInventoryDetailId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(inventoryDetailIds)) {
+            return;
+        }
+        Map<Long, InventoryDetail> inventoryDetailMap = inventoryDetailMapper.selectBatchIds(inventoryDetailIds)
+            .stream()
+            .collect(Collectors.toMap(InventoryDetail::getId, Function.identity()));
+        details.forEach(detail -> {
+            InventoryDetail inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            if (inventoryDetail == null) {
+                return;
+            }
+            if (detail.getSkuId() == null) {
+                detail.setSkuId(inventoryDetail.getSkuId());
+            }
+            if (detail.getWarehouseId() == null) {
+                detail.setWarehouseId(inventoryDetail.getWarehouseId());
+            }
+            if (detail.getAreaId() == null) {
+                detail.setAreaId(inventoryDetail.getAreaId());
+            }
+            if (detail.getRackId() == null) {
+                detail.setRackId(inventoryDetail.getRackId());
+            }
+            if (detail.getLocationId() == null) {
+                detail.setLocationId(inventoryDetail.getLocationId());
+            }
+            if (detail.getReceiptTime() == null) {
+                detail.setReceiptTime(inventoryDetail.getCreateTime());
+            }
+            if (detail.getItemInstanceId() == null) {
+                detail.setItemInstanceId(inventoryDetail.getItemInstanceId());
+            }
+            if (detail.getBoxId() == null) {
+                detail.setBoxId(inventoryDetail.getBoxId());
+            }
+            if (detail.getRemainQuantity() == null) {
+                detail.setRemainQuantity(inventoryDetail.getRemainQuantity());
+            }
+        });
+    }
+
+    private void fillEntityByInventoryDetail(List<CheckOrderDetail> list) {
+        Set<Long> inventoryDetailIds = list.stream()
+            .map(CheckOrderDetail::getInventoryDetailId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (CollUtil.isEmpty(inventoryDetailIds)) {
+            return;
+        }
+        Map<Long, InventoryDetail> inventoryDetailMap = inventoryDetailMapper.selectBatchIds(inventoryDetailIds)
+            .stream()
+            .collect(Collectors.toMap(InventoryDetail::getId, Function.identity()));
+        list.forEach(detail -> {
+            InventoryDetail inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            if (inventoryDetail == null) {
+                return;
+            }
+            if (detail.getSkuId() == null) {
+                detail.setSkuId(inventoryDetail.getSkuId());
+            }
+            if (detail.getWarehouseId() == null) {
+                detail.setWarehouseId(inventoryDetail.getWarehouseId());
+            }
+            if (detail.getAreaId() == null) {
+                detail.setAreaId(inventoryDetail.getAreaId());
+            }
+            if (detail.getRackId() == null) {
+                detail.setRackId(inventoryDetail.getRackId());
+            }
+            if (detail.getLocationId() == null) {
+                detail.setLocationId(inventoryDetail.getLocationId());
+            }
+            if (detail.getReceiptTime() == null) {
+                detail.setReceiptTime(inventoryDetail.getCreateTime());
+            }
+            if (detail.getItemInstanceId() == null) {
+                detail.setItemInstanceId(inventoryDetail.getItemInstanceId());
+            }
+            if (detail.getBoxId() == null) {
+                detail.setBoxId(inventoryDetail.getBoxId());
+            }
+        });
+    }
+}

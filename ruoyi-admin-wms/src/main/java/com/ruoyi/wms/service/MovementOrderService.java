@@ -19,8 +19,6 @@ import com.ruoyi.wms.domain.bo.MovementOrderBo;
 import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
-import com.ruoyi.wms.domain.entity.Box;
-import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.MovementOrder;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
@@ -52,9 +50,8 @@ public class MovementOrderService {
     private final InventoryDetailService inventoryDetailService;
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryHistoryService inventoryHistoryService;
-    private final ItemInstanceService itemInstanceService;
     private final ItemSkuService itemSkuService;
-    private final BoxService boxService;
+    private final ItemInstanceService itemInstanceService;
 
 
     /**
@@ -137,6 +134,7 @@ public class MovementOrderService {
      */
     @Transactional
     public void updateByBo(MovementOrderBo bo) {
+        validateIdBeforeUpdate(bo.getId());
         normalizeMovementDetails(bo.getDetails());
         // 1.更新调拨单
         fillHeaderLocationByDetails(bo);
@@ -146,6 +144,13 @@ public class MovementOrderService {
         List<MovementOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), MovementOrderDetail.class);
         detailList.forEach(it -> it.setMovementOrderId(bo.getId()));
         movementOrderDetailService.saveDetails(detailList);
+    }
+
+    private void validateIdBeforeUpdate(Long id) {
+        MovementOrderVo movementOrderVo = queryById(id);
+        if (ServiceConstants.MovementOrderStatus.FINISH.equals(movementOrderVo.getMovementOrderStatus())) {
+            throw new ServiceException("调拨单【" + movementOrderVo.getMovementOrderNo() + "】已执行，无法修改！");
+        }
     }
 
     /**
@@ -182,15 +187,13 @@ public class MovementOrderService {
     public void move(MovementOrderBo bo) {
 
         List<InventoryDetailBo> inventoryDetailBoList = convertMovementOrderDetailToInventoryDetail(bo.getDetails());
+        Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
 
         // 1.校验商品明细不能为空！
         validateBeforeMove(bo);
 
         // 2.校验库存记录
         inventoryDetailService.validateRemainQuantity(inventoryDetailBoList);
-
-        // 2.1 专装调拨校验
-        validateSpecialMovement(bo);
 
         // 3.保存调拨单和调拨单明细
         if (Objects.isNull(bo.getId())) {
@@ -207,13 +210,14 @@ public class MovementOrderService {
 
         // 5.更新库存明细InventoryDetail: deductInventoryDetailQuantity移出扣减库存，addInventoryDetail为移入增加库存
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
-        addInventoryDetail(bo);
+        addInventoryDetail(bo, inventoryDetailMap);
 
         // 6.创建库存记录流水
-        createInventoryHistory(bo);
+        createInventoryHistory(bo, inventoryDetailMap);
 
-        // 7.同步单品实例与箱体位置
-        syncMovementObjects(bo);
+        // 7.同步器材实例位置与来源单据
+        syncMovementInstances(bo, inventoryDetailMap);
+
     }
 
     private void validateBeforeMove(MovementOrderBo bo) {
@@ -281,13 +285,26 @@ public class MovementOrderService {
             }).toList();
     }
 
+    private Map<Long, InventoryDetail> queryInventoryDetailMap(List<MovementOrderDetailBo> details) {
+        Set<Long> inventoryDetailIds = details.stream()
+            .map(MovementOrderDetailBo::getInventoryDetailId)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+        if (CollUtil.isEmpty(inventoryDetailIds)) {
+            return java.util.Collections.emptyMap();
+        }
+        return inventoryDetailMapper.selectBatchIds(inventoryDetailIds).stream()
+            .collect(java.util.stream.Collectors.toMap(InventoryDetail::getId, java.util.function.Function.identity()));
+    }
+
     /**
      * 调拨完成创建入库记录
      * @param bo
      */
     @Transactional
-    public void addInventoryDetail(MovementOrderBo bo) {
+    public void addInventoryDetail(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
         List<InventoryDetail> addInventoryDetailList = bo.getDetails().stream().map(it -> {
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(it.getInventoryDetailId());
             InventoryDetail addInventoryDetail = new InventoryDetail();
             addInventoryDetail.setReceiptOrderId(bo.getId());
             addInventoryDetail.setOrderNo(bo.getMovementOrderNo());
@@ -295,8 +312,12 @@ public class MovementOrderService {
             addInventoryDetail.setSkuId(it.getSkuId());
             addInventoryDetail.setWarehouseId(it.getTargetWarehouseId());
             addInventoryDetail.setAreaId(it.getTargetAreaId());
-            addInventoryDetail.setItemInstanceId(it.getItemInstanceId());
-            addInventoryDetail.setBoxId(it.getBoxId());
+            addInventoryDetail.setRackId(it.getTargetRackId());
+            addInventoryDetail.setLocationId(it.getTargetLocationId());
+            addInventoryDetail.setItemInstanceId(resolveItemInstanceId(it, sourceInventoryDetail));
+            addInventoryDetail.setBoxId(null);
+            addInventoryDetail.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.MOVEMENT);
+            addInventoryDetail.setSourceOrderId(bo.getId());
             addInventoryDetail.setQuantity(it.getQuantity());
             addInventoryDetail.setUnitPrice(it.getUnitPrice());
             addInventoryDetail.setLineAmount(it.getLineAmount());
@@ -311,32 +332,35 @@ public class MovementOrderService {
      * @param bo
      */
     @Transactional
-    public void createInventoryHistory(MovementOrderBo bo) {
+    public void createInventoryHistory(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
         List<InventoryHistory> addInventoryHistoryList = new LinkedList<>();
         bo.getDetails().forEach(detail -> {
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
             InventoryHistory shipmentInventoryHistory = new InventoryHistory();
             shipmentInventoryHistory.setWarehouseId(detail.getSourceWarehouseId());
             shipmentInventoryHistory.setAreaId(detail.getSourceAreaId());
-            shipmentInventoryHistory.setItemInstanceId(detail.getItemInstanceId());
-            shipmentInventoryHistory.setBoxId(detail.getBoxId());
+            shipmentInventoryHistory.setRackId(detail.getSourceRackId());
+            shipmentInventoryHistory.setLocationId(detail.getSourceLocationId());
             shipmentInventoryHistory.setSkuId(detail.getSkuId());
             shipmentInventoryHistory.setQuantity(detail.getQuantity().negate());
             shipmentInventoryHistory.setOrderId(bo.getId());
             shipmentInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             shipmentInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+            shipmentInventoryHistory.setItemInstanceId(resolveItemInstanceId(detail, sourceInventoryDetail));
             shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
             shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
             addInventoryHistoryList.add(shipmentInventoryHistory);
             InventoryHistory receiptInventoryHistory = new InventoryHistory();
             receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
             receiptInventoryHistory.setAreaId(detail.getTargetAreaId());
-            receiptInventoryHistory.setItemInstanceId(detail.getItemInstanceId());
-            receiptInventoryHistory.setBoxId(detail.getBoxId());
+            receiptInventoryHistory.setRackId(detail.getTargetRackId());
+            receiptInventoryHistory.setLocationId(detail.getTargetLocationId());
             receiptInventoryHistory.setSkuId(detail.getSkuId());
             receiptInventoryHistory.setQuantity(detail.getQuantity());
             receiptInventoryHistory.setOrderId(bo.getId());
             receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+            receiptInventoryHistory.setItemInstanceId(resolveItemInstanceId(detail, sourceInventoryDetail));
             receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
             receiptInventoryHistory.setLineAmount(detail.getLineAmount());
             addInventoryHistoryList.add(receiptInventoryHistory);
@@ -344,77 +368,35 @@ public class MovementOrderService {
         inventoryHistoryService.saveBatch(addInventoryHistoryList);
     }
 
-    private void validateSpecialMovement(MovementOrderBo bo) {
-        boolean specialMovement = "专装".equals(bo.getMovementType());
-        if (!specialMovement) {
-            return;
-        }
+    private void syncMovementInstances(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
         for (MovementOrderDetailBo detail : bo.getDetails()) {
-            boolean hasItem = detail.getItemInstanceId() != null;
-            boolean hasBox = detail.getBoxId() != null;
-            if (!hasItem && !hasBox) {
-                throw new BaseException("专装调拨必须按单品实例或箱体流转");
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            Long itemInstanceId = resolveItemInstanceId(detail, sourceInventoryDetail);
+            if (itemInstanceId == null) {
+                continue;
             }
-            if (hasItem && hasBox) {
-                throw new BaseException("专装调拨明细不能同时选择单品实例和箱体");
-            }
-            if (detail.getQuantity() == null || detail.getQuantity().compareTo(BigDecimal.ONE) != 0) {
-                throw new BaseException("专装调拨数量必须为1");
-            }
-            if (hasItem) {
-                ItemInstance itemInstance = itemInstanceService.getById(detail.getItemInstanceId());
-                if (itemInstance == null) {
-                    throw new BaseException("专装调拨存在不存在的单品实例");
-                }
-                if (!Objects.equals(itemInstance.getSkuId(), detail.getSkuId())) {
-                    throw new BaseException("单品实例与调拨规格不匹配");
-                }
-                if (itemInstance.getBoxId() != null) {
-                    throw new BaseException("箱内单品请按箱体整箱调拨");
-                }
-                if (ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus())) {
-                    throw new BaseException("已借出单品不能调拨");
-                }
-                if (!ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus())) {
-                    throw new BaseException("仅在库单品可以调拨");
-                }
-            }
-            if (hasBox) {
-                Box box = boxService.getById(detail.getBoxId());
-                if (box == null) {
-                    throw new BaseException("专装调拨存在不存在的箱体");
-                }
-                if (ServiceConstants.BoxStatus.OUTBOUND.equals(box.getBoxStatus())) {
-                    throw new BaseException("已出库箱体不能调拨");
-                }
-                Set<Long> itemIds = boxService.queryItemIdsByBoxId(detail.getBoxId());
-                if (CollUtil.isEmpty(itemIds)) {
-                    throw new BaseException("箱体内无单品，不能专装调拨");
-                }
-            }
+            itemInstanceService.moveByMovement(
+                itemInstanceId,
+                detail.getTargetWarehouseId(),
+                detail.getTargetAreaId(),
+                detail.getTargetRackId(),
+                detail.getTargetLocationId(),
+                bo.getId(),
+                bo.getMovementOrderNo()
+            );
         }
+    }
+
+    private Long resolveItemInstanceId(MovementOrderDetailBo detail, InventoryDetail sourceInventoryDetail) {
+        if (detail.getItemInstanceId() != null) {
+            return detail.getItemInstanceId();
+        }
+        return sourceInventoryDetail == null ? null : sourceInventoryDetail.getItemInstanceId();
     }
 
     private void fillHeaderLocationByDetails(MovementOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
             return;
-        }
-    }
-
-    private void syncMovementObjects(MovementOrderBo bo) {
-        for (MovementOrderDetailBo detail : bo.getDetails()) {
-            if (detail.getItemInstanceId() != null) {
-                itemInstanceService.moveTo(detail.getItemInstanceId(), detail.getTargetWarehouseId(), detail.getTargetAreaId());
-            }
-            if (detail.getBoxId() != null) {
-                boxService.moveTo(detail.getBoxId(), detail.getTargetWarehouseId(), detail.getTargetAreaId(),null,null);
-                Box box = boxService.getById(detail.getBoxId());
-                Set<Long> itemIds = boxService.queryItemIdsByBoxId(detail.getBoxId());
-                for (Long itemId : itemIds) {
-                    itemInstanceService.moveTo(itemId, detail.getTargetWarehouseId(), detail.getTargetAreaId());
-                    itemInstanceService.markInBox(itemId, box);
-                }
-            }
         }
     }
 

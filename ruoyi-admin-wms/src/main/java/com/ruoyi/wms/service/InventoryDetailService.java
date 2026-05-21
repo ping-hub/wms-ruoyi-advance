@@ -10,18 +10,22 @@ import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
+import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.InventoryDetailBo;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
+import com.ruoyi.wms.domain.entity.Location;
+import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
+import com.ruoyi.wms.mapper.LocationMapper;
+import com.ruoyi.wms.mapper.RackMapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,6 +42,9 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
 
     private final InventoryDetailMapper inventoryDetailMapper;
     private final ItemSkuService itemSkuService;
+    private final ItemInstanceMapper itemInstanceMapper;
+    private final RackMapper rackMapper;
+    private final LocationMapper locationMapper;
 
     /**
      * 查询库存详情
@@ -50,12 +57,6 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
      * 查询库存详情列表
      */
     public TableDataInfo<InventoryDetailVo> queryPageList(InventoryDetailBo bo, PageQuery pageQuery) {
-        if (bo.getDaysToExpires() != null) {
-            LocalDateTime expirationStartTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-            bo.setExpirationStartTime(expirationStartTime);
-            LocalDateTime expirationEndTime = expirationStartTime.plusDays(bo.getDaysToExpires());
-            bo.setExpirationEndTime(expirationEndTime);
-        }
         Page<InventoryDetailVo> result = inventoryDetailMapper.selectPageByBo(pageQuery.build(), bo);
         enrich(result.getRecords());
         return TableDataInfo.build(result);
@@ -70,15 +71,43 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
         return vos;
     }
 
+    public List<InventoryDetailVo> queryVoListByIds(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return Collections.emptyList();
+        }
+        List<InventoryDetailVo> vos = MapstructUtils.convert(inventoryDetailMapper.selectBatchIds(ids), InventoryDetailVo.class);
+        enrich(vos);
+        return vos;
+    }
+
     private void enrich(List<InventoryDetailVo> vos) {
         if (CollUtil.isEmpty(vos)) {
             return;
         }
         Set<Long> skuIds = vos.stream().map(InventoryDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> itemInstanceIds = vos.stream().map(InventoryDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> rackIds = vos.stream().map(InventoryDetailVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> locationIds = vos.stream().map(InventoryDetailVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+        Map<Long, String> instanceCodeMap = itemInstanceIds.isEmpty()
+            ? Collections.emptyMap()
+            : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, ItemInstance::getInstanceCode));
+        Map<Long, String> rackNameMap = rackIds.isEmpty()
+            ? Collections.emptyMap()
+            : rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Rack::getRackName));
+        Map<Long, String> locationNameMap = locationIds.isEmpty()
+            ? Collections.emptyMap()
+            : locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Location::getLocationName));
         vos.forEach(it -> {
             ItemSkuVo itemSku = itemSkuMap.get(it.getSkuId());
             it.setItemSku(itemSku);
+            it.setInstanceCode(instanceCodeMap.get(it.getItemInstanceId()));
+            if (StringUtils.isBlank(it.getRackName())) {
+                it.setRackName(rackNameMap.get(it.getRackId()));
+            }
+            if (StringUtils.isBlank(it.getLocationName())) {
+                it.setLocationName(locationNameMap.get(it.getLocationId()));
+            }
             if (itemSku != null) {
                 it.setItem(itemSku.getItem());
                 if (StringUtils.isBlank(it.getSkuName())) {

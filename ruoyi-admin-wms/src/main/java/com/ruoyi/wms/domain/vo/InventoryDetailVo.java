@@ -80,16 +80,34 @@ public class InventoryDetailVo extends BaseVo {
     private Long rackId;
 
     /**
+     * 货架名称
+     */
+    @ExcelProperty(value = "货架名称")
+    private String rackName;
+
+    /**
      * 所属货位
      */
     @ExcelProperty(value = "所属货位")
     private Long locationId;
 
     /**
+     * 货位名称
+     */
+    @ExcelProperty(value = "货位名称")
+    private String locationName;
+
+    /**
      * 物品明细ID
      */
     @ExcelProperty(value = "物品明细ID")
     private Long itemInstanceId;
+
+    /**
+     * 器材实例编码
+     */
+    @ExcelProperty(value = "器材实例编码")
+    private String instanceCode;
 
     /**
      * 箱体ID
@@ -120,18 +138,6 @@ public class InventoryDetailVo extends BaseVo {
      */
     @ExcelProperty(value = "入库数量")
     private BigDecimal quantity;
-
-    /**
-     * 生产日期
-     */
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    @ExcelProperty(value = "过期时间")
-    private LocalDateTime expirationDate;
 
     /**
      * 器材编码

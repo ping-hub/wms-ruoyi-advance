@@ -60,18 +60,6 @@ public class InventoryHistoryVo implements Serializable {
     private Long skuId;
 
     /**
-     * 生产日期
-     */
-    @ExcelProperty(value = "生产日期")
-    private LocalDateTime productionDate;
-
-    /**
-     * 过期时间
-     */
-    @ExcelProperty(value = "过期时间")
-    private LocalDateTime expirationDate;
-
-    /**
      * 器材名称
      */
     @ExcelProperty(value = "器材名称")

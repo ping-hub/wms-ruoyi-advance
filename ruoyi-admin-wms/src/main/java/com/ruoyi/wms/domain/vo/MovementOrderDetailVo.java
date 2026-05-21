@@ -4,14 +4,11 @@ import java.math.BigDecimal;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.ruoyi.common.excel.annotation.ExcelDictFormat;
-import com.ruoyi.common.excel.convert.ExcelDictConvert;
 import lombok.Data;
 import io.github.linpeilie.annotations.AutoMapper;
 
 import java.io.Serializable;
 import java.io.Serial;
-import java.time.LocalDateTime;
 
 /**
  * 调拨单明细视图对象 wms_movement_order_detail
@@ -118,6 +115,18 @@ public class MovementOrderDetailVo implements Serializable {
     private Long sourceAreaId;
 
     /**
+     * 源货架
+     */
+    @ExcelProperty(value = "源货架")
+    private Long sourceRackId;
+
+    /**
+     * 源货位
+     */
+    @ExcelProperty(value = "源货位")
+    private Long sourceLocationId;
+
+    /**
      * 目标仓库
      */
     @ExcelProperty(value = "目标仓库")
@@ -130,15 +139,27 @@ public class MovementOrderDetailVo implements Serializable {
     private Long targetAreaId;
 
     /**
+     * 目标货架
+     */
+    @ExcelProperty(value = "目标货架")
+    private Long targetRackId;
+
+    /**
+     * 目标货位
+     */
+    @ExcelProperty(value = "目标货位")
+    private Long targetLocationId;
+
+    /**
      * 入库记录id
      */
     @ExcelProperty(value = "入库记录id")
     private Long inventoryDetailId;
 
     /**
-     * 单品实例ID
+     * 器材实例ID
      */
-    @ExcelProperty(value = "单品实例ID")
+    @ExcelProperty(value = "器材实例ID")
     private Long itemInstanceId;
 
     /**
@@ -148,16 +169,16 @@ public class MovementOrderDetailVo implements Serializable {
     private String instanceCode;
 
     /**
-     * 箱体ID
+     * 源货架名称
      */
-    @ExcelProperty(value = "箱体ID")
-    private Long boxId;
+    @ExcelProperty(value = "源货架名称")
+    private String sourceRackName;
 
     /**
-     * 箱码
+     * 源货位名称
      */
-    @ExcelProperty(value = "箱码")
-    private String boxCode;
+    @ExcelProperty(value = "源货位名称")
+    private String sourceLocationName;
 
     private ItemSkuVo itemSku;
 

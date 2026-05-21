@@ -11,7 +11,6 @@ import jakarta.validation.constraints.*;
 import io.github.linpeilie.annotations.AutoMapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 调拨单明细业务对象 wms_movement_order_detail
@@ -107,6 +106,16 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long sourceAreaId;
 
     /**
+     * 源货架
+     */
+    private Long sourceRackId;
+
+    /**
+     * 源货位
+     */
+    private Long sourceLocationId;
+
+    /**
      * 目标仓库
      */
     @NotNull(message = "目标仓库不能为空", groups = { AddGroup.class, EditGroup.class })
@@ -119,21 +128,25 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long targetAreaId;
 
     /**
+     * 目标货架
+     */
+    private Long targetRackId;
+
+    /**
+     * 目标货位
+     */
+    private Long targetLocationId;
+
+    /**
      * 入库记录id
      */
     @NotNull(message = "入库记录id不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long inventoryDetailId;
 
     /**
-     * 单品实例ID
+     * 器材实例ID
      */
     private Long itemInstanceId;
-
-    /**
-     * 箱体ID
-     */
-    private Long boxId;
-
 
     @Override
     public Long getWarehouseId() {

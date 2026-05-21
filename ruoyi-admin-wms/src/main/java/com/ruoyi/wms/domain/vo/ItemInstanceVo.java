@@ -8,8 +8,6 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-
 @Data
 @ExcelIgnoreUnannotated
 @AutoMapper(target = ItemInstance.class)
@@ -99,11 +97,9 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "来源出库单明细ID")
     private Long shipmentOrderDetailId;
 
-    @ExcelProperty(value = "最后一次业务动作")
-    private String lastOperationType;
+    private String currentBusinessType;
 
-    @ExcelProperty(value = "最后动作时间")
-    private LocalDateTime lastOperationTime;
+    private String currentBusinessNo;
 
     @ExcelProperty(value = "备注")
     private String remark;

@@ -19,23 +19,30 @@ import com.ruoyi.wms.domain.bo.ReceiptItemInstanceBo;
 import com.ruoyi.wms.domain.bo.ReceiptOrderDetailBo;
 import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
 import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.BorrowRecord;
 import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
 import com.ruoyi.wms.domain.entity.ReceiptOrder;
 import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
+import com.ruoyi.wms.domain.entity.ShipmentOrder;
+import com.ruoyi.wms.domain.entity.ShipmentOrderDetail;
 import com.ruoyi.wms.domain.entity.Warehouse;
 import com.ruoyi.wms.domain.vo.ItemInstanceImportVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ItemVo;
 import com.ruoyi.wms.mapper.AreaMapper;
+import com.ruoyi.wms.mapper.BorrowRecordMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
 import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
+import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import com.ruoyi.wms.mapper.ReceiptOrderDetailMapper;
+import com.ruoyi.wms.mapper.ShipmentOrderMapper;
+import com.ruoyi.wms.mapper.ShipmentOrderDetailMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -62,7 +69,11 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
     private final BoxMapper boxMapper;
+    private final BorrowRecordMapper borrowRecordMapper;
+    private final ReceiptOrderMapper receiptOrderMapper;
     private final ReceiptOrderDetailMapper receiptOrderDetailMapper;
+    private final ShipmentOrderMapper shipmentOrderMapper;
+    private final ShipmentOrderDetailMapper shipmentOrderDetailMapper;
 
     public ItemInstanceVo queryById(Long id) {
         ItemInstanceVo vo = itemInstanceMapper.selectVoById(id);
@@ -190,6 +201,10 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Assert.notNull(bo.getId(), "单品实例ID不能为空");
         ItemInstance existed = itemInstanceMapper.selectById(bo.getId());
         Assert.notNull(existed, "单品实例不存在");
+        Assert.isTrue(
+            ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(existed.getInstanceStatus()),
+            "仅在库状态的器材实例允许修改"
+        );
 
         ItemInstance update = new ItemInstance();
         update.setId(existed.getId());
@@ -239,6 +254,25 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, warehouseId);
         wrapper.set(ItemInstance::getAreaId, areaId);
+        itemInstanceMapper.update(null, wrapper);
+    }
+
+    public void moveByMovement(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId,
+                               Long movementOrderId, String movementOrderNo) {
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ItemInstance::getId, id);
+        wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
+        wrapper.set(ItemInstance::getWarehouseId, warehouseId);
+        wrapper.set(ItemInstance::getAreaId, areaId);
+        wrapper.set(ItemInstance::getRackId, rackId);
+        wrapper.set(ItemInstance::getLocationId, locationId);
+        wrapper.set(ItemInstance::getBoxId, null);
+        wrapper.set(ItemInstance::getSourceType, ServiceConstants.ItemInstanceSourceType.MOVEMENT);
+        wrapper.set(ItemInstance::getSourceOrderType, ServiceConstants.ItemInstanceSourceType.MOVEMENT);
+        wrapper.set(ItemInstance::getSourceOrderId, movementOrderId);
+        wrapper.set(ItemInstance::getSourceOrderNo, movementOrderNo);
+        wrapper.set(ItemInstance::getReceiptOrderDetailId, null);
+        wrapper.set(ItemInstance::getShipmentOrderDetailId, null);
         itemInstanceMapper.update(null, wrapper);
     }
 
@@ -743,6 +777,9 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Set<Long> rackIds = validList.stream().map(ItemInstanceVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = validList.stream().map(ItemInstanceVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = validList.stream().map(ItemInstanceVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> instanceIds = validList.stream().map(ItemInstanceVo::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> receiptDetailIds = validList.stream().map(ItemInstanceVo::getReceiptOrderDetailId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> shipmentDetailIds = validList.stream().map(ItemInstanceVo::getShipmentOrderDetailId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
         Map<Long, Warehouse> warehouseMap = warehouseIds.isEmpty() ? java.util.Collections.emptyMap() :
             warehouseMapper.selectBatchIds(warehouseIds).stream().collect(Collectors.toMap(Warehouse::getId, Function.identity()));
@@ -754,6 +791,17 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty() ? java.util.Collections.emptyMap() :
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
+        Map<Long, BorrowRecord> activeBorrowMap = queryActiveBorrowRecordMap(instanceIds);
+        Map<Long, ReceiptOrderDetail> receiptDetailMap = receiptDetailIds.isEmpty() ? java.util.Collections.emptyMap() :
+            receiptOrderDetailMapper.selectBatchIds(receiptDetailIds).stream().collect(Collectors.toMap(ReceiptOrderDetail::getId, Function.identity()));
+        Set<Long> receiptOrderIds = receiptDetailMap.values().stream().map(ReceiptOrderDetail::getReceiptOrderId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ReceiptOrder> receiptOrderMap = receiptOrderIds.isEmpty() ? java.util.Collections.emptyMap() :
+            receiptOrderMapper.selectBatchIds(receiptOrderIds).stream().collect(Collectors.toMap(ReceiptOrder::getId, Function.identity()));
+        Map<Long, ShipmentOrderDetail> shipmentDetailMap = shipmentDetailIds.isEmpty() ? java.util.Collections.emptyMap() :
+            shipmentOrderDetailMapper.selectBatchIds(shipmentDetailIds).stream().collect(Collectors.toMap(ShipmentOrderDetail::getId, Function.identity()));
+        Set<Long> shipmentOrderIds = shipmentDetailMap.values().stream().map(ShipmentOrderDetail::getShipmentOrderId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ShipmentOrder> shipmentOrderMap = shipmentOrderIds.isEmpty() ? java.util.Collections.emptyMap() :
+            shipmentOrderMapper.selectBatchIds(shipmentOrderIds).stream().collect(Collectors.toMap(ShipmentOrder::getId, Function.identity()));
         validList.forEach(vo -> {
             ItemSkuVo skuVo = skuMap.get(vo.getSkuId());
             if (skuVo != null) {
@@ -786,6 +834,69 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             if (box != null) {
                 vo.setBoxCode(box.getBoxCode());
             }
+            fillCurrentBusinessFields(vo, activeBorrowMap, receiptDetailMap, receiptOrderMap, shipmentDetailMap, shipmentOrderMap);
         });
+    }
+
+    private Map<Long, BorrowRecord> queryActiveBorrowRecordMap(Set<Long> instanceIds) {
+        if (CollUtil.isEmpty(instanceIds)) {
+            return java.util.Collections.emptyMap();
+        }
+        LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
+        lqw.in(BorrowRecord::getItemInstanceId, instanceIds);
+        lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
+        lqw.orderByDesc(BorrowRecord::getBorrowTime, BorrowRecord::getId);
+        List<BorrowRecord> borrowRecords = borrowRecordMapper.selectList(lqw);
+        if (CollUtil.isEmpty(borrowRecords)) {
+            return java.util.Collections.emptyMap();
+        }
+        Map<Long, BorrowRecord> result = new java.util.HashMap<>();
+        borrowRecords.forEach(record -> result.putIfAbsent(record.getItemInstanceId(), record));
+        return result;
+    }
+
+    private void fillCurrentBusinessFields(
+        ItemInstanceVo vo,
+        Map<Long, BorrowRecord> activeBorrowMap,
+        Map<Long, ReceiptOrderDetail> receiptDetailMap,
+        Map<Long, ReceiptOrder> receiptOrderMap,
+        Map<Long, ShipmentOrderDetail> shipmentDetailMap,
+        Map<Long, ShipmentOrder> shipmentOrderMap
+    ) {
+        vo.setCurrentBusinessType("-");
+        vo.setCurrentBusinessNo(StrUtil.blankToDefault(vo.getSourceOrderNo(), "-"));
+
+        BorrowRecord borrowRecord = activeBorrowMap.get(vo.getId());
+        if (borrowRecord != null) {
+            vo.setCurrentBusinessType("借用");
+            vo.setCurrentBusinessNo(StrUtil.blankToDefault(borrowRecord.getBorrowNo(), "-"));
+            return;
+        }
+
+        if (ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT.equals(vo.getInstanceStatus()) && vo.getReceiptOrderDetailId() != null) {
+            ReceiptOrderDetail receiptOrderDetail = receiptDetailMap.get(vo.getReceiptOrderDetailId());
+            ReceiptOrder receiptOrder = receiptOrderDetail == null ? null : receiptOrderMap.get(receiptOrderDetail.getReceiptOrderId());
+            if (receiptOrder != null) {
+                vo.setCurrentBusinessType(StrUtil.blankToDefault(receiptOrder.getReceiptOrderType(), "入库"));
+                vo.setCurrentBusinessNo(StrUtil.blankToDefault(receiptOrder.getReceiptOrderNo(), "-"));
+                return;
+            }
+        }
+
+        if (vo.getShipmentOrderDetailId() != null) {
+            ShipmentOrderDetail shipmentOrderDetail = shipmentDetailMap.get(vo.getShipmentOrderDetailId());
+            ShipmentOrder shipmentOrder = shipmentOrderDetail == null ? null : shipmentOrderMap.get(shipmentOrderDetail.getShipmentOrderId());
+            if (shipmentOrder != null) {
+                vo.setCurrentBusinessType(StrUtil.blankToDefault(shipmentOrder.getShipmentOrderType(), "出库"));
+                vo.setCurrentBusinessNo(StrUtil.blankToDefault(shipmentOrder.getShipmentOrderNo(), "-"));
+                return;
+            }
+        }
+
+        if (ServiceConstants.ItemInstanceSourceType.MOVEMENT.equals(vo.getSourceOrderType())
+            || ServiceConstants.ItemInstanceSourceType.MOVEMENT.equals(vo.getSourceType())) {
+            vo.setCurrentBusinessType("调拨");
+            vo.setCurrentBusinessNo(StrUtil.blankToDefault(vo.getSourceOrderNo(), "-"));
+        }
     }
 }

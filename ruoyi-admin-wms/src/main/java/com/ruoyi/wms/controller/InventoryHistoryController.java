@@ -4,14 +4,12 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.validate.AddGroup;
 import com.ruoyi.common.core.validate.EditGroup;
-import com.ruoyi.common.excel.utils.ExcelUtil;
 import com.ruoyi.common.idempotent.annotation.RepeatSubmit;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -44,17 +42,6 @@ public class InventoryHistoryController extends BaseController {
     @GetMapping("/list")
     public TableDataInfo<InventoryHistoryVo> list(InventoryHistoryBo bo, PageQuery pageQuery) {
         return inventoryHistoryService.queryPageList(bo, pageQuery);
-    }
-
-    /**
-     * 导出库存记录列表
-     */
-    @SaCheckPermission("wms:inventoryHistory:all")
-    @Log(title = "库存记录", businessType = BusinessType.EXPORT)
-    @PostMapping("/export")
-    public void export(InventoryHistoryBo bo, HttpServletResponse response) {
-        List<InventoryHistoryVo> list = inventoryHistoryService.queryList(bo);
-        ExcelUtil.exportExcel(list, "库存记录", InventoryHistoryVo.class, response);
     }
 
     /**

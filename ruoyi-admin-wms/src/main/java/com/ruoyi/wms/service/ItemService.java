@@ -141,8 +141,6 @@ public class ItemService {
             itemInstance.setSourceOrderType(null);
             itemInstance.setSourceOrderNo(null);
             itemInstance.setRemark(StrUtil.blankToDefault(row.getRemark(), item.getRemark()));
-            itemInstance.setLastOperationType("batch_print");
-            itemInstance.setLastOperationTime(now);
             itemInstances.add(itemInstance);
 
             BatchPrintQrCodeDetailVo payload = new BatchPrintQrCodeDetailVo();

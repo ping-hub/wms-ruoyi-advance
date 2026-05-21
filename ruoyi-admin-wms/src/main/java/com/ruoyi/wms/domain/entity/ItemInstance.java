@@ -7,8 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
-import java.time.LocalDateTime;
-
 /**
  * 单品实例对象 wms_item_instance
  */
@@ -97,16 +95,6 @@ public class ItemInstance extends BaseEntity {
      * 来源出库单明细ID（暂存占用/出库关联）
      */
     private Long shipmentOrderDetailId;
-
-    /**
-     * 最后一次业务动作
-     */
-    private String lastOperationType;
-
-    /**
-     * 最后动作时间
-     */
-    private LocalDateTime lastOperationTime;
 
     /**
      * 备注

@@ -10,8 +10,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
-
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AutoMapper(target = ItemInstance.class, reverseConvertGenerate = false)
@@ -99,16 +97,6 @@ public class ItemInstanceBo extends BaseEntity {
      * 来源出库单明细ID
      */
     private Long shipmentOrderDetailId;
-
-    /**
-     * 最后一次业务动作
-     */
-    private String lastOperationType;
-
-    /**
-     * 最后动作时间
-     */
-    private LocalDateTime lastOperationTime;
 
     /**
      * 备注
