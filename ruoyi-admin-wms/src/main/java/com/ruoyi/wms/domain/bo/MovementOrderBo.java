@@ -34,7 +34,7 @@ public class MovementOrderBo extends BaseEntity {
     /**
      * 调拨单号
      */
-    @NotBlank(message = "调拨单号不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "调拨单号不能为空", groups = { EditGroup.class })
     private String movementOrderNo;
 
     /**

@@ -34,7 +34,7 @@ public class CheckOrderBo extends BaseEntity {
     /**
      * 盘点单号
      */
-    @NotBlank(message = "盘点单号不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "盘点单号不能为空", groups = { EditGroup.class })
     private String checkOrderNo;
 
     /**

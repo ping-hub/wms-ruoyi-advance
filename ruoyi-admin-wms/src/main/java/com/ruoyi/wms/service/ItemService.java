@@ -51,7 +51,6 @@ public class ItemService {
     private final ItemMapper itemMapper;
     private final ItemSkuService itemSkuService;
     private final ItemCategoryMapper itemCategoryMapper;
-    private final InventoryService inventoryService;
     private final ItemInstanceService itemInstanceService;
     private final ItemQrCodeSerialService itemQrCodeSerialService;
 
@@ -120,7 +119,7 @@ public class ItemService {
 
         ItemBo row = bo.getRow();
         ItemSkuVo sku = resolvePrintSku(row.getId(), bo.getSkuId());
-        String itemKey = warehouse+BATCH_PRINT_ITEM_KEY;
+        String itemKey = BATCH_PRINT_ITEM_KEY + warehouse;
 
         List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, bo.getQrCodeCount());
         LocalDateTime now = LocalDateTime.now();
@@ -169,7 +168,7 @@ public class ItemService {
         // 主键集合
         lqw.in(!CollUtil.isEmpty(bo.getIds()), Item::getId, bo.getIds());
         lqw.like(StrUtil.isNotBlank(bo.getItemName()), Item::getItemName, bo.getItemName());
-        if (!StrUtil.isBlank(bo.getItemCategory())){
+        if (!StrUtil.isBlank(bo.getItemCategory())) {
             Long parentId = Long.valueOf(bo.getItemCategory());
             List<Long> subIdList = this.buildSubItemCategoryIdList(parentId);
             subIdList.add(Long.valueOf(bo.getItemCategory()));
@@ -211,8 +210,8 @@ public class ItemService {
         Map<Long, ItemCategoryVo> itemCategoryVoMap = categoryIds.isEmpty()
             ? java.util.Collections.emptyMap()
             : itemCategoryMapper.selectVoList(new LambdaQueryWrapper<ItemCategory>().in(ItemCategory::getId, categoryIds))
-                .stream()
-                .collect(Collectors.toMap(ItemCategoryVo::getId, Function.identity()));
+            .stream()
+            .collect(Collectors.toMap(ItemCategoryVo::getId, Function.identity()));
 
         validItemVos.forEach(itemVo -> {
             itemVo.setSku(skuMap.getOrDefault(itemVo.getId(), java.util.Collections.emptyList()));
@@ -232,7 +231,7 @@ public class ItemService {
         validateBoBeforeSave(bo);
         Item item = MapstructUtils.convert(bo, Item.class);
         itemMapper.insert(item);
-        itemSkuService.setItemId(bo.getSku(),item.getId());
+        itemSkuService.setItemId(bo.getSku(), item.getId());
         itemSkuService.saveOrUpdateBatchByBo(bo.getSku());
     }
 
@@ -245,7 +244,7 @@ public class ItemService {
     public void updateByForm(ItemBo bo) {
         validateBoBeforeSave(bo);
         itemMapper.updateById(MapstructUtils.convert(bo, Item.class));
-        itemSkuService.setItemId(bo.getSku(),bo.getId());
+        itemSkuService.setItemId(bo.getSku(), bo.getId());
         deleteRemovedSku(bo);
         itemSkuService.saveOrUpdateBatchByBo(bo.getSku());
     }
@@ -308,15 +307,15 @@ public class ItemService {
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {
-         Assert.isTrue(CollUtil.isNotEmpty(skuVoList), "至少维护一个器材规格");
-         Assert.isTrue(
-             skuVoList.stream().allMatch(sku -> StrUtil.isNotBlank(sku.getSkuName())),
-             "器材规格名称不能为空"
-         );
-         Assert.isTrue(
-             skuVoList.stream().map(ItemSkuBo::getSkuName).distinct().count() == skuVoList.size(),
-             "器材规格重复"
-         );
+        Assert.isTrue(CollUtil.isNotEmpty(skuVoList), "至少维护一个器材规格");
+        Assert.isTrue(
+            skuVoList.stream().allMatch(sku -> StrUtil.isNotBlank(sku.getSkuName())),
+            "器材规格名称不能为空"
+        );
+        Assert.isTrue(
+            skuVoList.stream().map(ItemSkuBo::getSkuName).distinct().count() == skuVoList.size(),
+            "器材规格重复"
+        );
     }
 
     private ItemSkuVo resolvePrintSku(Long itemId, Long skuId) {
@@ -330,7 +329,6 @@ public class ItemService {
     private String buildQrCodeContent(String qrCodeValue) {
         return qrCodeValue;
     }
-
 
 
     /**

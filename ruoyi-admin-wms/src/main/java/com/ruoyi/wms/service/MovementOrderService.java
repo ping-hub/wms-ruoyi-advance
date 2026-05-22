@@ -1,6 +1,8 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -27,6 +29,8 @@ import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.MovementOrderMapper;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +47,9 @@ import java.util.*;
 @RequiredArgsConstructor
 @Service
 public class MovementOrderService {
+
+    @Value("${warehouse}")
+    private String warehouse;
 
     private final MovementOrderMapper movementOrderMapper;
     private final MovementOrderDetailService movementOrderDetailService;
@@ -106,6 +113,7 @@ public class MovementOrderService {
     @Transactional
     public void insertByBo(MovementOrderBo bo) {
         normalizeMovementDetails(bo.getDetails());
+        bo.setMovementOrderNo(StrUtil.blankToDefault(bo.getMovementOrderNo(), generateMovementOrderNo()));
         // 1.校验调拨单号唯一性
         validateMovementOrderNo(bo.getMovementOrderNo());
         fillHeaderLocationByDetails(bo);
@@ -125,8 +133,12 @@ public class MovementOrderService {
         LambdaQueryWrapper<MovementOrder> lambdaQueryWrapper = Wrappers.lambdaQuery();
         lambdaQueryWrapper.eq(MovementOrder::getMovementOrderNo, movementOrderNo);
         if (movementOrderMapper.exists(lambdaQueryWrapper)) {
-            throw new BaseException("调拨单号重复，请手动修改");
+            throw new BaseException("系统生成的调拨单号重复，请稍后重试");
         }
+    }
+
+    private String generateMovementOrderNo() {
+        return "DB" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**
@@ -167,8 +179,11 @@ public class MovementOrderService {
         if (movementOrderVo == null) {
             throw new BaseException("调拨单不存在");
         }
+        if (ServiceConstants.MovementOrderStatus.INVALID.equals(movementOrderVo.getMovementOrderStatus())) {
+            throw new ServiceException("调拨单【" + movementOrderVo.getMovementOrderNo() + "】已作废，无法删除！", HttpStatus.CONFLICT.value());
+        }
         if (ServiceConstants.MovementOrderStatus.FINISH.equals(movementOrderVo.getMovementOrderStatus())) {
-            throw new ServiceException("调拨单【" + movementOrderVo.getMovementOrderNo() + "】已执行，无法删除！");
+            throw new ServiceException("调拨单【" + movementOrderVo.getMovementOrderNo() + "】已执行，无法删除！", HttpStatus.CONFLICT.value());
         }
     }
 
@@ -176,6 +191,10 @@ public class MovementOrderService {
      * 批量删除调拨单
      */
     public void deleteByIds(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+        ids.forEach(this::validateIdBeforeDelete);
         movementOrderMapper.deleteBatchIds(ids);
     }
 

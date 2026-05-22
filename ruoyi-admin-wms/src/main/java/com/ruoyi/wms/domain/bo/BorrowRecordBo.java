@@ -107,4 +107,14 @@ public class BorrowRecordBo extends BaseEntity {
      * 归还备注
      */
     private String returnRemark;
+
+    /**
+     * 借出前箱体
+     */
+    private Long originalBoxId;
+
+    /**
+     * 归还后箱体
+     */
+    private Long returnedBoxId;
 }
