@@ -13,6 +13,7 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BorrowRecordBo;
 import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.BorrowRecord;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
@@ -24,10 +25,12 @@ import com.ruoyi.wms.domain.vo.BorrowRecordVo;
 import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.mapper.AreaMapper;
 import com.ruoyi.wms.mapper.BorrowRecordMapper;
+import com.ruoyi.wms.mapper.BoxMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,12 +46,16 @@ import java.util.stream.Collectors;
 @Service
 public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowRecord> {
 
+    @Value("${warehouse}")
+    private String warehouse;
+
     private final BorrowRecordMapper borrowRecordMapper;
     private final ItemInstanceService itemInstanceService;
     private final WarehouseMapper warehouseMapper;
     private final AreaMapper areaMapper;
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
+    private final BoxMapper boxMapper;
     private final InventoryHistoryService inventoryHistoryService;
 
     public BorrowRecordVo queryById(Long id) {
@@ -128,6 +135,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setOriginalAreaId(itemInstance.getAreaId());
         add.setOriginalRackId(itemInstance.getRackId());
         add.setOriginalLocationId(itemInstance.getLocationId());
+        add.setOriginalBoxId(itemInstance.getBoxId());
         fillOverdueFields(add, add.getBorrowTime(), null);
         borrowRecordMapper.insert(add);
         itemInstanceService.markBorrowed(itemInstance.getId());
@@ -143,7 +151,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
             borrowRecord.getOriginalWarehouseId(),
             borrowRecord.getOriginalAreaId(),
             borrowRecord.getOriginalRackId(),
-            borrowRecord.getOriginalLocationId()
+            borrowRecord.getOriginalLocationId(),
+            borrowRecord.getOriginalBoxId()
         );
         BorrowRecord update = new BorrowRecord();
         update.setId(borrowRecord.getId());
@@ -154,6 +163,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         update.setReturnedAreaId(borrowRecord.getOriginalAreaId());
         update.setReturnedRackId(borrowRecord.getOriginalRackId());
         update.setReturnedLocationId(borrowRecord.getOriginalLocationId());
+        update.setReturnedBoxId(borrowRecord.getOriginalBoxId());
         fillOverdueFields(update, borrowRecord.getBorrowTime(), update.getReturnTime() == null ? LocalDateTime.now() : update.getReturnTime());
         borrowRecordMapper.updateById(update);
         borrowRecord.setReturnTime(update.getReturnTime());
@@ -201,7 +211,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private ItemInstance requireBorrowableItem(Long itemInstanceId) {
         ItemInstance itemInstance = itemInstanceService.getById(itemInstanceId);
         Assert.notNull(itemInstance, "单品实例不存在");
-        Assert.isTrue(itemInstance.getBoxId() == null, "单品实例在箱内，不能直接借出");
         Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "单品实例已借出");
         Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
         return itemInstance;
@@ -252,16 +261,19 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         Set<Long> originalAreaIds = validList.stream().map(BorrowRecordVo::getOriginalAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> originalRackIds = validList.stream().map(BorrowRecordVo::getOriginalRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> originalLocationIds = validList.stream().map(BorrowRecordVo::getOriginalLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> originalBoxIds = validList.stream().map(BorrowRecordVo::getOriginalBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedWarehouseIds = validList.stream().map(BorrowRecordVo::getReturnedWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedAreaIds = validList.stream().map(BorrowRecordVo::getReturnedAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedRackIds = validList.stream().map(BorrowRecordVo::getReturnedRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedLocationIds = validList.stream().map(BorrowRecordVo::getReturnedLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> returnedBoxIds = validList.stream().map(BorrowRecordVo::getReturnedBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemInstanceVo> itemMap = itemInstanceService.queryVosByIds(itemInstanceIds).stream()
             .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
         Map<Long, Warehouse> warehouseMap = mergeWarehouseMap(originalWarehouseIds, returnedWarehouseIds);
         Map<Long, Area> areaMap = mergeAreaMap(originalAreaIds, returnedAreaIds);
         Map<Long, Rack> rackMap = mergeRackMap(originalRackIds, returnedRackIds);
         Map<Long, Location> locationMap = mergeLocationMap(originalLocationIds, returnedLocationIds);
+        Map<Long, Box> boxMap = mergeBoxMap(originalBoxIds, returnedBoxIds);
         validList.forEach(vo -> {
             ItemInstanceVo item = itemMap.get(vo.getItemInstanceId());
             if (item != null) {
@@ -274,6 +286,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
             fillAreaName(vo, areaMap);
             fillRackName(vo, rackMap);
             fillLocationName(vo, locationMap);
+            fillBoxCode(vo, boxMap);
         });
     }
 
@@ -317,6 +330,16 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return locationMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
     }
 
+    private Map<Long, Box> mergeBoxMap(Set<Long> firstIds, Set<Long> secondIds) {
+        Set<Long> ids = CollUtil.newHashSet();
+        ids.addAll(firstIds);
+        ids.addAll(secondIds);
+        if (ids.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        return boxMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
+    }
+
     private void fillWarehouseName(BorrowRecordVo vo, Map<Long, Warehouse> warehouseMap) {
         Warehouse originalWarehouse = warehouseMap.get(vo.getOriginalWarehouseId());
         if (originalWarehouse != null) {
@@ -358,6 +381,17 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         Location returnedLocation = locationMap.get(vo.getReturnedLocationId());
         if (returnedLocation != null) {
             vo.setReturnedLocationName(returnedLocation.getLocationName());
+        }
+    }
+
+    private void fillBoxCode(BorrowRecordVo vo, Map<Long, Box> boxMap) {
+        Box originalBox = boxMap.get(vo.getOriginalBoxId());
+        if (originalBox != null) {
+            vo.setOriginalBoxCode(originalBox.getBoxCode());
+        }
+        Box returnedBox = boxMap.get(vo.getReturnedBoxId());
+        if (returnedBox != null) {
+            vo.setReturnedBoxCode(returnedBox.getBoxCode());
         }
     }
 
@@ -440,6 +474,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     }
 
     private String generateBorrowNo() {
-        return "BR" + IdUtil.getSnowflakeNextIdStr();
+        return "BR" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 }

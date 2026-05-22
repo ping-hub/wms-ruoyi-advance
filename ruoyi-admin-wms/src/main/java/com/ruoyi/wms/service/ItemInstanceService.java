@@ -21,6 +21,8 @@ import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.BorrowRecord;
 import com.ruoyi.wms.domain.entity.Box;
+import com.ruoyi.wms.domain.entity.Item;
+import com.ruoyi.wms.domain.entity.ItemCategory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.entity.Rack;
@@ -36,7 +38,9 @@ import com.ruoyi.wms.domain.vo.ItemVo;
 import com.ruoyi.wms.mapper.AreaMapper;
 import com.ruoyi.wms.mapper.BorrowRecordMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
+import com.ruoyi.wms.mapper.ItemCategoryMapper;
 import com.ruoyi.wms.mapper.ItemInstanceMapper;
+import com.ruoyi.wms.mapper.ItemMapper;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
@@ -74,6 +78,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final ReceiptOrderDetailMapper receiptOrderDetailMapper;
     private final ShipmentOrderMapper shipmentOrderMapper;
     private final ShipmentOrderDetailMapper shipmentOrderDetailMapper;
+    private final ItemMapper itemMapper;
+    private final ItemCategoryMapper itemCategoryMapper;
 
     public ItemInstanceVo queryById(Long id) {
         ItemInstanceVo vo = itemInstanceMapper.selectVoById(id);
@@ -317,10 +323,14 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     }
 
     public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId) {
+        restoreFromBorrow(id, warehouseId, areaId, rackId, locationId, null);
+    }
+
+    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId, Long boxId) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
-        wrapper.set(ItemInstance::getBoxId, null);
+        wrapper.set(ItemInstance::getBoxId, boxId);
         wrapper.set(ItemInstance::getWarehouseId, warehouseId);
         wrapper.set(ItemInstance::getAreaId, areaId);
         wrapper.set(ItemInstance::getRackId, rackId);
@@ -510,6 +520,21 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
         lqw.eq(StrUtil.isNotBlank(bo.getInstanceCode()), ItemInstance::getInstanceCode, bo.getInstanceCode());
         lqw.eq(bo.getItemId() != null, ItemInstance::getItemId, bo.getItemId());
+        if (StrUtil.isNotBlank(bo.getItemCategory())) {
+            List<Long> categoryIds = buildSubItemCategoryIdList(Long.valueOf(bo.getItemCategory()));
+            categoryIds.add(Long.valueOf(bo.getItemCategory()));
+            LambdaQueryWrapper<Item> itemWrapper = Wrappers.lambdaQuery();
+            itemWrapper.in(Item::getItemCategory, categoryIds);
+            List<Long> itemIds = itemMapper.selectList(itemWrapper).stream()
+                .map(Item::getId)
+                .filter(Objects::nonNull)
+                .toList();
+            if (CollUtil.isEmpty(itemIds)) {
+                lqw.eq(ItemInstance::getId, -1L);
+            } else {
+                lqw.in(ItemInstance::getItemId, itemIds);
+            }
+        }
         lqw.eq(bo.getSkuId() != null, ItemInstance::getSkuId, bo.getSkuId());
         lqw.eq(StrUtil.isNotBlank(bo.getInstanceStatus()), ItemInstance::getInstanceStatus, bo.getInstanceStatus());
         lqw.eq(bo.getWarehouseId() != null, ItemInstance::getWarehouseId, bo.getWarehouseId());
@@ -536,6 +561,15 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         }
         lqw.orderByDesc(ItemInstance::getCreateTime);
         return lqw;
+    }
+
+    private List<Long> buildSubItemCategoryIdList(Long parentId) {
+        LambdaQueryWrapper<ItemCategory> itemCategoryWrapper = Wrappers.lambdaQuery();
+        itemCategoryWrapper.eq(ItemCategory::getParentId, parentId);
+        return itemCategoryMapper.selectList(itemCategoryWrapper).stream()
+            .map(ItemCategory::getId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 
     public void reserveForShipmentDetails(List<ShipmentOrderDetailBo> detailList) {

@@ -99,6 +99,11 @@ public class BorrowRecordVo implements Serializable {
 
     private String originalLocationName;
 
+    @ExcelProperty(value = "原箱体")
+    private Long originalBoxId;
+
+    private String originalBoxCode;
+
     @ExcelProperty(value = "归还仓库")
     private Long returnedWarehouseId;
 
@@ -118,4 +123,9 @@ public class BorrowRecordVo implements Serializable {
     private Long returnedLocationId;
 
     private String returnedLocationName;
+
+    @ExcelProperty(value = "归还箱体")
+    private Long returnedBoxId;
+
+    private String returnedBoxCode;
 }

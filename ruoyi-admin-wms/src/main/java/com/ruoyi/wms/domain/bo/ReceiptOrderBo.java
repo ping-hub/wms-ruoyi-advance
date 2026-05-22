@@ -36,7 +36,7 @@ public class ReceiptOrderBo extends BaseEntity {
     /**
      * 入库单号
      */
-    @NotBlank(message = "入库单号不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "入库单号不能为空", groups = { EditGroup.class })
     private String receiptOrderNo;
 
     /**

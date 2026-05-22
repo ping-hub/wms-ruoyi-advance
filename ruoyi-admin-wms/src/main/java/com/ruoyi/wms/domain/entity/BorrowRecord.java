@@ -130,6 +130,11 @@ public class BorrowRecord extends BaseEntity {
     private Long originalLocationId;
 
     /**
+     * 借出前箱体
+     */
+    private Long originalBoxId;
+
+    /**
      * 归还后仓库
      */
     private Long returnedWarehouseId;
@@ -148,4 +153,9 @@ public class BorrowRecord extends BaseEntity {
      * 归还后货位
      */
     private Long returnedLocationId;
+
+    /**
+     * 归还后箱体
+     */
+    private Long returnedBoxId;
 }

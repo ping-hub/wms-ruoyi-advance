@@ -34,7 +34,7 @@ public class ShipmentOrderBo extends BaseEntity {
     /**
      * 出库单号，系统自动生成
      */
-    @NotBlank(message = "出库单号不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "出库单号不能为空", groups = { EditGroup.class })
     private String shipmentOrderNo;
 
     /**

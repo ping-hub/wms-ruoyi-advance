@@ -29,6 +29,11 @@ public class ItemInstanceBo extends BaseEntity {
     private Long itemId;
 
     /**
+     * 器材分类
+     */
+    private String itemCategory;
+
+    /**
      * 规格ID
      */
     private Long skuId;

@@ -2,6 +2,8 @@ package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import com.ruoyi.common.core.constant.ServiceConstants;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.exception.base.BaseException;
@@ -23,6 +25,8 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.CheckOrderBo;
 import com.ruoyi.wms.domain.vo.CheckOrderVo;
@@ -43,6 +47,9 @@ import java.util.*;
 @RequiredArgsConstructor
 @Service
 public class CheckOrderService {
+
+    @Value("${warehouse}")
+    private String warehouse;
 
     private final CheckOrderMapper checkOrderMapper;
     private final CheckOrderDetailService checkOrderDetailService;
@@ -100,6 +107,7 @@ public class CheckOrderService {
      */
     @Transactional
     public void insertByBo(CheckOrderBo bo) {
+        bo.setCheckOrderNo(StrUtil.blankToDefault(bo.getCheckOrderNo(), generateCheckOrderNo()));
         // 校验盘库单号唯一性
         validateCheckOrderNo(bo.getCheckOrderNo());
         // 创建盘库单
@@ -115,8 +123,12 @@ public class CheckOrderService {
         LambdaQueryWrapper<CheckOrder> lambdaQueryWrapper = Wrappers.lambdaQuery();
         lambdaQueryWrapper.eq(CheckOrder::getCheckOrderNo, checkOrderNo);
         if (checkOrderMapper.exists(lambdaQueryWrapper)) {
-            throw new BaseException("盘库单号重复，请手动修改");
+            throw new BaseException("系统生成的盘点单号重复，请稍后重试");
         }
+    }
+
+    private String generateCheckOrderNo() {
+        return "PK" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**
@@ -145,8 +157,11 @@ public class CheckOrderService {
         if (checkOrderVo == null) {
             throw new BaseException("盘库单不存在");
         }
+        if (ServiceConstants.CheckOrderStatus.INVALID.equals(checkOrderVo.getCheckOrderStatus())) {
+            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已作废，无法删除！", HttpStatus.CONFLICT.value());
+        }
         if (ServiceConstants.CheckOrderStatus.FINISH.equals(checkOrderVo.getCheckOrderStatus())) {
-            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已盘库完成，无法删除！");
+            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已盘库完成，无法删除！", HttpStatus.CONFLICT.value());
         }
     }
 

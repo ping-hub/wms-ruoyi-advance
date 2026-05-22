@@ -2,6 +2,8 @@ package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,6 +31,7 @@ import com.ruoyi.wms.domain.vo.ReceiptItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ReceiptOrderVo;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class ReceiptOrderService {
+
+    @Value("${warehouse}")
+    private String warehouse;
 
     private final ReceiptOrderMapper receiptOrderMapper;
     private final ReceiptOrderDetailService receiptOrderDetailService;
@@ -106,6 +112,7 @@ public class ReceiptOrderService {
     @Transactional
     public void insertByBo(ReceiptOrderBo bo) {
         normalizeReceiptDetails(bo.getDetails());
+        bo.setReceiptOrderNo(StrUtil.blankToDefault(bo.getReceiptOrderNo(), generateReceiptOrderNo()));
         // 校验入库单号唯一性
         validateReceiptOrderNo(bo.getReceiptOrderNo());
         // 创建入库单
@@ -308,6 +315,9 @@ public class ReceiptOrderService {
     private void validateIdBeforeDelete(Long id) {
         ReceiptOrderVo receiptOrderVo = queryById(id);
         Assert.notNull(receiptOrderVo, "入库单不存在");
+        if (ServiceConstants.ReceiptOrderStatus.INVALID.equals(receiptOrderVo.getReceiptOrderStatus())) {
+            throw new ServiceException("入库单【" + receiptOrderVo.getReceiptOrderNo() + "】已作废，无法删除！", HttpStatus.CONFLICT.value());
+        }
         if (ServiceConstants.ReceiptOrderStatus.FINISH.equals(receiptOrderVo.getReceiptOrderStatus())) {
             throw new ServiceException("入库单【" + receiptOrderVo.getReceiptOrderNo() + "】已入库，无法删除！", HttpStatus.CONFLICT.value());
         }
@@ -318,6 +328,7 @@ public class ReceiptOrderService {
      */
     public void deleteByIds(Collection<Long> ids) {
         if (CollUtil.isNotEmpty(ids)) {
+            ids.stream().filter(Objects::nonNull).forEach(this::validateIdBeforeDelete);
             List<Long> detailIds = ids.stream()
                 .filter(Objects::nonNull)
                 .flatMap(id -> receiptOrderDetailService.queryEntitiesByReceiptOrderId(id).stream())
@@ -333,7 +344,11 @@ public class ReceiptOrderService {
         LambdaQueryWrapper<ReceiptOrder> receiptOrderLqw = Wrappers.lambdaQuery();
         receiptOrderLqw.eq(ReceiptOrder::getReceiptOrderNo, receiptOrderNo);
         ReceiptOrder receiptOrder = receiptOrderMapper.selectOne(receiptOrderLqw);
-        Assert.isNull(receiptOrder, "入库单号重复，请手动修改");
+        Assert.isNull(receiptOrder, "系统生成的入库单号重复，请稍后重试");
+    }
+
+    private String generateReceiptOrderNo() {
+        return "RK" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     private void attachReceiptInstances(ReceiptOrderVo receiptOrderVo) {
