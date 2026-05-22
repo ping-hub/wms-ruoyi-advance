@@ -1,0 +1,16 @@
+这会导出：
+- 建表语句
+- 索引
+- 主键/约束
+- 全部数据 INSERT
+SCRIPT TO 'D:/temp/wmsdb.sql';
+
+恢复导出的 SQL
+RUNSCRIPT FROM 'D:/temp/wmsdb.sql';
+
+如果只导表结构
+SCRIPT NODATA TO 'D:/temp/wmsdb_schema.sql';
+
+如果只导部分表
+SCRIPT TO 'D:/temp/wmsdb_part.sql'
+TABLE wms_item_instance,wms_borrow_record;

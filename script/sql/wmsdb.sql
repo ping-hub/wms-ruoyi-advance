@@ -1,4153 +1,1717 @@
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS `gen_table`;
-CREATE TABLE `gen_table` (
-                             `table_id` bigint NOT NULL COMMENT '编号',
-                             `table_name` varchar(200) NULL DEFAULT '' COMMENT '表名称',
-                             `table_comment` varchar(500) NULL DEFAULT '' COMMENT '表描述',
-                             `sub_table_name` varchar(64) NULL DEFAULT NULL COMMENT '关联子表的表名',
-                             `sub_table_fk_name` varchar(64) NULL DEFAULT NULL COMMENT '子表关联的外键名',
-                             `class_name` varchar(100) NULL DEFAULT '' COMMENT '实体类名称',
-                             `tpl_category` varchar(200) NULL DEFAULT 'crud' COMMENT '使用的模板（crud单表操作 tree树表操作）',
-                             `package_name` varchar(100) NULL DEFAULT NULL COMMENT '生成包路径',
-                             `module_name` varchar(30) NULL DEFAULT NULL COMMENT '生成模块名',
-                             `business_name` varchar(30) NULL DEFAULT NULL COMMENT '生成业务名',
-                             `function_name` varchar(50) NULL DEFAULT NULL COMMENT '生成功能名',
-                             `function_author` varchar(50) NULL DEFAULT NULL COMMENT '生成功能作者',
-                             `gen_type` char(1) NULL DEFAULT '0' COMMENT '生成代码方式（0zip压缩包 1自定义路径）',
-                             `gen_path` varchar(200) NULL DEFAULT '/' COMMENT '生成路径（不填默认项目路径）',
-                             `options` varchar(1000) NULL DEFAULT NULL COMMENT '其它生成选项',
-                             `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                             `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                             `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-DROP TABLE IF EXISTS `gen_table_column`;
-CREATE TABLE `gen_table_column` (
-                                    `column_id` bigint NOT NULL COMMENT '编号',
-                                    `table_id` bigint NULL DEFAULT NULL COMMENT '归属表编号',
-                                    `column_name` varchar(200) NULL DEFAULT NULL COMMENT '列名称',
-                                    `column_comment` varchar(500) NULL DEFAULT NULL COMMENT '列描述',
-                                    `column_type` varchar(100) NULL DEFAULT NULL COMMENT '列类型',
-                                    `java_type` varchar(500) NULL DEFAULT NULL COMMENT 'JAVA类型',
-                                    `java_field` varchar(200) NULL DEFAULT NULL COMMENT 'JAVA字段名',
-                                    `is_pk` char(1) NULL DEFAULT NULL COMMENT '是否主键（1是）',
-                                    `is_increment` char(1) NULL DEFAULT NULL COMMENT '是否自增（1是）',
-                                    `is_required` char(1) NULL DEFAULT NULL COMMENT '是否必填（1是）',
-                                    `is_insert` char(1) NULL DEFAULT NULL COMMENT '是否为插入字段（1是）',
-                                    `is_edit` char(1) NULL DEFAULT NULL COMMENT '是否编辑字段（1是）',
-                                    `is_list` char(1) NULL DEFAULT NULL COMMENT '是否列表字段（1是）',
-                                    `is_query` char(1) NULL DEFAULT NULL COMMENT '是否查询字段（1是）',
-                                    `query_type` varchar(200) NULL DEFAULT 'EQ' COMMENT '查询方式（等于、不等于、大于、小于、范围）',
-                                    `html_type` varchar(200) NULL DEFAULT NULL COMMENT '显示类型（文本框、文本域、下拉框、复选框、单选框、日期控件）',
-                                    `dict_type` varchar(200) NULL DEFAULT '' COMMENT '字典类型',
-                                    `sort` int NULL DEFAULT NULL COMMENT '排序',
-                                    `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                    `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                                    `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-DROP TABLE IF EXISTS `sys_config`;
-CREATE TABLE `sys_config` (
-                              `config_id` bigint NOT NULL COMMENT '参数主键',
-                              `config_name` varchar(100) NULL DEFAULT '' COMMENT '参数名称',
-                              `config_key` varchar(100) NULL DEFAULT '' COMMENT '参数键名',
-                              `config_value` varchar(500) NULL DEFAULT '' COMMENT '参数键值',
-                              `config_type` char(1) NULL DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
-                              `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                              `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                              `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_config`
-VALUES (1, '主框架页-默认皮肤样式名称', 'sys.index.skinName', 'skin-blue', 'Y'
-       , 'admin', '2024-06-13 16:06:37', '', NULL, '蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow');
-INSERT INTO `sys_config`
-VALUES (2, '用户管理-账号初始密码', 'sys.user.initPassword', '123456', 'Y'
-       , 'admin', '2024-06-13 16:06:37', '', NULL, '初始化密码 123456');
-INSERT INTO `sys_config`
-VALUES (3, '主框架页-侧边栏主题', 'sys.index.sideTheme', 'theme-light', 'Y'
-       , 'admin', '2024-06-13 16:06:37', 'admin', '2024-07-16 11:25:33', '深色主题theme-dark，浅色主题theme-light');
-INSERT INTO `sys_config`
-VALUES (4, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'true', 'Y'
-       , 'admin', '2024-06-13 16:06:37', '', NULL, '是否开启验证码功能（true开启，false关闭）');
-INSERT INTO `sys_config`
-VALUES (5, '账号自助-是否开启用户注册功能', 'sys.account.registerUser', 'false', 'Y'
-       , 'admin', '2024-06-13 16:06:37', '', NULL, '是否开启注册用户功能（true开启，false关闭）');
-INSERT INTO `sys_config`
-VALUES (11, 'OSS预览列表资源开关', 'sys.oss.previewListResource', 'true', 'Y'
-       , 'admin', '2024-06-13 16:06:37', '', NULL, 'true:开启, false:关闭');
-DROP TABLE IF EXISTS `sys_dept`;
-CREATE TABLE `sys_dept` (
-                            `dept_id` bigint NOT NULL COMMENT '部门id',
-                            `parent_id` bigint NULL DEFAULT 0 COMMENT '父部门id',
-                            `ancestors` varchar(500) NULL DEFAULT '' COMMENT '祖级列表',
-                            `dept_name` varchar(30) NULL DEFAULT '' COMMENT '部门名称',
-                            `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
-                            `leader` varchar(20) NULL DEFAULT NULL COMMENT '负责人',
-                            `phone` varchar(11) NULL DEFAULT NULL COMMENT '联系电话',
-                            `email` varchar(50) NULL DEFAULT NULL COMMENT '邮箱',
-                            `status` char(1) NULL DEFAULT '0' COMMENT '部门状态（0正常 1停用）',
-                            `del_flag` char(1) NULL DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-                            `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                            `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                            `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_dept`
-VALUES (100, 0, '0', '若依科技', 0
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (101, 100, '0,100', '深圳总公司', 1
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (102, 100, '0,100', '长沙分公司', 2
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (103, 101, '0,100,101', '研发部门', 1
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (104, 101, '0,100,101', '市场部门', 2
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (105, 101, '0,100,101', '测试部门', 3
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (106, 101, '0,100,101', '财务部门', 4
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (107, 101, '0,100,101', '运维部门', 5
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (108, 102, '0,100,102', '市场部门', 1
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (109, 102, '0,100,102', '财务部门', 2
-       , '若依', '15888888888', 'ry@qq.com', '1', '0'
-       , 'admin', '2024-06-13 16:06:25', '', NULL);
-INSERT INTO `sys_dept`
-VALUES (1811589666899832833, 102, '0,100,102', '测试部门2', 0
-       , '负责人', '', '', '1', '0'
-       , 'admin', '2024-07-12 10:33:29', 'admin', '2024-07-12 10:33:29');
-DROP TABLE IF EXISTS `sys_dict_data`;
-CREATE TABLE `sys_dict_data` (
-                                 `dict_code` bigint NOT NULL AUTO_INCREMENT COMMENT '字典编码',
-                                 `dict_sort` int NULL DEFAULT 0 COMMENT '字典排序',
-                                 `dict_label` varchar(100) NULL DEFAULT '' COMMENT '字典标签',
-                                 `dict_value` varchar(100) NULL DEFAULT '' COMMENT '字典键值',
-                                 `dict_type` varchar(100) NULL DEFAULT '' COMMENT '字典类型',
-                                 `css_class` varchar(100) NULL DEFAULT NULL COMMENT '样式属性（其他样式扩展）',
-                                 `list_class` varchar(100) NULL DEFAULT NULL COMMENT '表格回显样式',
-                                 `is_default` char(1) NULL DEFAULT 'N' COMMENT '是否默认（Y是 N否）',
-                                 `status` char(1) NULL DEFAULT '0' COMMENT '状态（0停用 1正常）',
-                                 `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                                 `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                                 `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_dict_data`
-VALUES (1, 1, '男', '0', 'sys_user_sex'
-       , '', '', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '性别男');
-INSERT INTO `sys_dict_data`
-VALUES (2, 2, '女', '1', 'sys_user_sex'
-       , '', '', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '性别女');
-INSERT INTO `sys_dict_data`
-VALUES (3, 3, '未知', '2', 'sys_user_sex'
-       , '', '', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '性别未知');
-INSERT INTO `sys_dict_data`
-VALUES (4, 1, '显示', '1', 'sys_show_hide'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 16:34:54', '显示菜单');
-INSERT INTO `sys_dict_data`
-VALUES (5, 2, '隐藏', '0', 'sys_show_hide'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 16:35:07', '隐藏菜单');
-INSERT INTO `sys_dict_data`
-VALUES (6, 1, '正常', '1', 'sys_normal_disable'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 14:30:58', '正常状态');
-INSERT INTO `sys_dict_data`
-VALUES (7, 2, '停用', '0', 'sys_normal_disable'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 14:31:06', '停用状态');
-INSERT INTO `sys_dict_data`
-VALUES (12, 1, '是', 'Y', 'sys_yes_no'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '系统默认是');
-INSERT INTO `sys_dict_data`
-VALUES (13, 2, '否', 'N', 'sys_yes_no'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '系统默认否');
-INSERT INTO `sys_dict_data`
-VALUES (14, 1, '通知', '1', 'sys_notice_type'
-       , '', 'warning', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '通知');
-INSERT INTO `sys_dict_data`
-VALUES (15, 2, '公告', '2', 'sys_notice_type'
-       , '', 'success', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '公告');
-INSERT INTO `sys_dict_data`
-VALUES (16, 1, '正常', '1', 'sys_notice_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 17:24:35', '正常状态');
-INSERT INTO `sys_dict_data`
-VALUES (17, 2, '关闭', '0', 'sys_notice_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', 'admin', '2024-07-10 17:24:44', '关闭状态');
-INSERT INTO `sys_dict_data`
-VALUES (18, 1, '新增', '1', 'sys_oper_type'
-       , '', 'info', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '新增操作');
-INSERT INTO `sys_dict_data`
-VALUES (19, 2, '修改', '2', 'sys_oper_type'
-       , '', 'info', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '修改操作');
-INSERT INTO `sys_dict_data`
-VALUES (20, 3, '删除', '3', 'sys_oper_type'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '删除操作');
-INSERT INTO `sys_dict_data`
-VALUES (21, 4, '授权', '4', 'sys_oper_type'
-       , '', 'primary', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '授权操作');
-INSERT INTO `sys_dict_data`
-VALUES (22, 5, '导出', '5', 'sys_oper_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '导出操作');
-INSERT INTO `sys_dict_data`
-VALUES (23, 6, '导入', '6', 'sys_oper_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '导入操作');
-INSERT INTO `sys_dict_data`
-VALUES (24, 7, '强退', '7', 'sys_oper_type'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '强退操作');
-INSERT INTO `sys_dict_data`
-VALUES (25, 8, '生成代码', '8', 'sys_oper_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '生成操作');
-INSERT INTO `sys_dict_data`
-VALUES (26, 9, '清空数据', '9', 'sys_oper_type'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', '', NULL, '清空操作');
-INSERT INTO `sys_dict_data`
-VALUES (27, 1, '失败', '0', 'sys_common_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', 'admin', '2024-07-15 10:50:52', '正常状态');
-INSERT INTO `sys_dict_data`
-VALUES (28, 2, '成功', '1', 'sys_common_status'
-       , '', 'success', 'N', '1', 'admin'
-       , '2024-06-13 16:06:37', 'admin', '2024-07-15 10:51:05', '停用状态');
-INSERT INTO `sys_dict_data`
-VALUES (29, 99, '其他', '0', 'sys_oper_type'
-       , '', 'info', 'N', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '其他操作');
-INSERT INTO `sys_dict_data`
-VALUES (1813153852862160897, 0, '未入库', '0', 'wms_receipt_status'
-       , NULL, 'info', 'N', '1', 'admin'
-       , '2024-07-16 18:09:00', 'admin', '2024-07-22 09:38:14', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1813153899775451137, 1, '已入库', '1', 'wms_receipt_status'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-07-16 18:09:11', 'admin', '2024-07-22 09:38:22', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1813397339171905537, 3, '作废', '-1', 'wms_receipt_status'
-       , NULL, 'danger', 'N', '1', 'admin'
-       , '2024-07-17 10:16:32', 'admin', '2024-07-22 09:38:29', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1818850397680640002, 2, '作废', '-1', 'wms_shipment_status'
-       , NULL, 'danger', 'N', '1', 'admin'
-       , '2024-08-01 11:25:02', 'admin', '2024-08-01 14:25:24', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1818850512650706945, 0, '未出库', '0', 'wms_shipment_status'
-       , NULL, 'info', 'N', '1', 'admin'
-       , '2024-08-01 11:25:29', 'admin', '2024-08-01 14:25:37', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1818850565389885441, 1, '已出库', '1', 'wms_shipment_status'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-01 11:25:42', 'admin', '2024-08-01 14:25:32', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1821067084643434498, 0, '入库', '1', 'wms_inventory_history_type'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-07 14:13:21', 'admin', '2024-08-07 14:57:41', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1821067144441626625, 1, '出库', '2', 'wms_inventory_history_type'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-07 14:13:36', 'admin', '2024-08-07 14:57:47', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1821067181917732866, 2, '移库', '3', 'wms_inventory_history_type'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-07 14:13:45', 'admin', '2024-08-07 14:57:54', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1821067222455681026, 3, '盘库', '4', 'wms_inventory_history_type'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-07 14:13:54', 'admin', '2024-08-07 14:58:06', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1822820748966006786, 0, '未移库', '0', 'wms_movement_status'
-       , NULL, 'info', 'N', '1', 'admin'
-       , '2024-08-12 10:21:48', 'admin', '2024-08-12 10:21:48', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1822820794864275457, 1, '已移库', '1', 'wms_movement_status'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-12 10:21:59', 'admin', '2024-08-12 10:21:59', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1822820855526494210, 2, '作废', '-1', 'wms_movement_status'
-       , NULL, 'danger', 'N', '1', 'admin'
-       , '2024-08-12 10:22:13', 'admin', '2024-08-12 10:22:13', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1823182345731391489, 0, '待盘库', '0', 'wms_check_status'
-       , NULL, 'info', 'N', '1', 'admin'
-       , '2024-08-13 10:18:39', 'admin', '2024-08-13 10:18:39', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1823182400756465666, 1, '已盘库', '1', 'wms_check_status'
-       , NULL, 'primary', 'N', '1', 'admin'
-       , '2024-08-13 10:18:52', 'admin', '2024-08-13 10:18:52', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1823182471136886786, 2, '作废', '-1', 'wms_check_status'
-       , NULL, 'danger', 'N', '1', 'admin'
-       , '2024-08-13 10:19:09', 'admin', '2024-08-13 10:19:09', NULL);
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000002001, 1, '启用', 'enabled', 'wms_rack_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货架启用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000002002, 2, '停用', 'disabled', 'wms_rack_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货架停用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000002006, 1, '启用', 'enabled', 'wms_location_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位启用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000002007, 2, '停用', 'disabled', 'wms_location_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位停用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000002008, 3, '占用', 'occupied', 'wms_location_status'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位占用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000004101, 1, '待入库', '待入库', 'wms_item_instance_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '批量打印后待入库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000004102, 2, '在库', '在库', 'wms_item_instance_status'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '已入库且可参与在库作业');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000004103, 5, '借出', '借出', 'wms_item_instance_status'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '借用单借出');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000004104, 3, '出库', '出库', 'wms_item_instance_status'
-       , '', 'info', 'N', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '已完成出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000004105, 6, '报废', '报废', 'wms_item_instance_status'
-       , '', 'default', 'N', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '报废出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000005101, 1, '空箱', 'idle', 'wms_box_status'
-       , '', 'default', 'Y', '1', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '空箱状态');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000005102, 2, '已装箱', 'packed', 'wms_box_status'
-       , '', 'primary', 'N', '1', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '已装箱状态');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000005103, 3, '停用', 'disabled', 'wms_box_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '停用状态');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000006101, 1, '借出中', 'borrowed', 'wms_borrow_status'
-       , '', 'warning', 'Y', '1', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '当前已借出');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000006102, 2, '已归还', 'returned', 'wms_borrow_status'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '当前已归还');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000007101, 4, '已出库', 'outbound', 'wms_box_status'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-02 23:02:59', 'admin', '2026-05-02 23:02:59', '箱体已整箱出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010101, 1, '通装', '通装', 'wms_equipment_type'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '器材类型');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010102, 2, '专装', '专装', 'wms_equipment_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '器材类型');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010201, 1, '启用', '1', 'wms_item_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-20 17:59:01', '器材主档启用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010202, 2, '停用', '0', 'wms_item_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-20 17:59:01', '器材主档停用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010301, 1, '启用', '1', 'wms_item_sku_status'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-20 17:59:01', '器材规格启用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010302, 2, '停用', '0', 'wms_item_sku_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-20 17:59:01', '器材规格停用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010901, 4, '异常', 'abnormal', 'wms_location_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '货位异常');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010902, 4, '盘亏', '盘亏', 'wms_item_instance_status'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-18 09:45:08', 'admin', '2026-05-18 09:45:08', '盘点盘亏');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010903, 1, '采购入库', '采购入库', 'wms_receipt_type'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '采购入库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010904, 2, '归还入库', '归还入库', 'wms_receipt_type'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '归还入库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010905, 3, '调拨入库', '调拨入库', 'wms_receipt_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '调拨入库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010906, 1, '借用出库', '借用出库', 'wms_shipment_type'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '借用出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010907, 2, '调拨出库', '调拨出库', 'wms_shipment_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '调拨出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010908, 3, '报废出库', '报废出库', 'wms_shipment_type'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-18 11:44:06', 'admin', '2026-05-18 11:44:06', '报废出库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010909, 1, '空运', 'air', 'wms_dispatch_mode'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-20 16:42:54', 'admin', '2026-05-20 17:59:01', '调拨方式：空运');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010910, 2, '公路', 'road', 'wms_dispatch_mode'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-05-20 16:42:54', 'admin', '2026-05-20 17:59:01', '调拨方式：公路');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010911, 3, '铁路', 'rail', 'wms_dispatch_mode'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-20 16:42:54', 'admin', '2026-05-20 17:59:01', '调拨方式：铁路');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010912, 4, '水运', 'sea', 'wms_dispatch_mode'
-       , '', 'info', 'N', '1', 'admin'
-       , '2026-05-20 16:42:54', 'admin', '2026-05-20 17:59:01', '调拨方式：水运');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010913, 1, '通装', '通装', 'wms_movement_type'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '调拨类型：通装');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010914, 2, '专装', '专装', 'wms_movement_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '调拨类型：专装');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010915, 1, '正常', '0', 'wms_overdue_flag'
-       , '', 'success', 'Y', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '超期状态：正常');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010916, 2, '已超期', '1', 'wms_overdue_flag'
-       , '', 'danger', 'N', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '超期状态：已超期');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010917, 1, '仓库', 'warehouse', 'wms_check_scope_type'
-       , '', 'primary', 'Y', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '盘点范围：仓库');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010918, 2, '库区', 'area', 'wms_check_scope_type'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '盘点范围：库区');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010919, 3, '货架', 'rack', 'wms_check_scope_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', '盘点范围：货架');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010930, 5, '借用', '5', 'wms_inventory_history_type'
-       , '', 'warning', 'N', '1', 'admin'
-       , '2026-05-20 23:15:58', 'admin', '2026-05-20 23:15:58', '库存流水操作类型：借用');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010931, 6, '归还', '6', 'wms_inventory_history_type'
-       , '', 'success', 'N', '1', 'admin'
-       , '2026-05-20 23:15:58', 'admin', '2026-05-20 23:15:58', '库存流水操作类型：归还');
-INSERT INTO `sys_dict_data`
-VALUES (1900000000000010932, 7, '调整', '7', 'wms_inventory_history_type'
-       , '', 'info', 'N', '1', 'admin'
-       , '2026-05-20 23:15:58', 'admin', '2026-05-20 23:15:58', '库存流水操作类型：调整');
-DROP TABLE IF EXISTS `sys_dict_type`;
-CREATE TABLE `sys_dict_type` (
-                                 `dict_id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典主键',
-                                 `dict_name` varchar(100) NULL DEFAULT '' COMMENT '字典名称',
-                                 `dict_type` varchar(100) NULL DEFAULT '' COMMENT '字典类型',
-                                 `status` char(1) NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
-                                 `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                                 `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                                 `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_dict_type`
-VALUES (1, '用户性别', 'sys_user_sex', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '用户性别列表');
-INSERT INTO `sys_dict_type`
-VALUES (2, '菜单状态', 'sys_show_hide', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '菜单状态列表');
-INSERT INTO `sys_dict_type`
-VALUES (3, '系统开关', 'sys_normal_disable', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '系统开关列表');
-INSERT INTO `sys_dict_type`
-VALUES (6, '系统是否', 'sys_yes_no', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '系统是否列表');
-INSERT INTO `sys_dict_type`
-VALUES (7, '通知类型', 'sys_notice_type', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '通知类型列表');
-INSERT INTO `sys_dict_type`
-VALUES (8, '通知状态', 'sys_notice_status', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '通知状态列表');
-INSERT INTO `sys_dict_type`
-VALUES (9, '操作类型', 'sys_oper_type', '1', 'admin'
-       , '2024-06-13 16:06:35', '', NULL, '操作类型列表');
-INSERT INTO `sys_dict_type`
-VALUES (10, '系统状态', 'sys_common_status', '1', 'admin'
-       , '2024-06-13 16:06:36', '', NULL, '登录状态列表');
-INSERT INTO `sys_dict_type`
-VALUES (1813152108564373505, '入库状态', 'wms_receipt_status', '1', 'admin'
-       , '2024-07-16 18:02:04', 'admin', '2024-07-16 18:02:17', '入库状态');
-INSERT INTO `sys_dict_type`
-VALUES (1814219082624778242, '入库类型', 'wms_receipt_type', '1', 'admin'
-       , '2024-07-19 16:41:51', 'admin', '2026-05-18 11:44:06', '入库类型');
-INSERT INTO `sys_dict_type`
-VALUES (1818848671749709825, '出库状态', 'wms_shipment_status', '1', 'admin'
-       , '2024-08-01 11:18:11', 'admin', '2024-08-01 11:18:11', NULL);
-INSERT INTO `sys_dict_type`
-VALUES (1818848738502057985, '出库类型', 'wms_shipment_type', '1', 'admin'
-       , '2024-08-01 11:18:26', 'admin', '2026-05-18 11:44:06', '出库类型');
-INSERT INTO `sys_dict_type`
-VALUES (1821066855638630402, '库存记录操作类型', 'wms_inventory_history_type', '1', 'admin'
-       , '2024-08-07 14:12:27', 'admin', '2024-08-07 14:12:27', NULL);
-INSERT INTO `sys_dict_type`
-VALUES (1822820566366982146, '移库状态', 'wms_movement_status', '1', 'admin'
-       , '2024-08-12 10:21:04', 'admin', '2024-08-12 10:21:04', NULL);
-INSERT INTO `sys_dict_type`
-VALUES (1823182238898274306, '盘库状态', 'wms_check_status', '1', 'admin'
-       , '2024-08-13 10:18:14', 'admin', '2024-08-13 10:18:14', NULL);
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000001001, '货架状态', 'wms_rack_status', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货架状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000001003, '货位状态', 'wms_location_status', '1', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000004001, '单品实例状态', 'wms_item_instance_status', '1', 'admin'
-       , '2026-04-30 16:29:04', 'admin', '2026-04-30 16:29:04', '单品实例状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000005001, '箱体状态', 'wms_box_status', '1', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '箱体状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000006001, '借还状态', 'wms_borrow_status', '1', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '借还状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010001, '器材类型', 'wms_equipment_type', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '第一阶段器材类型字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010002, '器材主档状态', 'wms_item_status', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '第一阶段器材主档状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010003, '器材规格状态', 'wms_item_sku_status', '1', 'admin'
-       , '2026-05-07 11:17:06', 'admin', '2026-05-07 11:17:06', '第一阶段器材规格状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010009, '调拨方式', 'wms_dispatch_mode', '1', 'admin'
-       , '2026-05-20 16:42:54', 'admin', '2026-05-20 16:42:54', 'WMS调拨方式字典，供入库/出库/调拨单共用');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010010, '调拨类型', 'wms_movement_type', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', 'WMS调拨类型字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010011, '超期状态', 'wms_overdue_flag', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', 'WMS借用超期状态字典');
-INSERT INTO `sys_dict_type`
-VALUES (1900000000000010012, '盘点范围类型', 'wms_check_scope_type', '1', 'admin'
-       , '2026-05-20 17:59:01', 'admin', '2026-05-20 17:59:01', 'WMS盘点范围类型字典');
-DROP TABLE IF EXISTS `sys_logininfor`;
-CREATE TABLE `sys_logininfor` (
-                                  `info_id` bigint NOT NULL COMMENT '访问ID',
-                                  `user_name` varchar(50) NULL DEFAULT '' COMMENT '用户账号',
-                                  `ipaddr` varchar(128) NULL DEFAULT '' COMMENT '登录IP地址',
-                                  `login_location` varchar(255) NULL DEFAULT '' COMMENT '登录地点',
-                                  `browser` varchar(50) NULL DEFAULT '' COMMENT '浏览器类型',
-                                  `os` varchar(50) NULL DEFAULT '' COMMENT '操作系统',
-                                  `status` char(1) NULL DEFAULT '0' COMMENT '登录状态（0成功 1失败）',
-                                  `msg` varchar(255) NULL DEFAULT '' COMMENT '提示消息',
-                                  `login_time` datetime NULL DEFAULT NULL COMMENT '访问时间',
-                                  INDEX idx_sys_logininfor_s1(`status`),
-                                  INDEX idx_sys_logininfor_lt2(`login_time`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_logininfor`
-VALUES (2049758328805208066, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-04-30 15:50:43');
-INSERT INTO `sys_logininfor`
-VALUES (2051911181686620161, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-06 14:25:23');
-INSERT INTO `sys_logininfor`
-VALUES (2052294143653543938, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-07 15:47:08');
-INSERT INTO `sys_logininfor`
-VALUES (2052668409146343425, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-08 16:34:20');
-INSERT INTO `sys_logininfor`
-VALUES (2052690942419636226, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '退出成功', '2026-05-08 18:03:52');
-INSERT INTO `sys_logininfor`
-VALUES (2052691075416821762, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-08 18:04:24');
-INSERT INTO `sys_logininfor`
-VALUES (2053038638946971649, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '退出成功', '2026-05-09 17:05:30');
-INSERT INTO `sys_logininfor`
-VALUES (2053040509807882242, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-09 17:12:56');
-INSERT INTO `sys_logininfor`
-VALUES (2053645979656462338, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '0', '验证码已失效', '2026-05-11 09:18:51');
-INSERT INTO `sys_logininfor`
-VALUES (2053646000707674114, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-11 09:18:56');
-INSERT INTO `sys_logininfor`
-VALUES (2054017270859173890, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-12 09:54:14');
-INSERT INTO `sys_logininfor`
-VALUES (2054390365717635074, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-13 10:36:47');
-INSERT INTO `sys_logininfor`
-VALUES (2054804881378971649, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-14 14:03:55');
-INSERT INTO `sys_logininfor`
-VALUES (2055090854125989890, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '退出成功', '2026-05-15 09:00:16');
-INSERT INTO `sys_logininfor`
-VALUES (2055092984673038337, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '0', '验证码已失效', '2026-05-15 09:08:44');
-INSERT INTO `sys_logininfor`
-VALUES (2055092994273800193, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '0', '验证码错误', '2026-05-15 09:08:46');
-INSERT INTO `sys_logininfor`
-VALUES (2055093005623586818, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-15 09:08:49');
-INSERT INTO `sys_logininfor`
-VALUES (2055527840410316801, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-16 13:56:42');
-INSERT INTO `sys_logininfor`
-VALUES (2055973708791914497, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-17 19:28:25');
-INSERT INTO `sys_logininfor`
-VALUES (2056372873405493250, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '0', '验证码已失效', '2026-05-18 21:54:33');
-INSERT INTO `sys_logininfor`
-VALUES (2056372896625160193, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-18 21:54:39');
-INSERT INTO `sys_logininfor`
-VALUES (2056752436123877377, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-19 23:02:48');
-INSERT INTO `sys_logininfor`
-VALUES (2057097095211753474, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-20 21:52:21');
-INSERT INTO `sys_logininfor`
-VALUES (2057459654594965506, 'admin', '0:0:0:0:0:0:0:1', '内网IP', 'Chrome'
-       , 'Windows 10 or Windows Server 2016', '1', '登录成功', '2026-05-21 21:53:02');
-DROP TABLE IF EXISTS `sys_menu`;
-CREATE TABLE `sys_menu` (
-                            `menu_id` bigint NOT NULL COMMENT '菜单ID',
-                            `menu_name` varchar(50) NOT NULL COMMENT '菜单名称',
-                            `parent_id` bigint NULL DEFAULT 0 COMMENT '父菜单ID',
-                            `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
-                            `path` varchar(200) NULL DEFAULT '' COMMENT '路由地址',
-                            `component` varchar(255) NULL DEFAULT NULL COMMENT '组件路径',
-                            `query_param` varchar(255) NULL DEFAULT NULL COMMENT '路由参数',
-                            `is_frame` int NULL DEFAULT 1 COMMENT '是否为外链（0是 1否）',
-                            `is_cache` int NULL DEFAULT 0 COMMENT '是否缓存（0缓存 1不缓存）',
-                            `menu_type` char(1) NULL DEFAULT '' COMMENT '菜单类型（M目录 C菜单 F按钮）',
-                            `visible` char(1) NULL DEFAULT '0' COMMENT '显示状态（0显示 1隐藏）',
-                            `status` char(1) NULL DEFAULT '0' COMMENT '菜单状态（0正常 1停用）',
-                            `perms` varchar(100) NULL DEFAULT NULL COMMENT '权限标识',
-                            `icon` varchar(100) NULL DEFAULT '#' COMMENT '菜单图标',
-                            `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                            `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                            `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                            `remark` varchar(500) NULL DEFAULT '' COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_menu`
-VALUES (1, '系统管理', 0, 110, 'system'
-       , NULL, '', 0, 0, 'M'
-       , '1', '1', '', 'system', 'admin'
-       , '2024-06-13 16:06:26', 'admin', '2024-08-20 13:45:48', '系统管理目录');
-INSERT INTO `sys_menu`
-VALUES (2, '系统监控', 0, 120, 'monitor'
-       , NULL, '', 0, 0, 'M'
-       , '1', '1', '', 'monitor', 'admin'
-       , '2024-06-13 16:06:26', 'admin', '2024-08-20 13:45:57', '系统监控目录');
-INSERT INTO `sys_menu`
-VALUES (100, '用户管理', 1, 1, 'user'
-       , 'system/user/index', '', 0, 0, 'C'
-       , '1', '1', 'system:user:list', 'user', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '用户管理菜单');
-INSERT INTO `sys_menu`
-VALUES (101, '角色管理', 1, 2, 'role'
-       , 'system/role/index', '', 0, 0, 'C'
-       , '1', '1', 'system:role:list', 'peoples', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '角色管理菜单');
-INSERT INTO `sys_menu`
-VALUES (102, '菜单管理', 1, 3, 'menu'
-       , 'system/menu/index', '', 0, 0, 'C'
-       , '1', '1', 'system:menu:list', 'tree-table', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '菜单管理菜单');
-INSERT INTO `sys_menu`
-VALUES (103, '部门管理', 1, 4, 'dept'
-       , 'system/dept/index', '', 0, 0, 'C'
-       , '1', '1', 'system:dept:list', 'tree', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '部门管理菜单');
-INSERT INTO `sys_menu`
-VALUES (104, '岗位管理', 1, 5, 'post'
-       , 'system/post/index', '', 0, 0, 'C'
-       , '1', '1', 'system:post:list', 'post', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '岗位管理菜单');
-INSERT INTO `sys_menu`
-VALUES (105, '字典管理', 1, 6, 'dict'
-       , 'system/dict/index', '', 0, 0, 'C'
-       , '1', '1', 'system:dict:list', 'dict', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '字典管理菜单');
-INSERT INTO `sys_menu`
-VALUES (106, '参数设置', 1, 7, 'config'
-       , 'system/config/index', '', 0, 0, 'C'
-       , '1', '1', 'system:config:list', 'edit', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '参数设置菜单');
-INSERT INTO `sys_menu`
-VALUES (107, '通知公告', 1, 8, 'notice'
-       , 'system/notice/index', '', 0, 0, 'C'
-       , '1', '1', 'system:notice:list', 'message', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '通知公告菜单');
-INSERT INTO `sys_menu`
-VALUES (108, '日志管理', 0, 140, 'log'
-       , '', '', 0, 0, 'M'
-       , '1', '1', '', 'log', 'admin'
-       , '2024-06-13 16:06:27', 'admin', '2024-08-20 13:46:16', '日志管理菜单');
-INSERT INTO `sys_menu`
-VALUES (109, '在线用户', 2, 1, 'online'
-       , 'monitor/online/index', '', 0, 0, 'C'
-       , '1', '1', 'monitor:online:list', 'online', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '在线用户菜单');
-INSERT INTO `sys_menu`
-VALUES (112, '缓存列表', 2, 6, 'cacheList'
-       , 'monitor/cache/list', '', 0, 0, 'C'
-       , '1', '1', 'monitor:cache:list', 'redis-list', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '缓存列表菜单');
-INSERT INTO `sys_menu`
-VALUES (113, '缓存监控', 2, 5, 'cache'
-       , 'monitor/cache/index', '', 0, 0, 'C'
-       , '1', '1', 'monitor:cache:list', 'redis', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '缓存监控菜单');
-INSERT INTO `sys_menu`
-VALUES (115, '代码生成', 0, 130, 'gen'
-       , 'tool/gen/index', '', 0, 0, 'C'
-       , '1', '1', 'tool:gen:list', 'code', 'admin'
-       , '2024-06-13 16:06:27', 'admin', '2024-08-20 13:46:06', '代码生成菜单');
-INSERT INTO `sys_menu`
-VALUES (118, '文件管理', 1, 10, 'oss'
-       , 'system/oss/index', '', 0, 0, 'C'
-       , '1', '1', 'system:oss:list', 'upload', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '文件管理菜单');
-INSERT INTO `sys_menu`
-VALUES (500, '操作日志', 108, 1, 'operlog'
-       , 'monitor/operlog/index', '', 0, 0, 'C'
-       , '1', '1', 'monitor:operlog:list', 'form', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '操作日志菜单');
-INSERT INTO `sys_menu`
-VALUES (501, '登录日志', 108, 2, 'logininfor'
-       , 'monitor/logininfor/index', '', 0, 0, 'C'
-       , '1', '1', 'monitor:logininfor:list', 'logininfor', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '登录日志菜单');
-INSERT INTO `sys_menu`
-VALUES (1001, '用户查询', 100, 1, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:query', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1002, '用户新增', 100, 2, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:add', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1003, '用户修改', 100, 3, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:edit', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1004, '用户删除', 100, 4, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:remove', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1005, '用户导出', 100, 5, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:export', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1006, '用户导入', 100, 6, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:import', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1007, '重置密码', 100, 7, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:user:resetPwd', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1008, '角色查询', 101, 1, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:role:query', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1009, '角色新增', 101, 2, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:role:add', '#', 'admin'
-       , '2024-06-13 16:06:27', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1010, '角色修改', 101, 3, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:role:edit', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1011, '角色删除', 101, 4, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:role:remove', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1012, '角色导出', 101, 5, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:role:export', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1013, '菜单查询', 102, 1, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:menu:query', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1014, '菜单新增', 102, 2, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:menu:add', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1015, '菜单修改', 102, 3, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:menu:edit', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1016, '菜单删除', 102, 4, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:menu:remove', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1017, '部门查询', 103, 1, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dept:query', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1018, '部门新增', 103, 2, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dept:add', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1019, '部门修改', 103, 3, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dept:edit', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1020, '部门删除', 103, 4, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dept:remove', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1021, '岗位查询', 104, 1, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:post:query', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1022, '岗位新增', 104, 2, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:post:add', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1023, '岗位修改', 104, 3, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:post:edit', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1024, '岗位删除', 104, 4, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:post:remove', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1025, '岗位导出', 104, 5, ''
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:post:export', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1026, '字典查询', 105, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dict:query', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1027, '字典新增', 105, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dict:add', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1028, '字典修改', 105, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dict:edit', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1029, '字典删除', 105, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dict:remove', '#', 'admin'
-       , '2024-06-13 16:06:28', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1030, '字典导出', 105, 5, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:dict:export', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1031, '参数查询', 106, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:config:query', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1032, '参数新增', 106, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:config:add', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1033, '参数修改', 106, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:config:edit', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1034, '参数删除', 106, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:config:remove', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1035, '参数导出', 106, 5, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:config:export', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1036, '公告查询', 107, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:notice:query', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1037, '公告新增', 107, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:notice:add', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1038, '公告修改', 107, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:notice:edit', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1039, '公告删除', 107, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:notice:remove', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1040, '操作查询', 500, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:operlog:query', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1041, '操作删除', 500, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:operlog:remove', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1042, '日志导出', 500, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:operlog:export', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1043, '登录查询', 501, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:logininfor:query', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1044, '登录删除', 501, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:logininfor:remove', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1045, '日志导出', 501, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:logininfor:export', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1046, '在线查询', 109, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:online:query', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1047, '批量强退', 109, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:online:batchLogout', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1048, '单条强退', 109, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:online:forceLogout', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1050, '账户解锁', 501, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'monitor:logininfor:unlock', '#', 'admin'
-       , '2024-06-13 16:06:29', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1055, '生成查询', 115, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:query', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1056, '生成修改', 115, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:edit', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1057, '生成删除', 115, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:remove', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1058, '导入代码', 115, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:import', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1059, '预览代码', 115, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:preview', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1060, '生成代码', 115, 5, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'tool:gen:code', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1600, '文件查询', 118, 1, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:query', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1601, '文件上传', 118, 2, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:upload', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1602, '文件下载', 118, 3, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:download', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1603, '文件删除', 118, 4, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:remove', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1604, '配置添加', 118, 5, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:add', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1605, '配置编辑', 118, 6, '#'
-       , '', '', 0, 0, 'F'
-       , '1', '1', 'system:oss:edit', '#', 'admin'
-       , '2024-06-13 16:06:30', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1808758090157985794, '基础资料', 0, 100, 'basic'
-       , NULL, NULL, 0, 0, 'M'
-       , '1', '1', NULL, 'excel', 'admin'
-       , '2024-07-04 15:01:48', 'admin', '2024-08-20 13:45:39', '');
-INSERT INTO `sys_menu`
-VALUES (1809059968309743618, '往来单位', 1808758090157985794, 6, 'merchant'
-       , 'wms/basic/merchant/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:merchant:list', 'documentation', 'admin'
-       , '2024-07-05 11:58:12', 'admin', '2026-05-08 16:37:55', '第二阶段往来单位入口');
-INSERT INTO `sys_menu`
-VALUES (1809059968309743619, '往来单位查询', 1809059968309743618, 1, '#'
-       , '', NULL, 0, 0, 'F'
-       , '1', '1', 'wms:merchant:list', '#', 'admin'
-       , '2024-07-05 11:58:12', 'admin', '2024-08-30 10:43:54', '');
-INSERT INTO `sys_menu`
-VALUES (1809059968309743621, '往来单位修改', 1809059968309743618, 3, '#'
-       , '', NULL, 0, 0, 'F'
-       , '1', '1', 'wms:merchant:edit', '#', 'admin'
-       , '2024-07-05 11:58:12', '', NULL, '');
-INSERT INTO `sys_menu`
-VALUES (1813458070128599041, '仓储布局', 0, 3, 'layout'
-       , 'wms/basic/layout/index', NULL, 0, 0, 'C'
-       , '0', '1', 'wms:warehouse:list', 'documentation', 'admin'
-       , '2024-07-17 14:17:51', 'admin', '2026-05-08 16:49:17', '布局浏览，不替代仓库/库区维护');
-INSERT INTO `sys_menu`
-VALUES (1813820131794837506, '器材管理', 1808758090157985794, 0, 'item'
-       , 'wms/basic/item/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:item:list', 'documentation', 'admin'
-       , '2024-07-18 14:16:33', 'admin', '2026-05-08 16:37:00', '第二阶段器材主档入口');
-INSERT INTO `sys_menu`
-VALUES (1815207165755183105, '编辑入库单', 0, 1000, 'receiptOrderEdit'
-       , 'wms/order/receipt/edit', NULL, 0, 0, 'C'
-       , '0', '1', 'wms:receipt:edit', '#', 'admin'
-       , '2024-07-22 10:08:08', 'admin', '2024-08-27 16:43:28', '');
-INSERT INTO `sys_menu`
-VALUES (1818466281474822145, '入库作业', 2060000000000001001, 1, 'receiptOrder'
-       , 'wms/order/receipt/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:receipt:all', 'exit-fullscreen', 'admin'
-       , '2024-07-31 09:58:42', 'admin', '2024-08-30 08:58:25', '第二阶段作业中心入口');
-INSERT INTO `sys_menu`
-VALUES (1818854933803638785, '出库作业', 2060000000000001001, 2, 'shipmentOrder'
-       , 'wms/order/shipment/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:shipment:all', 'fullscreen', 'admin'
-       , '2024-08-01 11:43:04', 'admin', '2024-08-30 08:58:35', '第二阶段作业中心入口');
-INSERT INTO `sys_menu`
-VALUES (1818855673632727042, '编辑出库单', 0, 1000, 'shipmentOrderEdit'
-       , 'wms/order/shipment/edit', NULL, 0, 0, 'C'
-       , '0', '1', 'wms:shipment:edit', '#', 'admin'
-       , '2024-08-01 11:46:00', 'admin', '2024-08-27 16:43:37', '');
-INSERT INTO `sys_menu`
-VALUES (1821075355068559361, '库存流水', 2060000000000001003, 3, 'inventoryHistory'
-       , 'wms/inventory/history', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:inventoryHistory:all', 'list', 'admin'
-       , '2024-08-07 14:46:13', 'admin', '2024-08-30 08:58:13', '第二阶段库存中心入口');
-INSERT INTO `sys_menu`
-VALUES (1822862323595145218, '编辑调拨单', 0, 1000, 'movementOrderEdit'
-       , 'wms/order/movement/edit', NULL, 0, 0, 'C'
-       , '0', '1', 'wms:movement:edit', '#', 'admin'
-       , '2024-08-12 13:07:00', 'admin', '2024-08-27 16:43:50', '调拨作业隐藏编辑页');
-INSERT INTO `sys_menu`
-VALUES (1823187248797270018, '库存盘点', 2060000000000001002, 3, 'checkOrder'
-       , 'wms/order/check/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:check:all', 'example', 'admin'
-       , '2024-08-13 10:38:08', 'admin', '2024-08-30 08:58:57', '第二阶段库内管理入口');
-INSERT INTO `sys_menu`
-VALUES (1823190638784757762, '编辑盘库单', 0, 1000, 'checkOrderEdit'
-       , 'wms/order/check/edit', NULL, 0, 0, 'C'
-       , '0', '1', 'wms:check:edit', '#', 'admin'
-       , '2024-08-13 10:51:36', 'admin', '2024-08-27 16:43:44', '');
-INSERT INTO `sys_menu`
-VALUES (1825769009480142850, '库存明细', 2060000000000001003, 2, 'inventoryDetail'
-       , 'wms/itemInstance/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:inventoryDetail:all', 'table', 'admin'
-       , '2024-08-20 13:37:08', 'admin', '2026-05-21 14:29:50', '第二阶段库存中心入口；2026-05-21 统一到器材实例台账页');
-INSERT INTO `sys_menu`
-VALUES (1829349433573822466, '仓库库区查询', 1813458070128599041, 1, ''
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:warehouse:list', '#', 'admin'
-       , '2024-08-30 10:44:27', 'admin', '2024-08-30 10:44:27', '');
-INSERT INTO `sys_menu`
-VALUES (1829350022131142658, '仓库库区编辑', 1813458070128599041, 2, ''
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:warehouse:edit', '#', 'admin'
-       , '2024-08-30 10:46:48', 'admin', '2024-08-30 10:46:48', '');
-INSERT INTO `sys_menu`
-VALUES (1829351081448755202, '商品查询', 1813820131794837506, 1, ''
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:item:list', '#', 'admin'
-       , '2024-08-30 10:51:00', 'admin', '2024-08-30 10:51:00', '');
-INSERT INTO `sys_menu`
-VALUES (1829351166857367553, '商品编辑', 1813820131794837506, 2, ''
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:item:edit', '#', 'admin'
-       , '2024-08-30 10:51:21', 'admin', '2024-08-30 10:51:21', '');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003001, '货架管理', 1808758090157985794, 3, 'rack'
-       , 'wms/basic/rack/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:rack:list', 'documentation', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-05-08 16:36:30', '兼容保留：第二阶段主入口已收口到仓储布局');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003002, '货位管理', 1808758090157985794, 4, 'location'
-       , 'wms/basic/location/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:location:list', 'documentation', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-05-08 16:36:40', '兼容保留：第二阶段主入口已收口到仓储布局');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003101, '货架查询', 1900000000000003001, 1, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:rack:list', '#', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货架查询权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003102, '货架编辑', 1900000000000003001, 2, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:rack:edit', '#', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货架编辑权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003201, '货位查询', 1900000000000003002, 1, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:location:list', '#', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位查询权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000003202, '货位编辑', 1900000000000003002, 2, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:location:edit', '#', 'admin'
-       , '2026-04-30 14:04:34', 'admin', '2026-04-30 14:04:34', '货位编辑权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000005201, '箱体管理', 1808758090157985794, 5, 'box'
-       , 'wms/basic/box/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:box:list', 'documentation', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-05-08 16:36:52', '兼容保留：第二阶段主入口已收口到仓储布局');
-INSERT INTO `sys_menu`
-VALUES (1900000000000005202, '箱体查询', 1900000000000005201, 1, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:box:list', '#', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '箱体查询权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000005203, '箱体编辑', 1900000000000005201, 2, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:box:edit', '#', 'admin'
-       , '2026-04-30 17:27:59', 'admin', '2026-04-30 17:27:59', '箱体编辑权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000006201, '器材借用', 2060000000000001001, 4, 'borrow-record'
-       , 'wms/business/borrow-record/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:borrowRecord:list', 'documentation', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '第二阶段作业中心入口');
-INSERT INTO `sys_menu`
-VALUES (1900000000000006202, '借还查询', 1900000000000006201, 1, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:borrowRecord:list', '#', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '借还查询权限');
-INSERT INTO `sys_menu`
-VALUES (1900000000000006203, '借还编辑', 1900000000000006201, 2, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:borrowRecord:edit', '#', 'admin'
-       , '2026-04-30 17:44:30', 'admin', '2026-04-30 17:44:30', '借还编辑权限');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001001, '作业中心', 0, 101, 'operation'
-       , NULL, NULL, 0, 0, 'M'
-       , '1', '1', NULL, 'guide', 'admin'
-       , '2026-05-07 14:23:08', 'admin', '2026-05-07 14:23:08', '第二阶段作业中心目录');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001002, '库内管理', 0, 102, 'internal'
-       , NULL, NULL, 0, 0, 'M'
-       , '1', '1', NULL, 'drag', 'admin'
-       , '2026-05-07 14:23:08', 'admin', '2026-05-07 14:23:08', '第二阶段库内管理目录');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001003, '库存中心', 0, 103, 'inventoryCenter'
-       , NULL, NULL, 0, 0, 'M'
-       , '1', '1', NULL, 'chart', 'admin'
-       , '2026-05-07 14:23:08', 'admin', '2026-05-07 14:23:08', '第二阶段库存中心目录');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001101, '仓库管理', 1808758090157985794, 1, 'warehouse'
-       , 'wms/basic/warehouse/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:warehouse:list', 'documentation', 'admin'
-       , '2026-05-08 15:47:46', 'admin', '2026-05-08 15:47:46', '基础资料仓库管理入口');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001102, '库区管理', 1808758090157985794, 2, 'area'
-       , 'wms/basic/area/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:area:list', 'documentation', 'admin'
-       , '2026-05-08 15:47:46', 'admin', '2026-05-08 15:47:46', '基础资料库区管理入口');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001103, '库区查询', 2060000000000001102, 1, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:area:list', '#', 'admin'
-       , '2026-05-08 15:47:46', 'admin', '2026-05-08 15:47:46', '库区查询权限');
-INSERT INTO `sys_menu`
-VALUES (2060000000000001104, '库区编辑', 2060000000000001102, 2, '#'
-       , NULL, NULL, 0, 0, 'F'
-       , '1', '1', 'wms:area:edit', '#', 'admin'
-       , '2026-05-08 15:47:46', 'admin', '2026-05-08 15:47:46', '库区编辑权限');
-INSERT INTO `sys_menu`
-VALUES (2060000000000002103, '调拨作业', 2060000000000001001, 3, 'transferOrder'
-       , 'wms/order/movement/index', NULL, 0, 0, 'C'
-       , '1', '1', 'wms:movement:all', 'switch', 'admin'
-       , '2026-05-07 14:23:08', 'admin', '2026-05-07 14:23:08', '调拨作业入口，复用现有调拨单流程');
-DROP TABLE IF EXISTS `sys_notice`;
-CREATE TABLE `sys_notice` (
-                              `notice_id` bigint NOT NULL COMMENT '公告ID',
-                              `notice_title` varchar(50) NOT NULL COMMENT '公告标题',
-                              `notice_type` char(1) NOT NULL COMMENT '公告类型（1通知 2公告）',
-                              `notice_content` longblob NULL COMMENT '公告内容',
-                              `status` char(1) NULL DEFAULT '0' COMMENT '公告状态（0正常 1关闭）',
-                              `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                              `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                              `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_notice`
-VALUES (1, '温馨提醒：2018-07-01 新版本发布啦', '2', 0xE696B0E78988E69CACE58685E5AEB9, '1'
-       , 'admin', '2024-06-13 16:06:38', '', NULL, '管理员');
-INSERT INTO `sys_notice`
-VALUES (2, '维护通知：2018-07-01 系统凌晨维护', '1', 0xE7BBB4E68AA4E58685E5AEB9, '1'
-       , 'admin', '2024-06-13 16:06:38', '', NULL, '管理员');
-DROP TABLE IF EXISTS `sys_oper_log`;
-CREATE TABLE `sys_oper_log` (
-                                `oper_id` bigint NOT NULL COMMENT '日志主键',
-                                `title` varchar(50) NULL DEFAULT '' COMMENT '模块标题',
-                                `business_type` int NULL DEFAULT 0 COMMENT '业务类型（0其它 1新增 2修改 3删除）',
-                                `method` varchar(100) NULL DEFAULT '' COMMENT '方法名称',
-                                `request_method` varchar(10) NULL DEFAULT '' COMMENT '请求方式',
-                                `operator_type` int NULL DEFAULT 0 COMMENT '操作类别（0其它 1后台用户 2手机端用户）',
-                                `oper_name` varchar(50) NULL DEFAULT '' COMMENT '操作人员',
-                                `dept_name` varchar(50) NULL DEFAULT '' COMMENT '部门名称',
-                                `oper_url` varchar(255) NULL DEFAULT '' COMMENT '请求URL',
-                                `oper_ip` varchar(128) NULL DEFAULT '' COMMENT '主机地址',
-                                `oper_location` varchar(255) NULL DEFAULT '' COMMENT '操作地点',
-                                `oper_param` varchar(2000) NULL DEFAULT '' COMMENT '请求参数',
-                                `json_result` varchar(2000) NULL DEFAULT '' COMMENT '返回参数',
-                                `status` int NULL DEFAULT 0 COMMENT '操作状态（0异常 1正常）',
-                                `error_msg` varchar(2000) NULL DEFAULT '' COMMENT '错误消息',
-                                `oper_time` datetime NULL DEFAULT NULL COMMENT '操作时间',
-                                INDEX idx_sys_oper_log_bt3(`business_type`),
-                                INDEX idx_sys_oper_log_s4(`status`),
-                                INDEX idx_sys_oper_log_ot5(`oper_time`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_oper_log`
-VALUES (2049759030667456514, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2049759028125708290","receiptOrderNo":"RK04309955","receiptOrderType":2,"merchantId":null,"orderNo":null,"totalQuantity":"1","payableAmount":null,"receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"1829399118304964609","quantity":"1","amount":null,"batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-04-30 15:53:30');
-INSERT INTO `sys_oper_log`
-VALUES (2049770937386307585, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2049770935654060034","receiptOrderNo":"RK04309512","receiptOrderType":2,"merchantId":null,"orderNo":null,"totalQuantity":"6","payableAmount":null,"receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"1829399118304964609","quantity":"6","amount":null,"batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-04-30 16:40:49');
-INSERT INTO `sys_oper_log`
-VALUES (2051911939979034625, '箱体', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2051911939723182080","boxName":"一箱水果","boxStatus":"idle","warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-06 14:28:24');
-INSERT INTO `sys_oper_log`
-VALUES (2051912397502103553, '箱体', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2051912397434994688","boxName":"一箱水果","boxStatus":"idle","warehouseId":"1828364740028174337","areaId":"1829397566185992193","rackId":"1900000000000000001","locationId":"1900000000000000101","remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-06 14:30:13');
-INSERT INTO `sys_oper_log`
-VALUES (2051915098029899777, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"深海大魔王","itemCategory":"1829398007993004034","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":"single","equipmentName":null,"defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"大","itemId":"2051915097832767489","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"length":"10","width":"20","height":"30","grossWeight":null,"netWeight":null,"costPrice":"5","sellingPrice":"10","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-06 14:40:57');
-INSERT INTO `sys_oper_log`
-VALUES (2051915277218955266, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2051915276543672322","receiptOrderNo":"RK05068886","receiptOrderType":2,"merchantId":"1828354153193836545","orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"10","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2051915097966985218","quantity":"10","amount":"0","equipmentCode":null,"specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-06 14:41:39');
-INSERT INTO `sys_oper_log`
-VALUES (2051926764859789314, '菜单管理', 1, 'com.ruoyi.system.controller.system.SysMenuController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"menuId":null,"parentId":0,"menuName":"总账","orderNum":90,"path":"ledger","component":"wms/inventory/ledger","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","icon":"excel","remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-06 15:27:18');
-INSERT INTO `sys_oper_log`
-VALUES (2051927929655758850, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399579699376129","receiptOrderNo":"RK08302046","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"998","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531841","receiptOrderId":"1829399579699376129","skuId":"1829399118304964609","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":0,"generatedInstanceQuantity":0},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531842","receiptOrderId":"1829399579699376129","skuId":"1829399118304964610","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":0,"generatedInstanceQuantity":0},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531843","receiptOrderId":"1829399579699376129","skuId":"1829398702011904001","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397661719654401","generateItemInstance":0,"generatedInstanceQuantity":0},{"cre', '', 0, '入库单已完成入库'
-       , '2026-05-06 15:31:56');
-INSERT INTO `sys_oper_log`
-VALUES (2052571160655491074, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052571159107792897","receiptOrderNo":"RK05080728","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2051915097966985218","quantity":"1","amount":"0","equipmentCode":"IT051915097832767489","specModel":"大","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","rackId":"1900000000000000001","locationId":"1900000000000000101","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 10:07:54');
-INSERT INTO `sys_oper_log`
-VALUES (2052596719624216577, '装箱', 2, 'com.ruoyi.wms.controller.BoxController.pack()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box/pack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"boxId":"2051912397434994690","itemInstanceIds":["2052571160454164482"]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 11:49:28');
-INSERT INTO `sys_oper_log`
-VALUES (2052635492739276802, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1828364988754595841', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:23:32');
-INSERT INTO `sys_oper_log`
-VALUES (2052635506840526849, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1828405743737016322', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '删除失败！请先删除该分类下的子分类！'
-       , '2026-05-08 14:23:36');
-INSERT INTO `sys_oper_log`
-VALUES (2052635524322385921, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1828405773474631681', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:23:40');
-INSERT INTO `sys_oper_log`
-VALUES (2052635532165734401, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1828405825714688001', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:23:42');
-INSERT INTO `sys_oper_log`
-VALUES (2052635565422370818, '物料类型', 2, 'com.ruoyi.wms.controller.ItemCategoryController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/itemCategory', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1828408600515219457","parentId":-1,"categoryName":"健身器材","orderNum":null,"status":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:23:50');
-INSERT INTO `sys_oper_log`
-VALUES (2052636524890382338, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"batch","allowBox":0,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"batch","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"惠普6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.125","length":"50","width":"50","height":"50","grossWeight":"5","netWeight":"5","costPrice":"50","sellingPrice":"100","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:27:38');
-INSERT INTO `sys_oper_log`
-VALUES (2052636940990504961, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":"","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A部","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"惠普6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 14:29:18');
-INSERT INTO `sys_oper_log`
-VALUES (2052668955555102722, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2026-04-30 14:04:34","updateBy":null,"updateTime":null,"menuId":"1900000000000003001","parentId":"1808758090157985794","menuName":"货架管理","orderNum":3,"path":"rack","component":"wms/basic/rack/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:rack:list","icon":"documentation","remark":"兼容保留：第二阶段主入口已收口到仓储布局"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:36:30');
-INSERT INTO `sys_oper_log`
-VALUES (2052668993853292545, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2026-04-30 14:04:34","updateBy":null,"updateTime":null,"menuId":"1900000000000003002","parentId":"1808758090157985794","menuName":"货位管理","orderNum":4,"path":"location","component":"wms/basic/location/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:location:list","icon":"documentation","remark":"兼容保留：第二阶段主入口已收口到仓储布局"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:36:40');
-INSERT INTO `sys_oper_log`
-VALUES (2052669044629536770, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2026-04-30 17:27:59","updateBy":null,"updateTime":null,"menuId":"1900000000000005201","parentId":"1808758090157985794","menuName":"箱体管理","orderNum":5,"path":"box","component":"wms/basic/box/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:box:list","icon":"documentation","remark":"兼容保留：第二阶段主入口已收口到仓储布局"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:36:52');
-INSERT INTO `sys_oper_log`
-VALUES (2052669081535217665, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-07-18 14:16:33","updateBy":null,"updateTime":null,"menuId":"1813820131794837506","parentId":"1808758090157985794","menuName":"器材管理","orderNum":0,"path":"item","component":"wms/basic/item/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:item:list","icon":"documentation","remark":"第二阶段器材主档入口"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:37:00');
-INSERT INTO `sys_oper_log`
-VALUES (2052669247684182017, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-07-17 14:17:51","updateBy":null,"updateTime":null,"menuId":"1813458070128599041","parentId":0,"menuName":"仓储布局","orderNum":3,"path":"layout","component":"wms/basic/layout/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:warehouse:list","icon":"documentation","remark":"布局浏览，不替代仓库/库区维护"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:37:40');
-INSERT INTO `sys_oper_log`
-VALUES (2052669311332745217, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-07-05 11:58:12","updateBy":null,"updateTime":null,"menuId":"1809059968309743618","parentId":"1808758090157985794","menuName":"往来单位","orderNum":6,"path":"merchant","component":"wms/basic/merchant/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:merchant:list","icon":"documentation","remark":"第二阶段往来单位入口"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:37:55');
-INSERT INTO `sys_oper_log`
-VALUES (2052669347097575425, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-07-30 11:18:27","updateBy":null,"updateTime":null,"menuId":"1818123963605549057","parentId":"1808758090157985794","menuName":"品牌管理","orderNum":7,"path":"itemBrand","component":"wms/basic/itemBrand/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:itemBrand:list","icon":"documentation","remark":""}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:38:04');
-INSERT INTO `sys_oper_log`
-VALUES (2052671087318499330, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":5,"columnCount":6,"length":"200","width":"200","height":"200","orderNum":1,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:44:59');
-INSERT INTO `sys_oper_log`
-VALUES (2052672070442385410, '菜单管理', 3, 'com.ruoyi.system.controller.system.SysMenuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/system/menu/1813458070128599041', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":601,"msg":"存在子菜单,不允许删除","data":null}', 1, ''
-       , '2026-05-08 16:48:53');
-INSERT INTO `sys_oper_log`
-VALUES (2052672172884066306, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-07-17 14:17:51","updateBy":null,"updateTime":null,"menuId":"1813458070128599041","parentId":0,"menuName":"仓储布局","orderNum":3,"path":"layout","component":"wms/basic/layout/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:warehouse:list","icon":"documentation","remark":"布局浏览，不替代仓库/库区维护"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-08 16:49:17');
-INSERT INTO `sys_oper_log`
-VALUES (2052918577095610370, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:08:25');
-INSERT INTO `sys_oper_log`
-VALUES (2052921598265364481, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":1,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:20:25');
-INSERT INTO `sys_oper_log`
-VALUES (2052921948800126977, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":1,"remark":null}', '', 0, '同一库区下货架名称重复'
-       , '2026-05-09 09:21:49');
-INSERT INTO `sys_oper_log`
-VALUES (2052922082527121409, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:22:21');
-INSERT INTO `sys_oper_log`
-VALUES (2052922260910870529, '货架', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052922082288046081","rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:23:03');
-INSERT INTO `sys_oper_log`
-VALUES (2052922646400962562, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"D","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"600","width":"50","height":"600","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:24:35');
-INSERT INTO `sys_oper_log`
-VALUES (2052924212667305986, '货架', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052922082288046081","rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:30:48');
-INSERT INTO `sys_oper_log`
-VALUES (2052924376794615809, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"E","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"300","width":"50","height":"300","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:31:28');
-INSERT INTO `sys_oper_log`
-VALUES (2052925526797275137, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052925524435881986","receiptOrderNo":"RK05094002","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"10","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052918576537767938","locationId":"2052918576604876801","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 09:36:02');
-INSERT INTO `sys_oper_log`
-VALUES (2052936709579296769, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709201809409","receiptOrderNo":"RK05092373","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"5","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":null,"locationId":null,"generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 10:20:28');
-INSERT INTO `sys_oper_log`
-VALUES (2052938171923386370, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709201809409","receiptOrderNo":"RK05092373","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"5","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709256335362","receiptOrderId":"2052936709201809409","skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052922415722631170","locationId":"2052922645545324545","generateItemInstance":1,"generatedInstanceQuantity":5}]}', '', 0, '入库单已完成入库'
-       , '2026-05-09 10:26:17');
-INSERT INTO `sys_oper_log`
-VALUES (2052938934653374465, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052938934393327617","receiptOrderNo":"RK05099378","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"3","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052924376542957569","locationId":"2052924376614260738","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 10:29:18');
-INSERT INTO `sys_oper_log`
-VALUES (2052956894704996353, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderNo":"CK05097524","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"15","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052936709256335363","itemInstanceId":"2052936709411524615","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":', '', 0, ''
-       , '2026-05-09 11:40:40');
-INSERT INTO `sys_oper_log`
-VALUES (2052957076985253890, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052957076427411457","shipmentOrderNo":"CK05095352","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"5","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052936709256335363","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 11:41:24');
-INSERT INTO `sys_oper_log`
-VALUES (2052958034972676097, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052958032862941186","shipmentOrderNo":"CK05092243","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"3","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"3.00","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052938934393327619","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 11:45:12');
-INSERT INTO `sys_oper_log`
-VALUES (2052961111117172738, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052961110991343617","shipmentOrderNo":"CK05099456","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 11:57:26');
-INSERT INTO `sys_oper_log`
-VALUES (2052964295529238530, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295403409409","shipmentOrderNo":"CK05095909","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 12:10:05');
-INSERT INTO `sys_oper_log`
-VALUES (2052995188960579586, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295403409409","shipmentOrderNo":"CK05095909","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295470518274","shipmentOrderId":"2052964295403409409","skuId":"2052636524764553218","quantity":"2","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 14:12:51');
-INSERT INTO `sys_oper_log`
-VALUES (2052998365462188034, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052998364958871553","movementOrderNo":"DB05096553","movementType":"common","dispatchBasis":null,"dispatchPurpose":null,"supportNo":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"fromHandler":null,"toHandler":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"1828364518342430721","sourceRackId":"2052918576537767938","sourceLocationId":"2052918576604876801","targetWarehouseId":"1828364459110469633","targetAreaId":"1828364518342430721","targetRackId":null,"targetLocationId":null,"movementScope":null,"movementOrderStatus":1,"totalQuantity":"2","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2052636524764553218","quantity":"2","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"remark":null,"batchNo":null,"productionDate":null,"expirationDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"1828364518342430721","sourceRackId":"2052918576537767938","sourceLocationId":"2052918576604876801","targetWarehouseId":"1828364459110469633","targetAreaId":"1828364518342430721","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 14:25:28');
-INSERT INTO `sys_oper_log`
-VALUES (2053022266028322818, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053022264082165762","receiptOrderNo":"RK05091420","receiptOrderType":2,"merchantId":"1828354284882399233","orderNo":"","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-08","receiptDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"10","payableAmount":"50","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"50","equipmentCode":"","specModel":"","productMark":"qqq","qualityGrade":"grade_a","unitPrice":"5","lineAmount":"50","batchNo":null,"productionDate":"2026-05-08 00:00:00","expirationDate":"2026-05-20 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052919288873193473","locationId":"2052921598110175233","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:00:26');
-INSERT INTO `sys_oper_log`
-VALUES (2053025133032239106, '箱体', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2053025132923187200","boxName":"一箱东西","boxStatus":"idle","length":null,"width":null,"height":null,"volume":null,"maxWeight":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052919288873193473","locationId":"2052921598072426498","itemCount":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:11:50');
-INSERT INTO `sys_oper_log`
-VALUES (2053027138857463809, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"装备名称","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A部","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"惠普6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50","width":"50","height":"50","grossWeight":"5","netWeight":"5","costPrice":"50","sellingPrice":"100","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:19:48');
-INSERT INTO `sys_oper_log`
-VALUES (2053027205957939202, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"装备名称","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A部","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"惠普6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:20:04');
-INSERT INTO `sys_oper_log`
-VALUES (2053027303773302786, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"装备名称","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A部","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"惠普6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:20:27');
-INSERT INTO `sys_oper_log`
-VALUES (2053029251067015169, '货架', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/rack/2052924376542957569', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:28:12');
-INSERT INTO `sys_oper_log`
-VALUES (2053029258029559810, '货架', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/rack/2052918576537767938', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:28:13');
-INSERT INTO `sys_oper_log`
-VALUES (2053029262932701186, '货架', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/rack/2052922415722631170', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:28:14');
-INSERT INTO `sys_oper_log`
-VALUES (2053029267710013442, '货架', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/rack/2052919288873193473', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:28:16');
-INSERT INTO `sys_oper_log`
-VALUES (2053029272541851649, '货架', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/rack/2052922082288046081', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:28:17');
-INSERT INTO `sys_oper_log`
-VALUES (2053033045213442050, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"B3","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:43:16');
-INSERT INTO `sys_oper_log`
-VALUES (2053033109776363522, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C1","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:43:32');
-INSERT INTO `sys_oper_log`
-VALUES (2053033134812164098, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C2","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:43:38');
-INSERT INTO `sys_oper_log`
-VALUES (2053033153170632705, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C3","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:43:42');
-INSERT INTO `sys_oper_log`
-VALUES (2053033253456441345, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"D1","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:44:06');
-INSERT INTO `sys_oper_log`
-VALUES (2053033327955668993, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"A","status":null,"warehouseType":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 16:44:24');
-INSERT INTO `sys_oper_log`
-VALUES (2053041346957406210, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"600","width":"50","height":"600","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:16:15');
-INSERT INTO `sys_oper_log`
-VALUES (2053041423599923202, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:16:34');
-INSERT INTO `sys_oper_log`
-VALUES (2053042128108777474, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053042127790010370","receiptOrderNo":"RK05098919","receiptOrderType":2,"merchantId":"1828354016258199554","orderNo":null,"basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-06","receiptDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"10","payableAmount":"500","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"500","equipmentCode":"DYJ","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":"50","lineAmount":"500","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:19:22');
-INSERT INTO `sys_oper_log`
-VALUES (2053045196950990849, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196825161730","shipmentOrderNo":"CK05098379","shipmentOrderType":2,"orderNo":null,"merchantId":"1828354284882399233","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-09","shipmentDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"100","equipmentCode":"DYJ","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":"50","lineAmount":"100","warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:31:33');
-INSERT INTO `sys_oper_log`
-VALUES (2053045241419001858, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196825161730","shipmentOrderNo":"CK05098379","shipmentOrderType":2,"orderNo":null,"merchantId":"1828354284882399233","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196888076289","shipmentOrderId":"2053045196825161730","skuId":"2052636524764553218","quantity":"2","amount":"100.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:31:44');
-INSERT INTO `sys_oper_log`
-VALUES (2053049024794402818, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053049023712272386","shipmentOrderNo":"CK05091941","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"100","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 17:46:46');
-INSERT INTO `sys_oper_log`
-VALUES (2053114723961217026, '货架', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423335682050","rackCode":"HJ-B","rackName":"B","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:07:50');
-INSERT INTO `sys_oper_log`
-VALUES (2053114758937518082, '货架', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041345556508674","rackCode":"HJ-A","rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"600.00","width":"50.00","height":"600.00","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:07:58');
-INSERT INTO `sys_oper_log`
-VALUES (2053114964802347009, '库区', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/area/2053033253095731201', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:08:47');
-INSERT INTO `sys_oper_log`
-VALUES (2053114973786546178, '库区', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/area/2053033109776363521', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:08:49');
-INSERT INTO `sys_oper_log`
-VALUES (2053114981457928194, '库区', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/area/2053033153111912450', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:08:51');
-INSERT INTO `sys_oper_log`
-VALUES (2053114994619654146, '库区', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/area/2053033045150527490', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:08:54');
-INSERT INTO `sys_oper_log`
-VALUES (2053115004321079297, '库区', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/area/2053033134749249537', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:08:57');
-INSERT INTO `sys_oper_log`
-VALUES (2053119223287586817, '箱体', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"aaaaa","boxName":"aa","boxStatus":"idle","length":null,"width":null,"height":null,"volume":null,"maxWeight":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","itemCount":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 22:25:43');
-INSERT INTO `sys_oper_log`
-VALUES (2053127253072879617, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"128","itemId":"2053127250589851649","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"256","itemId":"2053127250589851649","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, 'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127250589851649-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''
-; Duplicate entry ''2053127250589851649-'' for key ''wms_item_sku.uk_wms_item_sku_item_code'''
-       , '2026-05-09 22:57:37');
-INSERT INTO `sys_oper_log`
-VALUES (2053127354751197186, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127354688282625","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127354688282625","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, 'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127354688282625-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''
-; Duplicate entry ''2053127354688282625-'' for key ''wms_item_sku.uk_wms_item_sku_item_code'''
-       , '2026-05-09 22:58:01');
-INSERT INTO `sys_oper_log`
-VALUES (2053127861280514050, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127861184045057","barcode":"","skuCode":"","specModel":"128","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127861184045057","barcode":"","skuCode":"","specModel":"256","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, 'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127861184045057-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''
-; Duplicate entry ''2053127861184045057-'' for key ''wms_item_sku.uk_wms_item_sku_item_code'''
-       , '2026-05-09 23:00:02');
-INSERT INTO `sys_oper_log`
-VALUES (2053127932717899777, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127932654985217","barcode":"","skuCode":"128","specModel":"128","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127932654985217","barcode":"","skuCode":"256","specModel":"256","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:00:19');
-INSERT INTO `sys_oper_log`
-VALUES (2053130064548405250, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1829397860466749441', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '删除失败！请先删除该分类下的子分类！'
-       , '2026-05-09 23:08:47');
-INSERT INTO `sys_oper_log`
-VALUES (2053130076367953921, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1829398007993004034', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:08:50');
-INSERT INTO `sys_oper_log`
-VALUES (2053130081652776961, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1829397958923841538', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:08:51');
-INSERT INTO `sys_oper_log`
-VALUES (2053130087696769025, '物料类型', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemCategory/1829397860466749441', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:08:53');
-INSERT INTO `sys_oper_log`
-VALUES (2053132230637985794, '库存盘点单据', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05092830","checkOrderStatus":1,"checkOrderTotal":"-4","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2052636524764553218","quantity":"6","checkQuantity":"2","profitAndLoss":"-4","differenceQuantity":"-4","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","batchNo":null,"productionDate":null,"expirationDate":null,"receiptTime":"2026-05-09 17:19:21","inventoryDetailId":"2053042127790010372","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:17:24');
-INSERT INTO `sys_oper_log`
-VALUES (2053132967078076418, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-08-12 10:19:35","updateBy":null,"updateTime":null,"menuId":"1822820194307051521","parentId":"2060000000000001002","menuName":"库内移库","orderNum":1,"path":"internalMoveOrder","component":"wms/internal/move/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:internalMove:list","icon":"drag","remark":"独立库内移库入口"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:20:19');
-INSERT INTO `sys_oper_log`
-VALUES (2053132980105584641, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2026-05-07 14:23:08","updateBy":null,"updateTime":null,"menuId":"2060000000000003102","parentId":"2060000000000001002","menuName":"库存调整","orderNum":2,"path":"inventoryAdjust","component":"wms/internal/adjust/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:inventoryDetail:all","icon":"edit","remark":"第二阶段页面落位入口，执行逻辑留待第三阶段"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-09 23:20:23');
-INSERT INTO `sys_oper_log`
-VALUES (2053766214623547393, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"a","warehouseId":"1828364459110469633","status":null,"areaType":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-11 17:16:37');
-INSERT INTO `sys_oper_log`
-VALUES (2053852496691310593, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828365014901887000","unit":"a","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"a","equipmentType":"a","status":"1","productMarkRule":"a","modelText":null,"remark":"a","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"a","itemId":"2053852496372543489","specModel":"a","status":"1","volume":"0","length":"1","width":"2","height":"2","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-11 22:59:29');
-INSERT INTO `sys_oper_log`
-VALUES (2053858205621325826, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365043024695300","unit":"b","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"batch","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"b","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"c","itemId":"2053858205260615682","specModel":"c","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-11 23:22:10');
-INSERT INTO `sys_oper_log`
-VALUES (2054089783102410754, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"a","equipmentType":"通装","status":"1","productMark":"a","modelText":null,"remark":"a","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496494178305","skuName":"a","itemId":"2053852496372543489","specModel":"a","status":"1","volume":"0.0000","length":"1","width":"2","height":"2","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 14:42:22');
-INSERT INTO `sys_oper_log`
-VALUES (2054089831961858050, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205260615682","ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365014901886978","unit":"b","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"通装","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753025","skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753026","skuName":"c","itemId":"2053858205260615682","specModel":"c","status":"1","volume":"0.0000","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 14:42:34');
-INSERT INTO `sys_oper_log`
-VALUES (2054089980733820929, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"d","itemCategory":"1828365043024695297","unit":"d","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"d","equipmentType":"专装","status":"1","productMark":"d","modelText":null,"remark":"d","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"d","itemId":"2054089980620574721","specModel":"d","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 14:43:09');
-INSERT INTO `sys_oper_log`
-VALUES (2054090129816162305, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:43:45');
-INSERT INTO `sys_oper_log`
-VALUES (2054090140914290689, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985218', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:43:47');
-INSERT INTO `sys_oper_log`
-VALUES (2054090176813338626, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985218', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:43:56');
-INSERT INTO `sys_oper_log`
-VALUES (2054090870790295553, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:46:41');
-INSERT INTO `sys_oper_log`
-VALUES (2054090892172857346, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:46:47');
-INSERT INTO `sys_oper_log`
-VALUES (2054091460647849985, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:49:02');
-INSERT INTO `sys_oper_log`
-VALUES (2054092002220576770, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '至少包含一个商品规格'
-       , '2026-05-12 14:51:11');
-INSERT INTO `sys_oper_log`
-VALUES (2054099228096303106, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 15:19:54');
-INSERT INTO `sys_oper_log`
-VALUES (2054099322778521601, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053127932654985217","ids":null,"itemCode":"IP","itemName":"iphone12","itemCategory":"1828365043024695297","unit":null,"itemBrand":null,"allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053127932654985218","skuName":"1280","itemId":"2053127932654985217","specModel":"128","status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 15:20:17');
-INSERT INTO `sys_oper_log`
-VALUES (2054100788436111362, 'sku信息', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/itemSku/2053858205306753026', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 15:26:06');
-INSERT INTO `sys_oper_log`
-VALUES (2054100799756537857, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205260615682","ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365014901886978","unit":"b","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"通装","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753025","skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 15:26:09');
-INSERT INTO `sys_oper_log`
-VALUES (2054101197615632385, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"xx","itemCategory":"1828365014901886978","unit":"xx","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"xx","equipmentType":"xx","status":"1","productMark":"xx","modelText":null,"remark":"xx","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"xx","itemId":"2054101197485608961","specModel":"","status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 15:27:44');
-INSERT INTO `sys_oper_log`
-VALUES (2054199224246280194, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"通装","status":"1","productMark":"n","modelText":null,"remark":"n","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"n","itemId":"2054199223839432706","specModel":"n","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 21:57:15');
-INSERT INTO `sys_oper_log`
-VALUES (2054199255686782977, '物料', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"专装","status":"1","productMark":"n","modelText":null,"remark":"n","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223948484610","skuName":"n","itemId":"2054199223839432706","specModel":"n","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 21:57:22');
-INSERT INTO `sys_oper_log`
-VALUES (2054199361722982402, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"专装","status":"1","productMark":"n","modelText":null,"remark":"n","sku":null},"qrCodeCount":20}', '{"code":200,"msg":"操作成功","data":{"itemKey":"n||n","qrCodeCount":20,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"专装","status":"1","productMark":"n","modelText":null,"remark":"n","sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"n||n1000000001","qrContent":"n||n1000000001"},{"serialValue":1000000002,"instanceCode":"1000000002","qrCodeValue":"n||n1000000002","qrContent":"n||n1000000002"},{"serialValue":1000000003,"instanceCode":"1000000003","qrCodeValue":"n||n1000000003","qrContent":"n||n1000000003"},{"serialValue":1000000004,"instanceCode":"1000000004","qrCodeValue":"n||n1000000004","qrContent":"n||n1000000004"},{"serialValue":1000000005,"instanceCode":"1000000005","qrCodeValue":"n||n1000000005","qrContent":"n||n1000000005"},{"serialValue":1000000006,"instanceCode":"1000000006","qrCodeValue":"n||n1000000006","qrContent":"n||n1000000006"},{"serialValue":1000000007,"instanceCode":"1000000007","qrCodeValue":"n||n1000000007","qrContent":"n||n1000000007"},{"serialValue":1000000008,"instanceCode":"1000000008","qrCodeValue":"n||n1000000008","qrContent":"n||n1000000008"},{"serialValue":1000000009,"instanceCode":"1000000009","qrCodeValue":"n||n1000000009","qrContent":"n||n1000000009"},{"serialValue":1000000010,"instanceCode":"1000000010","qrCodeValue":"n||n1000000010","qrContent":"n||n1000000010"},{"serialValue":1000000011,"instanceCode":"1000000011","qrCodeValue":"n||n1000000011","qrContent":"n||n1000000011"},{"serialValue":1000000012,"instanceCode":"1000000012","qrCodeValue":"n||n1000000012","qrContent":"n||n1000000012"},{"serialValue":1000000013,"instanceCode":"1000000013","qrCodeValue":"n||n1000000013","qrContent":"n||n1000000013"},{"serialValue":1000000014,"instanceCode":"1000000014","qrCodeValue":"n', 1, ''
-       , '2026-05-12 21:57:48');
-INSERT INTO `sys_oper_log`
-VALUES (2054200473041575937, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"通装","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"qrCodeCount":5}', '', 0, 'com.ruoyi.wms.mapper.ItemInstanceMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''1000000001'' for key ''wms_item_instance.uk_wms_item_instance_code''
-; Duplicate entry ''1000000001'' for key ''wms_item_instance.uk_wms_item_instance_code'''
-       , '2026-05-12 22:02:13');
-INSERT INTO `sys_oper_log`
-VALUES (2054201007081332738, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', '{"code":200,"msg":"操作成功","data":{"itemKey":"惠普||惠普6","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"惠普||惠普61000000001","qrContent":"惠普||惠普61000000001"}]}}', 1, ''
-       , '2026-05-12 22:04:20');
-INSERT INTO `sys_oper_log`
-VALUES (2054222567930400769, '物料', 3, 'com.ruoyi.wms.controller.ItemController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/item/2054101197485608961', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-12 23:30:00');
-INSERT INTO `sys_oper_log`
-VALUES (2054237443369304066, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"301","volume":"40500000","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 00:29:07');
-INSERT INTO `sys_oper_log`
-VALUES (2054390584119238657, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094083","locationCode":"HJ-B-R2-C3","locationName":"B-2-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":3,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":2003,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:37:39');
-INSERT INTO `sys_oper_log`
-VALUES (2054390685638172674, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094084","locationCode":"HJ-B-R3-C1","locationName":"B-3-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":3,"columnNo":1,"length":"299","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":3001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:38:03');
-INSERT INTO `sys_oper_log`
-VALUES (2054390702251810817, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094084","locationCode":"HJ-B-R3-C1","locationName":"B-3-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":3,"columnNo":1,"length":"299","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":3001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:38:07');
-INSERT INTO `sys_oper_log`
-VALUES (2054390763895496706, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:38:22');
-INSERT INTO `sys_oper_log`
-VALUES (2054390943747252225, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:39:04');
-INSERT INTO `sys_oper_log`
-VALUES (2054391184571604993, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:40:02');
-INSERT INTO `sys_oper_log`
-VALUES (2054391358601666561, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, '货位长度之和不能超过货架实际长度(900.00cm)'
-       , '2026-05-13 10:40:43');
-INSERT INTO `sys_oper_log`
-VALUES (2054445955898748929, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"通装","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"qrCodeCount":10}', '{"code":200,"msg":"操作成功","data":{"itemKey":"a-a","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"通装","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"a-a1000000001","qrContent":"a-a1000000001"},{"serialValue":1000000002,"instanceCode":"1000000002","qrCodeValue":"a-a1000000002","qrContent":"a-a1000000002"},{"serialValue":1000000003,"instanceCode":"1000000003","qrCodeValue":"a-a1000000003","qrContent":"a-a1000000003"},{"serialValue":1000000004,"instanceCode":"1000000004","qrCodeValue":"a-a1000000004","qrContent":"a-a1000000004"},{"serialValue":1000000005,"instanceCode":"1000000005","qrCodeValue":"a-a1000000005","qrContent":"a-a1000000005"},{"serialValue":1000000006,"instanceCode":"1000000006","qrCodeValue":"a-a1000000006","qrContent":"a-a1000000006"},{"serialValue":1000000007,"instanceCode":"1000000007","qrCodeValue":"a-a1000000007","qrContent":"a-a1000000007"},{"serialValue":1000000008,"instanceCode":"1000000008","qrCodeValue":"a-a1000000008","qrContent":"a-a1000000008"},{"serialValue":1000000009,"instanceCode":"1000000009","qrCodeValue":"a-a1000000009","qrContent":"a-a1000000009"},{"serialValue":1000000010,"instanceCode":"1000000010","qrCodeValue":"a-a1000000010","qrContent":"a-a1000000010"}]}}', 1, ''
-       , '2026-05-13 14:17:40');
-INSERT INTO `sys_oper_log`
-VALUES (2054446271838892035, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', '{"code":200,"msg":"操作成功","data":{"itemKey":"惠普-惠普6","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"惠普-惠普61000000001","qrContent":"惠普-惠普61000000001"}]}}', 1, ''
-       , '2026-05-13 14:18:56');
-INSERT INTO `sys_oper_log`
-VALUES (2054492915343126529, '入库单', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642882","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642883","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963459","instanceCode":"a-a1000000004","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642884","receiptOrderId":null,"skuId":"2053852', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:24:16');
-INSERT INTO `sys_oper_log`
-VALUES (2054493599459274753, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054493598368755713","receiptOrderNo":"RK05136865","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054493598368755714","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955265409026","instanceCode":"a-a1000000001","boxCode":"99999999","productMark":"a","qualityGrade":null,"remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:26:59');
-INSERT INTO `sys_oper_log`
-VALUES (2054493806725001218, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054492913195642884', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:27:49');
-INSERT INTO `sys_oper_log`
-VALUES (2054493816199933954, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054492913195642882', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:27:51');
-INSERT INTO `sys_oper_log`
-VALUES (2054493829051281410, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054492913195642883', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:27:54');
-INSERT INTO `sys_oper_log`
-VALUES (2054494021225902082, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878658","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878659","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878660","rec', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:28:40');
-INSERT INTO `sys_oper_log`
-VALUES (2054499863459360769, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054494021095878660', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:51:53');
-INSERT INTO `sys_oper_log`
-VALUES (2054499870736478209, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054494021095878658', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:51:55');
-INSERT INTO `sys_oper_log`
-VALUES (2054499885726920706, '入库单详情', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrderDetail/2054494021095878659', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:51:58');
-INSERT INTO `sys_oper_log`
-VALUES (2054500093005230082, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102849","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102850","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102851","rec', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:52:48');
-INSERT INTO `sys_oper_log`
-VALUES (2054500261146488833, '入库单', 3, 'com.ruoyi.wms.controller.ReceiptOrderController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/2054492913195642881', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:53:28');
-INSERT INTO `sys_oper_log`
-VALUES (2054500600377602049, '入库单', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600260161538","receiptOrderNo":"RK05131358","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270402","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270403","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270404","receiptOrderId":null,"skuId":"2053852', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:54:49');
-INSERT INTO `sys_oper_log`
-VALUES (2054500717935554561, '入库单', 3, 'com.ruoyi.wms.controller.ReceiptOrderController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/2054500600260161538', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 17:55:17');
-INSERT INTO `sys_oper_log`
-VALUES (2054510260040036354, '入库单', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259423473665","receiptOrderNo":"RK05137553","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165442","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165443","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963462","instanceCode":"a-a1000000007","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165444","receiptOrderId":null,"skuId":"2053852', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 18:33:12');
-INSERT INTO `sys_oper_log`
-VALUES (2054510528634875905, '入库单', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528441937921","receiptOrderNo":"RK05131657","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528534212610","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationId":"2053041423398596609","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963457","instanceCode":"a-a1000000002","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 18:34:16');
-INSERT INTO `sys_oper_log`
-VALUES (2054510631814754306, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528441937921","receiptOrderNo":"RK05131657","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528534212610","receiptOrderId":"2054510528441937921","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationId":"2053041423398596609","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963457","instanceCode":"a-a1000000002","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 18:34:40');
-INSERT INTO `sys_oper_log`
-VALUES (2054513015580323842, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2024-08-06 15:50:30","updateBy":null,"updateTime":null,"menuId":"1820729144067321858","parentId":"2060000000000001003","menuName":"器材总账","orderNum":0,"path":"inventory","component":"wms/inventory/statistic","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:inventory:all","icon":"chart","remark":"兼容保留：第二阶段主入口已收口到器材总账"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 18:44:09');
-INSERT INTO `sys_oper_log`
-VALUES (2054513184275230721, '菜单管理', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/system/menu', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":"2026-05-06 15:27:18","updateBy":null,"updateTime":null,"menuId":"2051926764629102594","parentId":"2060000000000001003","menuName":"库存总账","orderNum":1,"path":"ledger","component":"wms/inventory/ledger","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:ledger:list","icon":"excel","remark":"第二阶段库存中心主入口"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 18:44:49');
-INSERT INTO `sys_oper_log`
-VALUES (2054522541360607234, '箱体', 3, 'com.ruoyi.wms.controller.BoxController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/box/2053119223216283650', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-13 19:22:00');
-INSERT INTO `sys_oper_log`
-VALUES (2054730992300965890, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"高2","warehouseId":"1828364740028174337","areaId":"1829397621378838530","rackStatus":"enabled","rackType":"standard","rowCount":1,"columnCount":1,"length":"50","width":"50","height":"50","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:10:18');
-INSERT INTO `sys_oper_log`
-VALUES (2054731372506234882, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"299","width":"50","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:11:49');
-INSERT INTO `sys_oper_log`
-VALUES (2054731414612852737, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:11:59');
-INSERT INTO `sys_oper_log`
-VALUES (2054731449983418369, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300.00","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:12:07');
-INSERT INTO `sys_oper_log`
-VALUES (2054731758495449089, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"301","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:13:21');
-INSERT INTO `sys_oper_log`
-VALUES (2054731781996134402, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:13:27');
-INSERT INTO `sys_oper_log`
-VALUES (2054731800174247937, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300.00","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:13:31');
-INSERT INTO `sys_oper_log`
-VALUES (2054731815370211330, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"301","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:13:35');
-INSERT INTO `sys_oper_log`
-VALUES (2054731870080712706, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"100","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:13:48');
-INSERT INTO `sys_oper_log`
-VALUES (2054732104273870850, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790914","locationCode":"HJ-B-R1-C3","locationName":"B-1-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":3,"length":"500","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1003,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:14:43');
-INSERT INTO `sys_oper_log`
-VALUES (2054732172653608962, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"0","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', '', 0, '货位长度必须大于0'
-       , '2026-05-14 09:15:00');
-INSERT INTO `sys_oper_log`
-VALUES (2054732187987984386, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"1","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:15:03');
-INSERT INTO `sys_oper_log`
-VALUES (2054732210595282946, '货位', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/location', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790914","locationCode":"HJ-B-R1-C3","locationName":"B-1-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":3,"length":"599","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1003,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:15:09');
-INSERT INTO `sys_oper_log`
-VALUES (2054732521187688449, '物料类型', 1, 'com.ruoyi.wms.controller.ItemCategoryController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/itemCategory', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"parentId":null,"categoryName":"器材箱","orderNum":null,"status":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:16:23');
-INSERT INTO `sys_oper_log`
-VALUES (2054733101314457601, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"器材箱","itemCategory":"2054732521107996674","unit":null,"itemBrand":null,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","productMark":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"小箱子","itemId":"2054733100475596802","specModel":"","status":"1","length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:18:41');
-INSERT INTO `sys_oper_log`
-VALUES (2054735451844362241, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451613675522","shipmentOrderNo":"CK05143470","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 09:28:02');
-INSERT INTO `sys_oper_log`
-VALUES (2054930695135289345, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694493560834","receiptOrderNo":"RK05142665","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"2","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694673915905","receiptOrderId":null,"skuId":101,"quantity":"1","amount":"0","equipmentCode":"GL","specModel":"20KG标准型","productMark":"P2026","qualityGrade":"1","unitPrice":null,"lineAmount":"0","productionDate":"2026-01-01 00:00:00","expirationDate":"2030-01-01 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":1002,"instanceCode":"INSTANCE20260004","boxCode":"BOX20260001","productMark":"P2026","qualityGrade":"1","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694736830466","receiptOrderId":null,"skuId":101,"quantity":"1","amount":"0","equipmentCode":"GL","specModel":"20KG标准型","productMark":"P2027","qualityGrade":"1","unitPrice":null,"lineAmount":"0","productionDate":"2026-02-01 00:00:00","expirationDate":"2030-02-01 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":1003,"instanceCode":"INSTANCE20260005","boxCode":"BOX20260001","productMark":"P2027","qualityGrade":"1","remark":null}]}]}', '', 0, '器材实例不存在'
-       , '2026-05-14 22:23:51');
-INSERT INTO `sys_oper_log`
-VALUES (2054930922126827521, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920805621761","receiptOrderNo":"RK05142665","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"2","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920805621762","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963458","instanceCode":"a-a1000000003","boxCode":"BOX20260001","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920876924930","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963459","instanceCode":"a-a1000000004","boxCode":"BOX20260001","productMark":"a","qualityGrade":null,"remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 22:24:45');
-INSERT INTO `sys_oper_log`
-VALUES (2054933008931479554, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259423473665","receiptOrderNo":"RK05137553","receiptOrderType":2,"merchantId":"1828354284882399233","orderNo":"a","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-13","receiptDate":"2026-05-15","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"3","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165442","receiptOrderId":"2054510259423473665","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165443","receiptOrderId":"2054510259423473665","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963462","instanceCode":"a-a1000000007","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id"', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-14 22:33:03');
-INSERT INTO `sys_oper_log`
-VALUES (2054957254437072898, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054957253988282370","shipmentOrderNo":"CK05150115","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963462","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 00:09:23');
-INSERT INTO `sys_oper_log`
-VALUES (2054957324079296513, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054957323764723714","shipmentOrderNo":"CK05157373","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963462","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000003","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963461","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 00:09:40');
-INSERT INTO `sys_oper_log`
-VALUES (2055184097836609538, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451613675522","shipmentOrderNo":"CK05143470","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":-1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451726921729","shipmentOrderId":"2054735451613675522","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 15:10:47');
-INSERT INTO `sys_oper_log`
-VALUES (2055184121710587905, '出库单', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/2054735451613675522', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 15:10:53');
-INSERT INTO `sys_oper_log`
-VALUES (2055184131537842177, '出库单', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/2054957253988282370', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 15:10:55');
-INSERT INTO `sys_oper_log`
-VALUES (2055184140706590722, '出库单', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/2054957323764723714', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-15 15:10:57');
-INSERT INTO `sys_oper_log`
-VALUES (2055528939015974913, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938118393858","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963459","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938437160962","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000003","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963458","boxId":"2054930921195692034","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-16 14:01:04');
-INSERT INTO `sys_oper_log`
-VALUES (2055551078075019265, '库存盘点单据', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05162985","checkOrderStatus":1,"checkOrderTotal":"-1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":null,"checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"0","profitAndLoss":"-1","differenceQuantity":"-1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-13 17:26:59","inventoryDetailId":"2054493598884655106","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-14 22:24:45","inventoryDetailId":"2054930921522847745","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-14 22:24:45","i', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-16 15:29:02');
-INSERT INTO `sys_oper_log`
-VALUES (2055552085139992578, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938118393858","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"0","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963459","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938437160962","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"1","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963458","boxId":"2054930921195692034","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '', 0, '按单品实例出库时，数量必须为1'
-       , '2026-05-16 15:33:02');
-INSERT INTO `sys_oper_log`
-VALUES (2055552112654626817, '出库单详情', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrderDetail/2055528938118393858', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-16 15:33:09');
-INSERT INTO `sys_oper_log`
-VALUES (2055552126143508481, '出库单详情', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrderDetail/2055528938437160962', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-16 15:33:12');
-INSERT INTO `sys_oper_log`
-VALUES (2055552288500822017, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055552287376748546","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963460","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-16 15:33:51');
-INSERT INTO `sys_oper_log`
-VALUES (2055979507337502722, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","level":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', '{"code":200,"msg":"操作成功","data":{"itemKey":"WH1ITEM","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","level":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"}]}}', 1, ''
-       , '2026-05-17 19:51:27');
-INSERT INTO `sys_oper_log`
-VALUES (2055998963526770690, '箱体', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/box', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2055998963338027008","boxName":"aaa","boxStatus":"idle","warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"itemCount":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-17 21:08:46');
-INSERT INTO `sys_oper_log`
-VALUES (2056203328992686082, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","level":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","modelText":null,"remark":null,"sku":null},"qrCodeCount":5}', '{"code":200,"msg":"操作成功","data":{"itemKey":"WH1ITEM","qrCodeCount":5,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"惠普","itemCategory":"1828365014901886978","unit":"台","level":null,"equipmentName":"装备名称","equipmentType":"通装","status":"1","modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"}]}}', 1, ''
-       , '2026-05-18 10:40:51');
-INSERT INTO `sys_oper_log`
-VALUES (2056286419052486658, '单品实例', 5, 'com.ruoyi.wms.controller.ItemInstanceController.export()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/itemInstance/export', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"instanceCode":null,"itemId":null,"skuId":null,"instanceStatus":null,"inBox":null,"borrowed":null,"warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"sourceType":null,"sourceOrderType":null,"boxId":null,"boxCode":null,"sourceOrderId":null,"sourceOrderNo":null,"receiptOrderDetailId":null,"shipmentOrderDetailId":null,"belongUnit":null,"currentOwnerUnit":null,"lastOperationType":null,"lastOperationTime":null,"productionDate":null,"expirationDate":null,"remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', '', 1, ''
-       , '2026-05-18 16:11:01');
-INSERT INTO `sys_oper_log`
-VALUES (2056399868721987585, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056399867396587521","shipmentOrderNo":"CK05187208","shipmentOrderType":"借用出库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"1","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056399867451113474","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","inventoryDetailId":"2054933008474300417","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-18 23:41:49');
-INSERT INTO `sys_oper_log`
-VALUES (2056577523224182785, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056577521617764354","receiptOrderNo":"RK05196065","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"1","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056577521710039041","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","itemCode":"a","itemName":"a","skuName":"a","unit":"a","productIdentifier":null,"qualityGrade":null,"unitPrice":"1","lineAmount":"1.00","amount":"1.00","remark":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","receiptItemInstances":[{"id":"2054445955361878019","instanceCode":"a-a1000000010","boxCode":"2121211","remark":"1"}]}]}', '', 0, 'com.ruoyi.wms.mapper.InventoryDetailMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Unknown column ''equipment_code'' in ''field list''
-; bad SQL grammar []'
-       , '2026-05-19 11:27:46');
-INSERT INTO `sys_oper_log`
-VALUES (2056582073318449153, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056582069300305922","receiptOrderNo":"RK05196065","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"1","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056582069354831873","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","itemCode":"a","itemName":"a","skuName":"a","unit":"a","productIdentifier":null,"qualityGrade":null,"unitPrice":"1","lineAmount":"1.00","amount":"1.00","remark":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","receiptItemInstances":[{"id":"2054445955361878019","instanceCode":"a-a1000000010","boxCode":"2121211","remark":"1"}]}]}', '', 0, 'com.ruoyi.wms.mapper.InventoryDetailMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Unknown column ''unit_price'' in ''field list''
-; bad SQL grammar []'
-       , '2026-05-19 11:45:50');
-INSERT INTO `sys_oper_log`
-VALUES (2056752728802410497, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"box","itemName":"器材箱","itemCategory":"2054732521107996674","unit":"个","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"大","productIdentifier":"","qualityGrade":"","itemId":"2056752728542363650","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-19 23:03:58');
-INSERT INTO `sys_oper_log`
-VALUES (2056768878512779265, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"box","itemName":"器材箱","itemCategory":"2054732521107996674","unit":"个","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"大","productIdentifier":"","qualityGrade":"","itemId":"2056768878227566594","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"小","productIdentifier":"","qualityGrade":"","itemId":"2056768878227566594","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:08:08');
-INSERT INTO `sys_oper_log`
-VALUES (2056769240380551169, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056768878227566594","ids":null,"itemCode":"box","itemName":"器材箱","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2056768878252732418","qrCodeCount":10}', '{"code":200,"msg":"操作成功","data":{"itemKey":"WH1ITEM","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056768878227566594","ids":null,"itemCode":"box","itemName":"器材箱","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"},{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"},{"serialValue":1000000007,"instanceCode":"WH1ITEM1000000007","qrCodeValue":"WH1ITEM1000000007","qrContent":"WH1ITEM1000000007"},{"serialValue":1000000008,"instanceCode":"WH1ITEM1000000008","qrCodeValue":"WH1ITEM1000000008","qrContent":"WH1ITEM1000000008"},{"serialValue":1000000009,"instanceCode":"WH1ITEM1000000009","qrCodeValue":"WH1ITEM1000000009","qrContent":"WH1ITEM1000000009"},{"serialValue":1000000010,"instanceCode":"WH1ITEM1000000010","qrCodeValue":"WH1ITEM1000000010","qrContent":"WH1ITEM1000000010"}]}}', 1, ''
-       , '2026-05-20 00:09:35');
-INSERT INTO `sys_oper_log`
-VALUES (2056769319761948674, '仓库', 2, 'com.ruoyi.wms.controller.WarehouseController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1828364459110469633","warehouseCode":"WH1","warehouseName":"北京仓","status":"enabled","address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":0}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:09:53');
-INSERT INTO `sys_oper_log`
-VALUES (2056769387365740546, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"海淀仓","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:10');
-INSERT INTO `sys_oper_log`
-VALUES (2056769438028738561, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"朝阳仓","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:22');
-INSERT INTO `sys_oper_log`
-VALUES (2056769466898132993, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"东城仓","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:29');
-INSERT INTO `sys_oper_log`
-VALUES (2056769490910523393, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"西城仓","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:34');
-INSERT INTO `sys_oper_log`
-VALUES (2056769502834929666, '仓库', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/warehouse/2053033327892754434', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:37');
-INSERT INTO `sys_oper_log`
-VALUES (2056769510850244609, '仓库', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/warehouse/1828364740028174337', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:39');
-INSERT INTO `sys_oper_log`
-VALUES (2056769517800206337, '仓库', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/warehouse/1828364609002311682', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:10:41');
-INSERT INTO `sys_oper_log`
-VALUES (2056769648293392385, '仓库', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/warehouse', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"大兴仓","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:11:12');
-INSERT INTO `sys_oper_log`
-VALUES (2056770222615244801, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"A区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:13:29');
-INSERT INTO `sys_oper_log`
-VALUES (2056770261127344129, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"B区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:13:38');
-INSERT INTO `sys_oper_log`
-VALUES (2056770294870519810, '库区', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770261064429569","areaCode":null,"areaName":"北B区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:13:46');
-INSERT INTO `sys_oper_log`
-VALUES (2056770316508934146, '库区', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770222548135937","areaCode":null,"areaName":"北A区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:13:51');
-INSERT INTO `sys_oper_log`
-VALUES (2056770367792689153, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"海A区","warehouseId":"2056769387227328513","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:03');
-INSERT INTO `sys_oper_log`
-VALUES (2056770392295813122, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"海B区","warehouseId":"2056769387227328513","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:09');
-INSERT INTO `sys_oper_log`
-VALUES (2056770428949835778, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"朝A区","warehouseId":"2056769437957435394","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:18');
-INSERT INTO `sys_oper_log`
-VALUES (2056770456254754817, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"朝B区","warehouseId":"2056769437957435394","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:24');
-INSERT INTO `sys_oper_log`
-VALUES (2056770508129906690, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"东A区","warehouseId":"2056769466831024130","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:37');
-INSERT INTO `sys_oper_log`
-VALUES (2056770538815434753, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"东B区","warehouseId":"2056769466831024130","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:44');
-INSERT INTO `sys_oper_log`
-VALUES (2056770584361381889, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"西A区","warehouseId":"2056769490864386049","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:14:55');
-INSERT INTO `sys_oper_log`
-VALUES (2056770610353483778, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"西B区","warehouseId":"2056769490864386049","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:15:01');
-INSERT INTO `sys_oper_log`
-VALUES (2056770643463319553, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"大A区","warehouseId":"2056769648226283522","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:15:09');
-INSERT INTO `sys_oper_log`
-VALUES (2056770672877973506, '库区', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"大B区","warehouseId":"2056769648226283522","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:15:16');
-INSERT INTO `sys_oper_log`
-VALUES (2056770719334084609, '库区', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770261064429569","areaCode":null,"areaName":"京B区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:15:27');
-INSERT INTO `sys_oper_log`
-VALUES (2056770739433189378, '库区', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/area', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770222548135937","areaCode":null,"areaName":"京A区","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:15:32');
-INSERT INTO `sys_oper_log`
-VALUES (2056771039967653889, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"京A货1","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:16:44');
-INSERT INTO `sys_oper_log`
-VALUES (2056771137321644034, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"京A货2","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackStatus":"enabled","rowCount":1,"columnCount":1,"length":"200","width":"200","height":"200","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:17:07');
-INSERT INTO `sys_oper_log`
-VALUES (2056771222071750658, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"京B货1","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackStatus":"enabled","rowCount":3,"columnCount":3,"length":"900","width":"900","height":"900","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:17:27');
-INSERT INTO `sys_oper_log`
-VALUES (2056771350128046082, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"海A货1","warehouseId":"2056769387227328513","areaId":"2056770367725580289","rackStatus":"enabled","rowCount":1,"columnCount":1,"length":"50","width":"50","height":"50","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:17:57');
-INSERT INTO `sys_oper_log`
-VALUES (2056772480916598785, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"海B货1","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:22:27');
-INSERT INTO `sys_oper_log`
-VALUES (2056772973021708289, '货架', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/rack', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"海B货2","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:24:24');
-INSERT INTO `sys_oper_log`
-VALUES (2056774315412897794, '物料', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"HUI-DYJ","itemName":"惠普打印机","itemCategory":"1828365014901886978","unit":"台","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2023","productIdentifier":"xx","qualityGrade":"高","itemId":"2056774315211571201","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 00:29:44');
-INSERT INTO `sys_oper_log`
-VALUES (2056774828229476353, '物料', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"惠普打印机","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2056774315278680066","qrCodeCount":10}', '{"code":200,"msg":"操作成功","data":{"itemKey":"WH1ITEM","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"惠普打印机","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"},{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"},{"serialValue":1000000007,"instanceCode":"WH1ITEM1000000007","qrCodeValue":"WH1ITEM1000000007","qrContent":"WH1ITEM1000000007"},{"serialValue":1000000008,"instanceCode":"WH1ITEM1000000008","qrCodeValue":"WH1ITEM1000000008","qrContent":"WH1ITEM1000000008"},{"serialValue":1000000009,"instanceCode":"WH1ITEM1000000009","qrCodeValue":"WH1ITEM1000000009","qrContent":"WH1ITEM1000000009"},{"serialValue":1000000010,"instanceCode":"WH1ITEM1000000010","qrCodeValue":"WH1ITEM1000000010","qrContent":"WH1ITEM1000000010"}]}}', 1, ''
-       , '2026-05-20 00:31:47');
-INSERT INTO `sys_oper_log`
-VALUES (2056999507997298690, '入库单', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507242323970","receiptOrderNo":"RK05201617","receiptOrderType":"采购入库","basisNo":"纸质","dispatchMode":"air","noticeOrg":"北大","receiveUnit":"清华","purchaseDate":"2026-05-17","receiptDate":"2026-05-20","totalQuantity":"2","payableAmount":"100","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"aaaaa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707521","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841539","instanceCode":"WH1ITEM1000000002","boxCode":"BOX1122334455","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707522","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","boxCode":"BOX1122334466","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 15:24:35');
-INSERT INTO `sys_oper_log`
-VALUES (2057002889411629058, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057002888316915714","receiptOrderNo":"RK05207589","receiptOrderType":"采购入库","basisNo":"zzz","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-11","receiptDate":"2026-05-20","totalQuantity":"1","payableAmount":"6","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057002888392413186","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"6","lineAmount":"6.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptItemInstances":[{"id":"2056774828107841540","instanceCode":"WH1ITEM1000000003","boxCode":"aa","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 15:38:01');
-INSERT INTO `sys_oper_log`
-VALUES (2057019388994064386, '字典类型', 9, 'com.ruoyi.system.controller.system.SysDictTypeController.refreshCache()', 'DELETE'
-       , 1, 'admin', '研发部门', '/system/dict/type/refreshCache', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 16:43:35');
-INSERT INTO `sys_oper_log`
-VALUES (2057019423626432513, '字典类型', 9, 'com.ruoyi.system.controller.system.SysDictTypeController.refreshCache()', 'DELETE'
-       , 1, 'admin', '研发部门', '/system/dict/type/refreshCache', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 16:43:43');
-INSERT INTO `sys_oper_log`
-VALUES (2057020074561441794, '出库单', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"借用出库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503810","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","inventoryDetailId":"2057002889092861954","itemInstanceId":"2056774828107841540","boxId":null,"remark":null,"key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 16:46:18');
-INSERT INTO `sys_oper_log`
-VALUES (2057020276588482562, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147713","receiptOrderNo":"RK05200069","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"3","payableAmount":"750","receiptOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147714","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772972287705090","locationId":"2056772972304482306","receiptItemInstances":[{"id":"2056774828107841541","instanceCode":"WH1ITEM1000000004","boxCode":"hadfad","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147715","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"400","lineAmount":"400.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772480702689282","locationId":"2056772480702689288","receiptItemInstances":[{"id":"2056774828107841542","instanceCode":"WH1ITEM1000000005","boxCode":"fadsfdas","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275892228098","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"300","lineAmount":"300.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"20567', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 16:47:06');
-INSERT INTO `sys_oper_log`
-VALUES (2057020612040527874, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderNo":"CK05203134","shipmentOrderType":"借用出库","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"aa","purchaseDate":"2026-05-05","shipmentDate":"2026-05-20","receivableAmount":"900","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"aa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"900","lineAmount":"900","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350273","itemInstanceId":"2056774828107841541","boxId":"2057020275938365442","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', '', 0, '
-### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column ''production_date'' in ''field list''
-### The error may exist in com/ruoyi/wms/mapper/InventoryDetailMapper.java (best guess)
-### The error may involve defaultParameterMap
-### The error occurred while setting parameters
-### SQL: SELECT id,receipt_order_id,receipt_order_type,order_no,type,sku_id,warehouse_id,area_id,rack_id,location_id,item_instance_id,box_id,source_order_type,source_order_id,line_no,quantity,production_date,expiration_date,unit_price,line_amount,remark,remain_quantity,create_by,create_time,update_by,update_time FROM wms_inventory_detail WHERE id IN (   ?  )
-### Cause: java.sql.SQLSyntaxErrorException: Unknown column ''production_date'' in ''field list''
-; bad SQL grammar []'
-       , '2026-05-20 16:48:26');
-INSERT INTO `sys_oper_log`
-VALUES (2057024371240026114, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057024369574887426","shipmentOrderNo":"CK05203134","shipmentOrderType":"借用出库","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"aa","purchaseDate":"2026-05-05","shipmentDate":"2026-05-20","receivableAmount":"900","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"aa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057024369574887427","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"900","lineAmount":"900.00","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350273","itemInstanceId":"2056774828107841541","boxId":"2057020275938365442","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 17:03:22');
-INSERT INTO `sys_oper_log`
-VALUES (2057028354226606081, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057028353064783874","shipmentOrderNo":"CK05203882","shipmentOrderType":"借用出库","basisNo":"s","dispatchMode":"rail","noticeOrg":"s","receiveUnit":"s","purchaseDate":"2026-05-11","shipmentDate":"2026-05-20","receivableAmount":"500","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"ss","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057028353144475649","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"500","lineAmount":"500.00","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350275","itemInstanceId":"2056774828107841543","boxId":"2057020276013862913","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 17:19:12');
-INSERT INTO `sys_oper_log`
-VALUES (2057100083145842690, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507242323970","receiptOrderNo":"RK05201617","receiptOrderType":"采购入库","basisNo":"纸质","dispatchMode":"air","noticeOrg":"北大","receiveUnit":"清华","purchaseDate":"2026-05-17","receiptDate":"2026-05-20","totalQuantity":"2","payableAmount":"100","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"aaaaa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707521","receiptOrderId":"2056999507242323970","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841539","instanceCode":"WH1ITEM1000000002","boxCode":"","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707522","receiptOrderId":"2056999507242323970","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","boxCode":"","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 22:04:14');
-INSERT INTO `sys_oper_log`
-VALUES (2057102397088833537, '借出登记', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841539","borrowStatus":null,"borrower":"张哥","fromUnit":"A","toUnit":"B","fromPerson":"小a","toPerson":"小b","docDate":"2026-05-20","borrowNo":null,"planReturnDate":"2026-05-30","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000002","borrowTime":"2026-05-20 22:12:33","returnTime":null,"borrowRemark":"zzz","returnRemark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 22:13:25');
-INSERT INTO `sys_oper_log`
-VALUES (2057102620561350657, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"已还"}', '', 0, '当前单品不存在未归还借用记录'
-       , '2026-05-20 22:14:19');
-INSERT INTO `sys_oper_log`
-VALUES (2057102684860030977, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"已还"}', '', 0, '当前单品不存在未归还借用记录'
-       , '2026-05-20 22:14:34');
-INSERT INTO `sys_oper_log`
-VALUES (2057102760772739073, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"已还"}', '', 0, '当前单品不存在未归还借用记录'
-       , '2026-05-20 22:14:52');
-INSERT INTO `sys_oper_log`
-VALUES (2057102866418868225, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"已还"}', '', 0, '当前单品不存在未归还借用记录'
-       , '2026-05-20 22:15:17');
-INSERT INTO `sys_oper_log`
-VALUES (2057103085663526914, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"已还"}', '', 0, '当前单品不存在未归还借用记录'
-       , '2026-05-20 22:16:09');
-INSERT INTO `sys_oper_log`
-VALUES (2057105562932715522, '货位', 2, 'com.ruoyi.wms.controller.LocationController.rebuildByRack()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/location/rebuildByRack/2056772972287705090', '0:0:0:0:0:0:0:1'
-       , '内网IP', '"2056772972287705090"', '{"code":200,"msg":"操作成功","data":{"rackId":"2056772972287705090","rackCode":"WH1RACK1000000006","rackName":"海B货2","expectedLocationCount":6,"existingLocationCount":6,"createdLocationCount":0,"blockedLocationCount":0,"messages":[]}}', 1, ''
-       , '2026-05-20 22:26:00');
-INSERT INTO `sys_oper_log`
-VALUES (2057105659552702466, '货位', 2, 'com.ruoyi.wms.controller.LocationController.rebuildByRack()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/location/rebuildByRack/2056771137254535169', '0:0:0:0:0:0:0:1'
-       , '内网IP', '"2056771137254535169"', '{"code":200,"msg":"操作成功","data":{"rackId":"2056771137254535169","rackCode":"WH1RACK1000000002","rackName":"京A货2","expectedLocationCount":1,"existingLocationCount":1,"createdLocationCount":0,"blockedLocationCount":0,"messages":[]}}', 1, ''
-       , '2026-05-20 22:26:23');
-INSERT INTO `sys_oper_log`
-VALUES (2057110762208731138, '单品实例', 2, 'com.ruoyi.wms.controller.ItemInstanceController.edit()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/itemInstance', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","itemId":"2056774315211571201","skuId":"2056774315278680066","instanceStatus":"在库","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","sourceType":"入库单","sourceOrderType":"入库单","boxId":null,"boxCode":"bolkjfladdffa","sourceOrderId":"2056999507242323970","sourceOrderNo":"RK05201617","receiptOrderDetailId":"2056999507401707522","shipmentOrderDetailId":null,"lastOperationType":"batch_print","lastOperationTime":"2026-05-20 00:31:46","remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 22:46:40');
-INSERT INTO `sys_oper_log`
-VALUES (2057111300065304578, '箱体', 3, 'com.ruoyi.wms.controller.BoxController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/box/2057110762082902017', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '', 0, '箱体内仍有单品，无法删除'
-       , '2026-05-20 22:48:48');
-INSERT INTO `sys_oper_log`
-VALUES (2057114735401607169, '归还登记', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057102396967198721","itemInstanceId":null,"borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-20 23:02:11","borrowRemark":null,"returnRemark":"已还"}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 23:02:27');
-INSERT INTO `sys_oper_log`
-VALUES (2057116912979386370, '借出登记', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841539","borrowStatus":null,"borrower":"aa","fromUnit":"aa","toUnit":"aa","fromPerson":"a","toPerson":"a","docDate":"2026-05-20","borrowNo":null,"planReturnDate":"2026-05-21","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000002","borrowTime":"2026-05-20 23:10:06","returnTime":null,"borrowRemark":"借用","returnRemark":null}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-20 23:11:06');
-INSERT INTO `sys_oper_log`
-VALUES (2057122662745198593, '单品实例', 5, 'com.ruoyi.wms.controller.ItemInstanceController.export()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/itemInstance/export', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"instanceCode":null,"itemId":null,"skuId":null,"instanceStatus":null,"warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"sourceType":null,"sourceOrderType":null,"boxId":null,"boxCode":null,"sourceOrderId":null,"sourceOrderNo":null,"receiptOrderDetailId":null,"shipmentOrderDetailId":null,"lastOperationType":null,"lastOperationTime":null,"remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', '', 1, ''
-       , '2026-05-20 23:33:57');
-INSERT INTO `sys_oper_log`
-VALUES (2057144243794034689, '库存盘点单据', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05212439","checkOrderStatus":1,"checkOrderTotal":"0","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":"2026-05-21 00:59:37","checkerName":"a","reviewerName":"a","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181250","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181251","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptTime":"2026-05-20 15:38:00","inventoryDetailId":"2057002889092861954","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 00:59:42');
-INSERT INTO `sys_oper_log`
-VALUES (2057301176236675073, '库存盘点单据', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05213385","checkOrderStatus":1,"checkOrderTotal":"0","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181250","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181251","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptTime":"2026-05-20 15:38:00","inventoryDetailId":"2057002889092861954","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 11:23:18');
-INSERT INTO `sys_oper_log`
-VALUES (2057353035051753473, '调拨单', 1, 'com.ruoyi.wms.controller.MovementOrderController.add()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034334527489","movementOrderNo":"DB05215667","movementType":"通装","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":0,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"6","lineAmount":"6.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","inventoryDetailId":"2057002889092861954","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 14:49:22');
-INSERT INTO `sys_oper_log`
-VALUES (2057353886222835713, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034334527489","movementOrderNo":"DB05215667","movementType":"通装","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":1,"totalQuantity":"1.00","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034393247746","movementOrderId":"2057353034334527489","skuId":"2056774315278680066","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"6","lineAmount":"6.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","inventoryDetailId":"2057002889092861954","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 14:52:45');
-INSERT INTO `sys_oper_log`
-VALUES (2057356266884620290, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"借用出库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503810","shipmentOrderId":"2057020074368503809","skuId":"2056774315278680066","quantity":"0","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","inventoryDetailId":"2057002889092861954","itemInstanceId":"2056774828107841540","boxId":null,"remark":null,"key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '', 0, '按单品实例出库时，数量必须为1'
-       , '2026-05-21 15:02:13');
-INSERT INTO `sys_oper_log`
-VALUES (2057356315366580226, '出库单详情', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrderDetail/2057020074368503810', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 15:02:24');
-INSERT INTO `sys_oper_log`
-VALUES (2057356420693942274, '出库单', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT'
-       , 1, 'admin', '研发部门', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"借用出库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"50","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057356420182237185","shipmentOrderId":"2057020074368503809","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"50","lineAmount":"50.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057100082160181250","itemInstanceId":"2056774828107841538","boxId":"2057110762082902017","remark":null,"key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 15:02:49');
-INSERT INTO `sys_oper_log`
-VALUES (2057384631653969922, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057384612725075970","receiptOrderNo":"RK05217410","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"4444","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057384612792184833","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"4444","lineAmount":"4444.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221937532933","receiptItemInstances":[{"id":"2056774828187533314","instanceCode":"WH1ITEM1000000007","boxCode":"dfadfad","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 16:54:55');
-INSERT INTO `sys_oper_log`
-VALUES (2057385076975808514, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057385076648652802","movementOrderNo":"DB05217966","movementType":"通装","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","movementOrderStatus":1,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"4444","lineAmount":"4444.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","inventoryDetailId":"2057384626956349442","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 16:56:41');
-INSERT INTO `sys_oper_log`
-VALUES (2057404460960133122, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433090","receiptOrderNo":"RK05210078","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"2","payableAmount":"2","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433091","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"1","lineAmount":"1.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828187533315","instanceCode":"WH1ITEM1000000008","boxCode":"zzzzz","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433092","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"1","lineAmount":"1.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828187533316","instanceCode":"WH1ITEM1000000009","boxCode":"zzz","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 18:13:43');
-INSERT INTO `sys_oper_log`
-VALUES (2057405642420072449, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057405642227134465","movementOrderNo":"DB05217208","movementType":"通装","dispatchBasis":"z","dispatchPurpose":"z","dispatchMode":"air","fromUnit":"z","toUnit":"z","fromStation":null,"toStation":"z","fromAddress":null,"toAddress":null,"contactAddress":"z","dispatchDate":null,"effectiveDate":"2026-05-20","issueDate":"2026-05-21","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769466831024130","targetAreaId":"2056770538748325889","movementOrderStatus":1,"totalQuantity":"1","remark":"zz","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"1","lineAmount":"1.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769466831024130","targetAreaId":"2056770538748325889","inventoryDetailId":"2057404460763000833","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 18:18:25');
-INSERT INTO `sys_oper_log`
-VALUES (2057412630440890370, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057412629375537153","movementOrderNo":"DB05211481","movementType":"通装","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769490864386049","targetAreaId":"2056770610286374914","movementOrderStatus":1,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"1","lineAmount":"1.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769490864386049","targetAreaId":"2056770610286374914","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057404460763000834","itemInstanceId":"2056774828187533316","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 18:46:11');
-INSERT INTO `sys_oper_log`
-VALUES (2057460273196085250, '入库单', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057460272143314946","receiptOrderNo":"RK05218626","receiptOrderType":"采购入库","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"901","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057460272206229506","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"901","lineAmount":"901.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221937532934","receiptItemInstances":[{"id":"2056774828187533317","instanceCode":"WH1ITEM1000000010","boxCode":"xxzxcx","remark":null}]}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 21:55:30');
-INSERT INTO `sys_oper_log`
-VALUES (2057463795098628098, '调拨单', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST'
-       , 1, 'admin', '研发部门', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1'
-       , '内网IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057463794524008450","movementOrderNo":"DB05215912","movementType":"通装","dispatchBasis":"z","dispatchPurpose":"z","dispatchMode":"rail","fromUnit":"z","toUnit":"zz","fromStation":null,"toStation":"z","fromAddress":null,"toAddress":null,"contactAddress":"z","dispatchDate":null,"effectiveDate":"2026-05-22","issueDate":"2026-05-29","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":1,"totalQuantity":"1","remark":"zzz","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"惠普打印机","skuName":"2023","unit":"台","productIdentifier":"xx","qualityGrade":"高","unitPrice":"901","lineAmount":"901.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","sourceRackId":"2056771221887201282","sourceLocationId":"2056771221937532934","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057460272671797250","itemInstanceId":"2056774828187533317","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '{"code":200,"msg":"操作成功","data":null}', 1, ''
-       , '2026-05-21 22:09:29');
-DROP TABLE IF EXISTS `sys_oss`;
-CREATE TABLE `sys_oss` (
-                           `oss_id` bigint NOT NULL COMMENT '对象存储主键',
-                           `file_name` varchar(255) NOT NULL DEFAULT '' COMMENT '文件名',
-                           `original_name` varchar(255) NOT NULL DEFAULT '' COMMENT '原名',
-                           `file_suffix` varchar(10) NOT NULL DEFAULT '' COMMENT '文件后缀名',
-                           `url` varchar(500) NOT NULL COMMENT 'URL地址',
-                           `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                           `create_by` varchar(64) NULL DEFAULT '' COMMENT '上传人',
-                           `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                           `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新人',
-                           `service` varchar(20) NOT NULL DEFAULT 'minio' COMMENT '服务商'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-DROP TABLE IF EXISTS `sys_oss_config`;
-CREATE TABLE `sys_oss_config` (
-                                  `oss_config_id` bigint NOT NULL COMMENT '主建',
-                                  `config_key` varchar(20) NOT NULL DEFAULT '' COMMENT '配置key',
-                                  `access_key` varchar(255) NULL DEFAULT '' COMMENT 'accessKey',
-                                  `secret_key` varchar(255) NULL DEFAULT '' COMMENT '秘钥',
-                                  `bucket_name` varchar(255) NULL DEFAULT '' COMMENT '桶名称',
-                                  `prefix` varchar(255) NULL DEFAULT '' COMMENT '前缀',
-                                  `endpoint` varchar(255) NULL DEFAULT '' COMMENT '访问站点',
-                                  `domain` varchar(255) NULL DEFAULT '' COMMENT '自定义域名',
-                                  `is_https` char(1) NULL DEFAULT 'N' COMMENT '是否https（Y=是,N=否）',
-                                  `region` varchar(255) NULL DEFAULT '' COMMENT '域',
-                                  `access_policy` char(1) NOT NULL DEFAULT '1' COMMENT '桶权限类型(0=private 1=public 2=custom)',
-                                  `status` char(1) NULL DEFAULT '1' COMMENT '是否默认（0=是,1=否）',
-                                  `ext1` varchar(255) NULL DEFAULT '' COMMENT '扩展字段',
-                                  `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                  `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                                  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                                  `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_oss_config`
-VALUES (1, 'minio', 'ruoyi', 'ruoyi123', 'ruoyi'
-       , '', '127.0.0.1:9000', '', 'N', ''
-       , '1', '0', '', 'admin', '2024-06-13 16:06:38'
-       , 'admin', '2024-08-16 16:48:05', NULL);
-INSERT INTO `sys_oss_config`
-VALUES (2, 'qiniu', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi'
-       , '', 's3-cn-north-1.qiniucs.com', '', 'N', ''
-       , '1', '0', '', 'admin', '2024-06-13 16:06:38'
-       , 'admin', '2024-06-13 16:06:38', NULL);
-INSERT INTO `sys_oss_config`
-VALUES (3, 'aliyun', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi'
-       , '', 'oss-cn-beijing.aliyuncs.com', '', 'N', ''
-       , '1', '0', '', 'admin', '2024-06-13 16:06:38'
-       , 'admin', '2024-07-10 17:50:41', NULL);
-INSERT INTO `sys_oss_config`
-VALUES (4, 'qcloud', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi-1250000000'
-       , '', 'cos.ap-beijing.myqcloud.com', '', 'N', 'ap-beijing'
-       , '1', '0', '', 'admin', '2024-06-13 16:06:38'
-       , 'admin', '2024-06-13 16:06:38', NULL);
-INSERT INTO `sys_oss_config`
-VALUES (5, 'image', 'ruoyi', 'ruoyi123', 'ruoyi'
-       , 'image', '127.0.0.1:9000', '', 'N', ''
-       , '1', '0', '', 'admin', '2024-06-13 16:06:38'
-       , 'admin', '2024-06-13 16:06:38', NULL);
-DROP TABLE IF EXISTS `sys_post`;
-CREATE TABLE `sys_post` (
-                            `post_id` bigint NOT NULL COMMENT '岗位ID',
-                            `post_code` varchar(64) NOT NULL COMMENT '岗位编码',
-                            `post_name` varchar(50) NOT NULL COMMENT '岗位名称',
-                            `post_sort` int NOT NULL COMMENT '显示顺序',
-                            `status` char(1) NOT NULL COMMENT '状态（0正常 1停用）',
-                            `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                            `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                            `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                            `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_post`
-VALUES (1, 'ceo', '董事长', 1, '1'
-       , 'admin', '2024-06-13 16:06:25', '', NULL, '');
-INSERT INTO `sys_post`
-VALUES (2, 'se', '项目经理', 2, '1'
-       , 'admin', '2024-06-13 16:06:25', '', NULL, '');
-INSERT INTO `sys_post`
-VALUES (3, 'hr', '人力资源', 3, '1'
-       , 'admin', '2024-06-13 16:06:25', '', NULL, '');
-INSERT INTO `sys_post`
-VALUES (4, 'user', '普通员工', 4, '1'
-       , 'admin', '2024-06-13 16:06:25', '', NULL, '');
-INSERT INTO `sys_post`
-VALUES (1811656351757385729, 'caiwu8989', '财务', 5, '1'
-       , 'admin', '2024-07-12 22:58:28', 'admin', '2024-07-12 14:58:38', NULL);
-DROP TABLE IF EXISTS `sys_role`;
-CREATE TABLE `sys_role` (
-                            `role_id` bigint NOT NULL COMMENT '角色ID',
-                            `role_name` varchar(30) NOT NULL COMMENT '角色名称',
-                            `role_key` varchar(100) NOT NULL COMMENT '角色权限字符串',
-                            `role_sort` int NOT NULL COMMENT '显示顺序',
-                            `data_scope` char(1) NULL DEFAULT '1' COMMENT '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）',
-                            `menu_check_strictly` tinyint(1) NULL DEFAULT 1 COMMENT '菜单树选择项是否关联显示',
-                            `dept_check_strictly` tinyint(1) NULL DEFAULT 1 COMMENT '部门树选择项是否关联显示',
-                            `status` char(1) NOT NULL COMMENT '角色状态（0正常 1停用）',
-                            `del_flag` char(1) NULL DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-                            `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                            `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                            `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                            `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_role`
-VALUES (1, '超级管理员', 'admin', 1, '1'
-       , 1, 1, '1', '0', 'admin'
-       , '2024-06-13 16:06:26', '', NULL, '超级管理员');
-INSERT INTO `sys_role`
-VALUES (2, '普通角色', 'common', 2, '2'
-       , 1, 1, '1', '1', 'admin'
-       , '2024-06-13 16:06:26', 'admin', '2024-07-10 17:13:05', '普通角色');
-INSERT INTO `sys_role`
-VALUES (1811607750859661314, '测试角色1', 'test1', 2, '1'
-       , 1, 1, '1', '1', 'admin'
-       , '2024-07-12 11:45:21', 'admin', '2024-07-12 11:45:21', NULL);
-INSERT INTO `sys_role`
-VALUES (1811629311809396737, '测试角色2', 'test2', 3, '1'
-       , 1, 1, '1', '1', 'admin'
-       , '2024-07-12 13:11:01', 'admin', '2024-07-12 13:11:01', NULL);
-INSERT INTO `sys_role`
-VALUES (1829105952432427010, '试用', 'trier', 0, '1'
-       , 1, 1, '1', '0', 'admin'
-       , '2024-08-29 18:36:57', 'admin', '2024-08-30 10:51:57', NULL);
-DROP TABLE IF EXISTS `sys_role_dept`;
-CREATE TABLE `sys_role_dept` (
-                                 `role_id` bigint NOT NULL COMMENT '角色ID',
-                                 `dept_id` bigint NOT NULL COMMENT '部门ID'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-DROP TABLE IF EXISTS `sys_role_menu`;
-CREATE TABLE `sys_role_menu` (
-                                 `role_id` bigint NOT NULL COMMENT '角色ID',
-                                 `menu_id` bigint NOT NULL COMMENT '菜单ID'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1808758090157985794);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1809059968309743618);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1809059968309743619);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1813458070128599041);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1813820131794837506);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1815207165755183105);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1818466281474822145);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1818854933803638785);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1818855673632727042);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1820729144067321858);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1821075355068559361);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1822862323595145218);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1823187248797270018);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1823190638784757762);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1825769009480142850);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1829349433573822466);
-INSERT INTO `sys_role_menu`
-VALUES (1829105952432427010, 1829351081448755202);
-DROP TABLE IF EXISTS `sys_user`;
-CREATE TABLE `sys_user` (
-                            `user_id` bigint NOT NULL COMMENT '用户ID',
-                            `dept_id` bigint NULL DEFAULT NULL COMMENT '部门ID',
-                            `user_name` varchar(30) NOT NULL COMMENT '用户账号',
-                            `nick_name` varchar(30) NOT NULL COMMENT '用户昵称',
-                            `user_type` varchar(10) NULL DEFAULT 'sys_user' COMMENT '用户类型（sys_user系统用户）',
-                            `email` varchar(50) NULL DEFAULT '' COMMENT '用户邮箱',
-                            `phonenumber` varchar(11) NULL DEFAULT '' COMMENT '手机号码',
-                            `sex` char(1) NULL DEFAULT '0' COMMENT '用户性别（0男 1女 2未知）',
-                            `avatar` varchar(100) NULL DEFAULT '' COMMENT '头像地址',
-                            `password` varchar(100) NULL DEFAULT '' COMMENT '密码',
-                            `status` char(1) NULL DEFAULT '0' COMMENT '帐号状态（0正常 1停用）',
-                            `del_flag` char(1) NULL DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-                            `login_ip` varchar(128) NULL DEFAULT '' COMMENT '最后登录IP',
-                            `login_date` datetime NULL DEFAULT NULL COMMENT '最后登录时间',
-                            `create_by` varchar(64) NULL DEFAULT '' COMMENT '创建者',
-                            `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT '' COMMENT '更新者',
-                            `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-                            `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_user`
-VALUES (1, 103, 'admin', '系统管理员', 'sys_user'
-       , 'zccbbg@qq.com', '18888888888', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2'
-       , '1', '0', '0:0:0:0:0:0:0:1', '2026-05-21 21:53:02', 'admin'
-       , '2024-06-13 16:06:25', 'admin', '2026-05-21 21:53:02', '管理员');
-INSERT INTO `sys_user`
-VALUES (1829105396288688129, 105, 'kucun', 'kucun', 'sys_user'
-       , '', '', '0', '', '$2a$10$jpbgHXxmB9nszkvhixjaQuwQtXcq7XJrqFaFpev/93WvaWa/oEpGy'
-       , '1', '0', '127.0.0.1', '2024-08-30 13:54:01', 'admin'
-       , '2024-08-29 18:34:44', 'kucun', '2024-08-30 13:54:01', NULL);
-DROP TABLE IF EXISTS `sys_user_post`;
-CREATE TABLE `sys_user_post` (
-                                 `user_id` bigint NOT NULL COMMENT '用户ID',
-                                 `post_id` bigint NOT NULL COMMENT '岗位ID'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_user_post`
-VALUES (1, 1);
-DROP TABLE IF EXISTS `sys_user_role`;
-CREATE TABLE `sys_user_role` (
-                                 `user_id` bigint NOT NULL COMMENT '用户ID',
-                                 `role_id` bigint NOT NULL COMMENT '角色ID'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `sys_user_role`
-VALUES (1, 1);
-INSERT INTO `sys_user_role`
-VALUES (1829105396288688129, 1829105952432427010);
-DROP TABLE IF EXISTS `wms_area`;
-CREATE TABLE `wms_area` (
-                            `id` bigint NOT NULL AUTO_INCREMENT,
-                            `area_code` varchar(20) NULL DEFAULT NULL COMMENT '库区编码',
-                            `area_name` varchar(60) NOT NULL COMMENT '库区名称',
-                            `warehouse_id` bigint NOT NULL COMMENT '所属仓库ID',
-                            `status` varchar(32) NULL DEFAULT NULL COMMENT '启用状态',
-                            `order_num` bigint NULL DEFAULT NULL COMMENT '排序',
-                            `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                            `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                            `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                            `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                            INDEX idx_wms_area_warehouse_id6(`warehouse_id`),
-                            INDEX idx_wms_area_status7(`status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_area`
-VALUES (2056770222548135937, NULL, '京A区', 1828364459110469633, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:13:28.665', 'admin'
-       , '2026-05-20 00:15:31.883');
-INSERT INTO `wms_area`
-VALUES (2056770261064429569, NULL, '京B区', 1828364459110469633, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:13:37.849', 'admin'
-       , '2026-05-20 00:15:27.078');
-INSERT INTO `wms_area`
-VALUES (2056770367725580289, NULL, '海A区', 2056769387227328513, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:03.277', 'admin'
-       , '2026-05-20 00:14:03.277');
-INSERT INTO `wms_area`
-VALUES (2056770392228704258, NULL, '海B区', 2056769387227328513, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:09.122', 'admin'
-       , '2026-05-20 00:14:09.122');
-INSERT INTO `wms_area`
-VALUES (2056770428895309825, NULL, '朝A区', 2056769437957435394, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:17.861', 'admin'
-       , '2026-05-20 00:14:17.861');
-INSERT INTO `wms_area`
-VALUES (2056770456179257345, NULL, '朝B区', 2056769437957435394, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:24.373', 'admin'
-       , '2026-05-20 00:14:24.373');
-INSERT INTO `wms_area`
-VALUES (2056770508046020609, NULL, '东A区', 2056769466831024130, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:36.736', 'admin'
-       , '2026-05-20 00:14:36.736');
-INSERT INTO `wms_area`
-VALUES (2056770538748325889, NULL, '东B区', 2056769466831024130, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:44.052', 'admin'
-       , '2026-05-20 00:14:44.052');
-INSERT INTO `wms_area`
-VALUES (2056770584306855938, NULL, '西A区', 2056769490864386049, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:14:54.914', 'admin'
-       , '2026-05-20 00:14:54.914');
-INSERT INTO `wms_area`
-VALUES (2056770610286374914, NULL, '西B区', 2056769490864386049, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:15:01.110', 'admin'
-       , '2026-05-20 00:15:01.110');
-INSERT INTO `wms_area`
-VALUES (2056770643404599297, NULL, '大A区', 2056769648226283522, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:15:09.002', 'admin'
-       , '2026-05-20 00:15:09.002');
-INSERT INTO `wms_area`
-VALUES (2056770672827641857, NULL, '大B区', 2056769648226283522, NULL
-       , NULL, NULL, 'admin', '2026-05-20 00:15:16.011', 'admin'
-       , '2026-05-20 00:15:16.011');
-DROP TABLE IF EXISTS `wms_borrow_record`;
-CREATE TABLE `wms_borrow_record` (
-                                     `id` bigint NOT NULL AUTO_INCREMENT,
-                                     `item_instance_id` bigint NOT NULL COMMENT '器材实例ID',
-                                     `borrow_status` varchar(32) NOT NULL COMMENT '借还状态',
-                                     `borrower` varchar(64) NOT NULL COMMENT '借用人',
-                                     `from_unit` varchar(128) NULL DEFAULT NULL COMMENT '发货单位',
-                                     `to_unit` varchar(128) NULL DEFAULT NULL COMMENT '收货单位',
-                                     `from_person` varchar(64) NULL DEFAULT NULL COMMENT '发货人',
-                                     `to_person` varchar(64) NULL DEFAULT NULL COMMENT '收货人',
-                                     `doc_date` date NULL DEFAULT NULL COMMENT '单据日期',
-                                     `borrow_no` varchar(64) NULL DEFAULT NULL COMMENT '借用单号',
-                                     `plan_return_date` date NULL DEFAULT NULL COMMENT '计划归还日期',
-                                     `overdue_flag` tinyint NULL DEFAULT 0 COMMENT '是否逾期',
-                                     `overdue_days` int NULL DEFAULT 0 COMMENT '逾期天数',
-                                     `instance_code` varchar(64) NULL DEFAULT NULL COMMENT '器材编码',
-                                     `borrow_time` datetime(3) NOT NULL COMMENT '借用时间',
-                                     `return_time` datetime(3) NULL DEFAULT NULL COMMENT '归还时间',
-                                     `borrow_remark` varchar(255) NULL DEFAULT NULL COMMENT '借用备注',
-                                     `return_remark` varchar(255) NULL DEFAULT NULL COMMENT '归还备注',
-                                     `original_warehouse_id` bigint NULL DEFAULT NULL COMMENT '借出前仓库',
-                                     `original_area_id` bigint NULL DEFAULT NULL COMMENT '借出前库区',
-                                     `original_rack_id` bigint NULL DEFAULT NULL COMMENT '借出前货架',
-                                     `original_location_id` bigint NULL DEFAULT NULL COMMENT '借出前货位',
-                                     `returned_warehouse_id` bigint NULL DEFAULT NULL COMMENT '归还后仓库',
-                                     `returned_area_id` bigint NULL DEFAULT NULL COMMENT '归还后库区',
-                                     `returned_rack_id` bigint NULL DEFAULT NULL COMMENT '归还后货架',
-                                     `returned_location_id` bigint NULL DEFAULT NULL COMMENT '归还后货位',
-                                     `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                     `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                     `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                     INDEX idx_wms_borrow_record_item_instance_id8(`item_instance_id`),
-                                     INDEX idx_wms_borrow_record_status9(`borrow_status`),
-                                     INDEX idx_wms_borrow_record_borrow_time10(`borrow_time`),
-                                     INDEX idx_wms_borrow_record_item_status11(`item_instance_id`, `borrow_status`, `borrow_time`),
-                                     INDEX idx_wms_borrow_record_overdue12(`overdue_flag`, `borrow_status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_borrow_record`
-VALUES (2057102396967198721, 2056774828107841539, 'returned', '张哥', 'A'
-       , 'B', '小a', '小b', '2026-05-20', 'BR2057102396983975936'
-       , '2026-05-30', 0, 0, 'WH1ITEM1000000002', '2026-05-20 22:12:33.000'
-       , '2026-05-20 23:02:11.000', 'zzz', '已还', 1828364459110469633, 2056770222548135937
-       , 2056771137254535169, 2056771137254535170, 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170, 'admin', '2026-05-20 22:13:25.222', 'admin', '2026-05-20 23:02:26.495');
-INSERT INTO `wms_borrow_record`
-VALUES (2057116912845168642, 2056774828107841539, 'borrowed', 'aa', 'aa'
-       , 'aa', 'a', 'a', '2026-05-20', 'BR2057116912853557248'
-       , '2026-05-21', 0, 0, 'WH1ITEM1000000002', '2026-05-20 23:10:06.000'
-       , NULL, '借用', NULL, 1828364459110469633, 2056770222548135937
-       , 2056771137254535169, 2056771137254535170, NULL, NULL, NULL
-       , NULL, 'admin', '2026-05-20 23:11:06.066', 'admin', '2026-05-20 23:11:06.066');
-DROP TABLE IF EXISTS `wms_box`;
-CREATE TABLE `wms_box` (
-                           `id` bigint NOT NULL AUTO_INCREMENT,
-                           `box_code` varchar(64) NOT NULL COMMENT '箱码',
-                           `box_name` varchar(64) NULL DEFAULT NULL COMMENT '箱体名称',
-                           `box_status` varchar(32) NULL DEFAULT 'idle' COMMENT '箱体状态',
-                           `item_count` int NULL DEFAULT NULL COMMENT '箱内器材数量',
-                           `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                           `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                           `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                           `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                           `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                           `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                           `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                           `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                           `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                           INDEX idx_wms_box_location_id13(`location_id`),
-                           INDEX idx_wms_box_position14(`warehouse_id`, `area_id`, `rack_id`, `location_id`),
-                           INDEX idx_wms_box_status15(`box_status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_box`
-VALUES (2057002888505659394, 'aa', 'aa', 'packed', 1
-       , 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283, NULL
-       , 'admin', '2026-05-20 15:38:00.550', 'admin', '2026-05-20 15:38:00.634');
-INSERT INTO `wms_box`
-VALUES (2057020275938365442, 'hadfad', 'hadfad', 'outbound', 0
-       , 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972304482306, NULL
-       , 'admin', '2026-05-20 16:47:06.042', 'admin', '2026-05-20 17:03:22.217');
-INSERT INTO `wms_box`
-VALUES (2057020275938365443, 'fadsfdas', 'fadsfdas', 'packed', 1
-       , 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288, NULL
-       , 'admin', '2026-05-20 16:47:06.047', 'admin', '2026-05-20 16:47:06.109');
-INSERT INTO `wms_box`
-VALUES (2057020276013862913, 'dasfdas', 'dasfdas', 'outbound', 0
-       , 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972367396867, NULL
-       , 'admin', '2026-05-20 16:47:06.052', 'admin', '2026-05-20 17:19:11.909');
-INSERT INTO `wms_box`
-VALUES (2057110762082902017, 'bolkjfladdffa', 'bolkjfladdffa', 'outbound', 0
-       , 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL
-       , 'admin', '2026-05-20 22:46:39.617', 'admin', '2026-05-21 15:02:49.129');
-INSERT INTO `wms_box`
-VALUES (2057384612993511425, 'dfadfad', 'dfadfad', 'packed', 1
-       , 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532933, NULL
-       , 'admin', '2026-05-21 16:54:50.754', 'admin', '2026-05-21 16:54:50.809');
-INSERT INTO `wms_box`
-VALUES (2057404460368736258, 'zzzzz', 'zzzzz', 'packed', 1
-       , 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL
-       , 'admin', '2026-05-21 18:13:42.750', 'admin', '2026-05-21 18:13:42.802');
-INSERT INTO `wms_box`
-VALUES (2057404460452622337, 'zzz', 'zzz', 'packed', 1
-       , 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL
-       , 'admin', '2026-05-21 18:13:42.757', 'admin', '2026-05-21 18:13:42.828');
-INSERT INTO `wms_box`
-VALUES (2057460272415944705, 'xxzxcx', 'xxzxcx', 'packed', 1
-       , 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532934, NULL
-       , 'admin', '2026-05-21 21:55:29.369', 'admin', '2026-05-21 21:55:29.420');
-DROP TABLE IF EXISTS `wms_check_order`;
-CREATE TABLE `wms_check_order` (
-                                   `id` bigint NOT NULL AUTO_INCREMENT,
-                                   `check_order_no` varchar(22) NULL DEFAULT NULL COMMENT '盘点单号',
-                                   `check_order_status` tinyint NULL DEFAULT 11 COMMENT '库存盘点单状态 -1：作废 0：未盘库 1：已盘库',
-                                   `check_order_total` decimal(20, 2) NULL DEFAULT NULL COMMENT '盈亏数',
-                                   `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                   `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                   `rack_id` bigint NULL DEFAULT NULL COMMENT '货架',
-                                   `check_scope_type` varchar(32) NULL DEFAULT NULL COMMENT '盘点范围类型',
-                                   `check_date` datetime(3) NULL DEFAULT NULL COMMENT '盘点日期',
-                                   `checker_name` varchar(64) NULL DEFAULT NULL COMMENT '盘点人',
-                                   `reviewer_name` varchar(64) NULL DEFAULT NULL COMMENT '复核人',
-                                   `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                   `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                   `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                   `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_check_order`
-VALUES (2057144243387187201, 'PK05212439', 1, 0.00, 1828364459110469633
-       , NULL, NULL, 'warehouse', '2026-05-21 00:59:37.000', 'a'
-       , 'a', NULL, 'admin', '2026-05-21 00:59:42.175', 'admin'
-       , '2026-05-21 00:59:42.175');
-INSERT INTO `wms_check_order`
-VALUES (2057301175179710465, 'PK05213385', 1, 0.00, 1828364459110469633
-       , NULL, NULL, 'warehouse', NULL, NULL
-       , NULL, NULL, 'admin', '2026-05-21 11:23:17.629', 'admin'
-       , '2026-05-21 11:23:17.629');
-DROP TABLE IF EXISTS `wms_check_order_detail`;
-CREATE TABLE `wms_check_order_detail` (
-                                          `id` bigint NOT NULL AUTO_INCREMENT,
-                                          `check_order_id` bigint NULL DEFAULT NULL COMMENT '盘点单id',
-                                          `sku_id` bigint NOT NULL COMMENT '规格id',
-                                          `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '库存数量',
-                                          `check_quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '盘点数量',
-                                          `difference_quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '差异数量',
-                                          `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                          `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                          `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                          `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                                          `item_instance_id` bigint NULL DEFAULT NULL COMMENT '器材实例ID',
-                                          `box_id` bigint NULL DEFAULT NULL COMMENT '箱体ID',
-                                          `receipt_time` datetime(3) NULL DEFAULT NULL COMMENT '入库时间',
-                                          `inventory_detail_id` bigint NULL DEFAULT NULL COMMENT '入库记录id',
-                                          `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                          `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                          `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                          `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                          `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_check_order_detail`
-VALUES (2057144243471073281, 2057144243387187201, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , NULL, NULL, '2026-05-20 22:04:13.000', 2057100082160181250, NULL
-       , 'admin', '2026-05-21 00:59:42.200', 'admin', '2026-05-21 00:59:42.200');
-INSERT INTO `wms_check_order_detail`
-VALUES (2057144243471073282, 2057144243387187201, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , NULL, NULL, '2026-05-20 22:04:13.000', 2057100082160181251, NULL
-       , 'admin', '2026-05-21 00:59:42.203', 'admin', '2026-05-21 00:59:42.203');
-INSERT INTO `wms_check_order_detail`
-VALUES (2057144243471073283, 2057144243387187201, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283
-       , NULL, NULL, '2026-05-20 15:38:00.000', 2057002889092861954, NULL
-       , 'admin', '2026-05-21 00:59:42.205', 'admin', '2026-05-21 00:59:42.205');
-INSERT INTO `wms_check_order_detail`
-VALUES (2057301175397814273, 2057301175179710465, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841539, NULL, '2026-05-20 22:04:13.000', 2057100082160181250, NULL
-       , 'admin', '2026-05-21 11:23:17.686', 'admin', '2026-05-21 11:23:17.686');
-INSERT INTO `wms_check_order_detail`
-VALUES (2057301175397814274, 2057301175179710465, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841538, NULL, '2026-05-20 22:04:13.000', 2057100082160181251, NULL
-       , 'admin', '2026-05-21 11:23:17.691', 'admin', '2026-05-21 11:23:17.691');
-INSERT INTO `wms_check_order_detail`
-VALUES (2057301175477506050, 2057301175179710465, 2056774315278680066, 1.00, 1.00
-       , NULL, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283
-       , 2056774828107841540, 2057002888505659394, '2026-05-20 15:38:00.000', 2057002889092861954, NULL
-       , 'admin', '2026-05-21 11:23:17.699', 'admin', '2026-05-21 11:23:17.699');
-DROP TABLE IF EXISTS `wms_inventory`;
-CREATE TABLE `wms_inventory` (
-                                 `id` bigint NOT NULL AUTO_INCREMENT,
-                                 `sku_id` bigint NULL DEFAULT NULL COMMENT '规格ID',
-                                 `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                 `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                 `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                 `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                                 `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '库存',
-                                 `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                 `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                 `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                 `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                 INDEX idx_wms_inventory_position16(`warehouse_id`, `area_id`, `rack_id`, `location_id`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_inventory`
-VALUES (2057002889155776513, 2056774315278680066, 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221887201283, 1.00, NULL, 'admin', '2026-05-20 15:38:00.727'
-       , 'admin', '2026-05-20 15:38:00.727');
-INSERT INTO `wms_inventory`
-VALUES (2057020276391350276, 2056774315278680066, 2056769387227328513, 2056770392228704258, 2056772972287705090
-       , 2056772972367396867, 0.00, NULL, 'admin', '2026-05-20 16:47:06.152'
-       , 'admin', '2026-05-20 17:19:11.868');
-INSERT INTO `wms_inventory`
-VALUES (2057020276391350277, 2056774315278680066, 2056769387227328513, 2056770392228704258, 2056772480702689282
-       , 2056772480702689288, 1.00, NULL, 'admin', '2026-05-20 16:47:06.153'
-       , 'admin', '2026-05-20 16:47:06.153');
-INSERT INTO `wms_inventory`
-VALUES (2057020276391350278, 2056774315278680066, 2056769387227328513, 2056770392228704258, 2056772972287705090
-       , 2056772972304482306, 0.00, NULL, 'admin', '2026-05-20 16:47:06.153'
-       , 'admin', '2026-05-20 17:03:22.173');
-INSERT INTO `wms_inventory`
-VALUES (2057100082877407234, 2056774315278680066, 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170, 3.00, NULL, 'admin', '2026-05-20 22:04:13.491'
-       , 'admin', '2026-05-21 18:13:42.854');
-INSERT INTO `wms_inventory`
-VALUES (2057384626956349443, 2056774315278680066, 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221937532933, 1.00, NULL, 'admin', '2026-05-21 16:54:54.179'
-       , 'admin', '2026-05-21 16:54:54.179');
-INSERT INTO `wms_inventory`
-VALUES (2057385076719955970, 2056774315278680066, 1828364459110469633, 2056770261064429569, NULL
-       , NULL, -2.00, NULL, 'admin', '2026-05-21 16:56:41.327'
-       , 'admin', '2026-05-21 22:09:29.137');
-INSERT INTO `wms_inventory`
-VALUES (2057385076782870529, 2056774315278680066, 2056769648226283522, 2056770672827641857, NULL
-       , NULL, 1.00, NULL, 'admin', '2026-05-21 16:56:41.332'
-       , 'admin', '2026-05-21 16:56:41.332');
-INSERT INTO `wms_inventory`
-VALUES (2057405642227134467, 2056774315278680066, 1828364459110469633, 2056770222548135937, NULL
-       , NULL, -1.00, NULL, 'admin', '2026-05-21 18:18:24.532'
-       , 'admin', '2026-05-21 22:09:29.143');
-INSERT INTO `wms_inventory`
-VALUES (2057405642323603458, 2056774315278680066, 2056769466831024130, 2056770538748325889, NULL
-       , NULL, 1.00, NULL, 'admin', '2026-05-21 18:18:24.538'
-       , 'admin', '2026-05-21 18:18:24.538');
-INSERT INTO `wms_inventory`
-VALUES (2057412629702692865, 2056774315278680066, 2056769490864386049, 2056770610286374914, NULL
-       , NULL, 1.00, NULL, 'admin', '2026-05-21 18:46:10.469'
-       , 'admin', '2026-05-21 18:46:10.469');
-INSERT INTO `wms_inventory`
-VALUES (2057460272671797251, 2056774315278680066, 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221937532934, 1.00, NULL, 'admin', '2026-05-21 21:55:29.481'
-       , 'admin', '2026-05-21 21:55:29.481');
-DROP TABLE IF EXISTS `wms_inventory_detail`;
-CREATE TABLE `wms_inventory_detail` (
-                                        `id` bigint NOT NULL AUTO_INCREMENT,
-                                        `receipt_order_id` bigint NULL DEFAULT NULL COMMENT '入库单id',
-                                        `receipt_order_type` varchar(20) NULL DEFAULT NULL COMMENT '入库单类型',
-                                        `order_no` varchar(255) NULL DEFAULT NULL COMMENT '单号',
-                                        `type` int NULL DEFAULT NULL COMMENT '类型 1：入库 2：移库 3：盘库',
-                                        `sku_id` bigint NULL DEFAULT NULL COMMENT '规格ID',
-                                        `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                        `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                        `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                        `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                                        `item_instance_id` bigint NULL DEFAULT NULL COMMENT '器材明细ID',
-                                        `box_id` bigint NULL DEFAULT NULL COMMENT '箱体ID',
-                                        `source_order_type` varchar(32) NULL DEFAULT NULL COMMENT '来源单据类型',
-                                        `source_order_id` bigint NULL DEFAULT NULL COMMENT '来源单据ID',
-                                        `line_no` int NULL DEFAULT NULL COMMENT '来源行号',
-                                        `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '入库数量',
-                                        `unit_price` decimal(18, 2) NULL DEFAULT NULL COMMENT '单价',
-                                        `line_amount` decimal(18, 2) NULL DEFAULT NULL COMMENT '总价',
-                                        `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                        `remain_quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '剩余数量',
-                                        `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                        `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                        `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                        `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                        INDEX idx_wms_inventory_detail_spec_time17(`create_time`),
-                                        INDEX idx_wms_inventory_detail_position18(`warehouse_id`, `area_id`, `rack_id`, `location_id`),
-                                        INDEX idx_wms_inventory_detail_instance_id19(`item_instance_id`),
-                                        INDEX idx_wms_inventory_detail_box_id20(`box_id`),
-                                        INDEX idx_wms_inventory_detail_order_line21(`order_no`, `line_no`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_inventory_detail`
-VALUES (2057020276391350274, 2057020275804147713, NULL, NULL, 1
-       , 2056774315278680066, 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288
-       , 2056774828107841542, 2057020275938365443, NULL, NULL, NULL
-       , 1.00, 400.00, 400.00, NULL, 1.00
-       , 'admin', '2026-05-20 16:47:06.138', 'admin', '2026-05-20 16:47:06.138');
-INSERT INTO `wms_inventory_detail`
-VALUES (2057100082160181251, 2056999507242323970, NULL, NULL, 1
-       , 2056774315278680066, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841538, NULL, NULL, NULL, NULL
-       , 1.00, 50.00, 50.00, NULL, 1.00
-       , 'admin', '2026-05-20 22:04:13.328', 'admin', '2026-05-20 22:04:13.328');
-INSERT INTO `wms_inventory_detail`
-VALUES (2057385076782870530, 2057385076648652802, NULL, 'DB05217966', 2
-       , 2056774315278680066, 2056769648226283522, 2056770672827641857, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , 1.00, 4444.00, 4444.00, NULL, 1.00
-       , 'admin', '2026-05-21 16:56:41.340', 'admin', '2026-05-21 16:56:41.340');
-INSERT INTO `wms_inventory_detail`
-VALUES (2057405642323603459, 2057405642227134465, NULL, 'DB05217208', 2
-       , 2056774315278680066, 2056769466831024130, 2056770538748325889, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , 1.00, 1.00, 1.00, NULL, 1.00
-       , 'admin', '2026-05-21 18:18:24.544', 'admin', '2026-05-21 18:18:24.544');
-INSERT INTO `wms_inventory_detail`
-VALUES (2057412629824327681, 2057412629375537153, NULL, 'DB05211481', 2
-       , 2056774315278680066, 2056769490864386049, 2056770610286374914, NULL, NULL
-       , 2056774828187533316, NULL, '调拨单', 2057412629375537153, NULL
-       , 1.00, 1.00, 1.00, NULL, 1.00
-       , 'admin', '2026-05-21 18:46:10.486', 'admin', '2026-05-21 18:46:10.486');
-INSERT INTO `wms_inventory_detail`
-VALUES (2057463794712752130, 2057463794524008450, NULL, 'DB05215912', 2
-       , 2056774315278680066, 1828364459110469633, 2056770222548135937, NULL, NULL
-       , 2056774828187533317, NULL, '调拨单', 2057463794524008450, NULL
-       , 1.00, 901.00, 901.00, NULL, 1.00
-       , 'admin', '2026-05-21 22:09:29.151', 'admin', '2026-05-21 22:09:29.151');
-DROP TABLE IF EXISTS `wms_inventory_history`;
-CREATE TABLE `wms_inventory_history` (
-                                         `id` bigint NOT NULL AUTO_INCREMENT,
-                                         `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                         `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                         `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                         `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                                         `item_instance_id` bigint NULL DEFAULT NULL COMMENT '器材明细ID',
-                                         `box_id` bigint NULL DEFAULT NULL COMMENT '箱体ID',
-                                         `before_quantity` decimal(18, 2) NULL DEFAULT NULL COMMENT '变化前数量',
-                                         `after_quantity` decimal(18, 2) NULL DEFAULT NULL COMMENT '变化后数量',
-                                         `operation_type` varchar(32) NULL DEFAULT NULL COMMENT '业务动作类型',
-                                         `operator_name` varchar(64) NULL DEFAULT NULL COMMENT '操作人',
-                                         `sku_id` bigint NULL DEFAULT NULL COMMENT '规格ID',
-                                         `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '库存变化',
-                                         `unit_price` decimal(18, 2) NULL DEFAULT NULL COMMENT '单价',
-                                         `line_amount` decimal(18, 2) NULL DEFAULT NULL COMMENT '总价',
-                                         `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                         `order_id` bigint NULL DEFAULT NULL COMMENT '操作id（出库、入库、库存移动表单id）',
-                                         `order_no` varchar(64) NULL DEFAULT NULL COMMENT '操作单号（入库、出库、移库、盘库单号）',
-                                         `order_type` int NULL DEFAULT NULL COMMENT '操作类型',
-                                         `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                         INDEX idx_wms_inventory_history_time22(`create_time`, `order_type`),
-                                         INDEX idx_wms_inventory_history_position23(`warehouse_id`, `area_id`, `rack_id`, `location_id`),
-                                         INDEX idx_wms_inventory_history_instance_id24(`item_instance_id`),
-                                         INDEX idx_wms_inventory_history_box_id25(`box_id`),
-                                         INDEX idx_wms_inventory_history_order_no26(`order_no`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_inventory_history`
-VALUES (2057002889155776514, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283
-       , 2056774828107841540, 2057002888505659394, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 6.00, 6.00
-       , NULL, 2057002888316915714, 'RK05207589', 1, '2026-05-20 15:38:00.740');
-INSERT INTO `wms_inventory_history`
-VALUES (2057020276462653442, 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972304482306
-       , 2056774828107841541, 2057020275938365442, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 50.00, 50.00
-       , NULL, 2057020275804147713, 'RK05200069', 1, '2026-05-20 16:47:06.157');
-INSERT INTO `wms_inventory_history`
-VALUES (2057020276462653443, 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288
-       , 2056774828107841542, 2057020275938365443, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 400.00, 400.00
-       , NULL, 2057020275804147713, 'RK05200069', 1, '2026-05-20 16:47:06.157');
-INSERT INTO `wms_inventory_history`
-VALUES (2057020276462653444, 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972367396867
-       , 2056774828107841543, 2057020276013862913, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 300.00, 300.00
-       , NULL, 2057020275804147713, 'RK05200069', 1, '2026-05-20 16:47:06.158');
-INSERT INTO `wms_inventory_history`
-VALUES (2057024370191450114, 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972304482306
-       , 2056774828107841541, 2057020275938365442, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 900.00, 900.00
-       , NULL, 2057024369574887426, 'CK05203134', 2, '2026-05-20 17:03:22.188');
-INSERT INTO `wms_inventory_history`
-VALUES (2057028353534545922, 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972367396867
-       , 2056774828107841543, 2057020276013862913, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 500.00, 500.00
-       , NULL, 2057028353064783874, 'CK05203882', 2, '2026-05-20 17:19:11.884');
-INSERT INTO `wms_inventory_history`
-VALUES (2057100082877407235, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841539, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 50.00, 50.00
-       , NULL, 2056999507242323970, 'RK05201617', 1, '2026-05-20 22:04:13.498');
-INSERT INTO `wms_inventory_history`
-VALUES (2057100082877407236, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841538, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 50.00, 50.00
-       , NULL, 2056999507242323970, 'RK05201617', 1, '2026-05-20 22:04:13.500');
-INSERT INTO `wms_inventory_history`
-VALUES (2057102397021724674, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841539, NULL, NULL, NULL, 'borrow'
-       , '张哥', 2056774315278680066, -1.00, NULL, NULL
-       , 'zzz', 2057102396967198721, 'BR2057102396983975936', 5, '2026-05-20 22:12:33.000');
-INSERT INTO `wms_inventory_history`
-VALUES (2057114733631610881, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841539, NULL, NULL, NULL, 'return'
-       , '张哥', 2056774315278680066, 1.00, NULL, NULL
-       , '已还', 2057102396967198721, 'BR2057102396983975936', 6, '2026-05-20 23:02:11.000');
-INSERT INTO `wms_inventory_history`
-VALUES (2057116912845168643, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841539, NULL, NULL, NULL, 'borrow'
-       , 'aa', 2056774315278680066, -1.00, NULL, NULL
-       , '借用', 2057116912845168642, 'BR2057116912853557248', 5, '2026-05-20 23:10:06.000');
-INSERT INTO `wms_inventory_history`
-VALUES (2057356420316454914, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828107841538, 2057110762082902017, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 50.00, 50.00
-       , NULL, 2057020074368503809, 'CK05202806', 2, '2026-05-21 15:02:49.101');
-INSERT INTO `wms_inventory_history`
-VALUES (2057384627463860225, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532933
-       , 2056774828187533314, 2057384612993511425, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 4444.00, 4444.00
-       , NULL, 2057384612725075970, 'RK05217410', 1, '2026-05-21 16:54:54.204');
-INSERT INTO `wms_inventory_history`
-VALUES (2057385076849979394, 1828364459110469633, 2056770261064429569, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 4444.00, 4444.00
-       , NULL, 2057385076648652802, 'DB05217966', 3, '2026-05-21 16:56:41.345');
-INSERT INTO `wms_inventory_history`
-VALUES (2057385076849979395, 2056769648226283522, 2056770672827641857, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 4444.00, 4444.00
-       , NULL, 2057385076648652802, 'DB05217966', 3, '2026-05-21 16:56:41.345');
-INSERT INTO `wms_inventory_history`
-VALUES (2057404460825915394, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828187533315, 2057404460368736258, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 1.00, 1.00
-       , NULL, 2057404460297433090, 'RK05210078', 1, '2026-05-21 18:13:42.858');
-INSERT INTO `wms_inventory_history`
-VALUES (2057404460825915395, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828187533316, 2057404460452622337, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 1.00, 1.00
-       , NULL, 2057404460297433090, 'RK05210078', 1, '2026-05-21 18:13:42.859');
-INSERT INTO `wms_inventory_history`
-VALUES (2057405642323603460, 1828364459110469633, 2056770222548135937, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 1.00, 1.00
-       , NULL, 2057405642227134465, 'DB05217208', 3, '2026-05-21 18:18:24.551');
-INSERT INTO `wms_inventory_history`
-VALUES (2057405642323603461, 2056769466831024130, 2056770538748325889, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 1.00, 1.00
-       , NULL, 2057405642227134465, 'DB05217208', 3, '2026-05-21 18:18:24.553');
-INSERT INTO `wms_inventory_history`
-VALUES (2057412629824327682, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170
-       , 2056774828187533316, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 1.00, 1.00
-       , NULL, 2057412629375537153, 'DB05211481', 3, '2026-05-21 18:46:10.500');
-INSERT INTO `wms_inventory_history`
-VALUES (2057412629824327683, 2056769490864386049, 2056770610286374914, NULL, NULL
-       , 2056774828187533316, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 1.00, 1.00
-       , NULL, 2057412629375537153, 'DB05211481', 3, '2026-05-21 18:46:10.503');
-INSERT INTO `wms_inventory_history`
-VALUES (2057460272906678273, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532934
-       , 2056774828187533317, 2057460272415944705, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 901.00, 901.00
-       , NULL, 2057460272143314946, 'RK05218626', 1, '2026-05-21 21:55:29.491');
-INSERT INTO `wms_inventory_history`
-VALUES (2057463794712752131, 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532934
-       , 2056774828187533317, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, -1.00, 901.00, 901.00
-       , NULL, 2057463794524008450, 'DB05215912', 3, '2026-05-21 22:09:29.156');
-INSERT INTO `wms_inventory_history`
-VALUES (2057463794712752132, 1828364459110469633, 2056770222548135937, NULL, NULL
-       , 2056774828187533317, NULL, NULL, NULL, NULL
-       , NULL, 2056774315278680066, 1.00, 901.00, 901.00
-       , NULL, 2057463794524008450, 'DB05215912', 3, '2026-05-21 22:09:29.158');
-DROP TABLE IF EXISTS `wms_item`;
-CREATE TABLE `wms_item` (
-                            `id` bigint NOT NULL AUTO_INCREMENT,
-                            `item_code` varchar(20) NOT NULL COMMENT '器材编码',
-                            `item_name` varchar(60) NOT NULL COMMENT '器材名称',
-                            `item_category` varchar(20) NULL DEFAULT NULL COMMENT '分类',
-                            `unit` varchar(20) NULL DEFAULT NULL COMMENT '计量单位',
-                            `equipment_name` varchar(128) NULL DEFAULT NULL COMMENT '装备名称',
-                            `equipment_type` varchar(32) NULL DEFAULT NULL COMMENT '器材类型：通装/专装',
-                            `status` varchar(32) NULL DEFAULT NULL COMMENT '启用状态',
-                            `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                            `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                            `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                            `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                            INDEX idx_wms_item_equipment_type27(`equipment_type`),
-                            INDEX idx_wms_item_status28(`status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_item`
-VALUES (2056768878227566594, 'box', '器材箱', '2054732521107996674', '个'
-       , NULL, NULL, '1', NULL, 'admin'
-       , '2026-05-20 00:08:08.145', 'admin', '2026-05-20 00:08:08.145');
-INSERT INTO `wms_item`
-VALUES (2056774315211571201, 'HUI-DYJ', '惠普打印机', '1828365014901886978', '台'
-       , NULL, NULL, '1', NULL, 'admin'
-       , '2026-05-20 00:29:44.432', 'admin', '2026-05-20 00:29:44.432');
-DROP TABLE IF EXISTS `wms_item_category`;
-CREATE TABLE `wms_item_category` (
-                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '器材类型id',
-                                     `parent_id` bigint NULL DEFAULT 0 COMMENT '父器材类型id',
-                                     `category_name` varchar(30) NULL DEFAULT '' COMMENT '器材类型名称',
-                                     `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
-                                     `status` char(1) NULL DEFAULT '1' COMMENT '器材类型状态（0停用 1正常）',
-                                     `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建者',
-                                     `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_by` varchar(64) NULL DEFAULT NULL COMMENT '更新者',
-                                     `update_time` datetime(3) NULL DEFAULT NULL COMMENT '更新时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_item_category`
-VALUES (1828365014901886978, 0, '打印机', 1, '1'
-       , 'admin', '2024-08-27 17:32:43.598', 'admin', '2024-08-27 20:14:12.447');
-INSERT INTO `wms_item_category`
-VALUES (1828365043024695297, 0, '电脑', 3, '1'
-       , 'admin', '2024-08-27 17:32:50.301', 'admin', '2024-08-27 20:14:12.704');
-INSERT INTO `wms_item_category`
-VALUES (1828405743737016322, 0, '家电', 4, '1'
-       , 'admin', '2024-08-27 20:14:34.104', 'admin', '2024-08-27 20:14:34.104');
-INSERT INTO `wms_item_category`
-VALUES (1828408600515219457, 0, '健身器材', 5, '1'
-       , 'admin', '2024-08-27 20:25:55.213', 'admin', '2026-05-08 14:23:49.560');
-INSERT INTO `wms_item_category`
-VALUES (2054732521107996674, 0, '器材箱', 6, '1'
-       , 'admin', '2026-05-14 09:16:22.782', 'admin', '2026-05-14 09:16:22.782');
-DROP TABLE IF EXISTS `wms_item_instance`;
-CREATE TABLE `wms_item_instance` (
-                                     `id` bigint NOT NULL AUTO_INCREMENT,
-                                     `instance_code` varchar(64) NOT NULL COMMENT '器材实例编码',
-                                     `item_id` bigint NOT NULL COMMENT '器材ID',
-                                     `sku_id` bigint NOT NULL COMMENT '规格ID',
-                                     `instance_status` varchar(32) NULL DEFAULT '待入库' COMMENT '器材实例状态',
-                                     `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                     `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                     `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                     `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
-                                     `source_type` varchar(32) NULL DEFAULT NULL COMMENT '来源类型',
-                                     `source_order_id` bigint NULL DEFAULT NULL COMMENT '来源单据ID',
-                                     `source_order_no` varchar(64) NULL DEFAULT NULL COMMENT '来源单据号',
-                                     `receipt_order_detail_id` bigint NULL DEFAULT NULL COMMENT '来源入库单明细ID',
-                                     `shipment_order_detail_id` bigint NULL DEFAULT NULL COMMENT '来源出库单明细ID',
-                                     `source_order_type` varchar(32) NULL DEFAULT NULL COMMENT '来源单据类型',
-                                     `box_id` bigint NULL DEFAULT NULL COMMENT '当前所在箱体ID',
-                                     `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                     `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                     `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                     `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                     INDEX idx_wms_item_instance_item_id29(`item_id`),
-                                     INDEX idx_wms_item_instance_sku_id30(`sku_id`),
-                                     INDEX idx_wms_item_instance_source_order_id31(`source_order_id`),
-                                     INDEX idx_wms_item_instance_receipt_detail_id32(`receipt_order_detail_id`),
-                                     INDEX idx_wms_item_instance_location_id33(`location_id`),
-                                     INDEX idx_wms_item_instance_item_sku34(`item_id`, `sku_id`),
-                                     INDEX idx_wms_item_instance_location35(`warehouse_id`, `area_id`, `rack_id`, `location_id`),
-                                     INDEX idx_wms_item_instance_box_id36(`box_id`),
-                                     INDEX idx_wms_item_instance_source_order37(`source_order_type`, `source_order_id`),
-                                     INDEX idx_wms_item_instance_shipment_detail38(`shipment_order_detail_id`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841538, 'WH1ITEM1000000001', 2056774315211571201, 2056774315278680066, '出库'
-       , NULL, NULL, NULL, NULL, '入库单'
-       , 2056999507242323970, 'RK05201617', 2056999507401707522, 2057356420182237185, '入库单'
-       , NULL, NULL, 'admin', '2026-05-20 00:31:46.713', 'admin'
-       , '2026-05-21 15:02:49.085');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841539, 'WH1ITEM1000000002', 2056774315211571201, 2056774315278680066, '借出'
-       , NULL, NULL, NULL, NULL, '入库单'
-       , 2056999507242323970, 'RK05201617', 2056999507401707521, NULL, '入库单'
-       , NULL, NULL, 'admin', '2026-05-20 00:31:46.715', 'admin'
-       , '2026-05-20 22:04:13.208');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841540, 'WH1ITEM1000000003', 2056774315211571201, 2056774315278680066, '在库'
-       , 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283, '入库单'
-       , 2057002888316915714, 'RK05207589', 2057002888392413186, NULL, '入库单'
-       , 2057002888505659394, NULL, 'admin', '2026-05-20 00:31:46.716', 'admin'
-       , '2026-05-20 16:46:18.008');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841541, 'WH1ITEM1000000004', 2056774315211571201, 2056774315278680066, '出库'
-       , NULL, NULL, NULL, NULL, '入库单'
-       , 2057020275804147713, 'RK05200069', 2057020275804147714, 2057024369574887427, '入库单'
-       , NULL, NULL, 'admin', '2026-05-20 00:31:46.717', 'admin'
-       , '2026-05-20 17:03:22.135');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841542, 'WH1ITEM1000000005', 2056774315211571201, 2056774315278680066, '在库'
-       , 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288, '入库单'
-       , 2057020275804147713, 'RK05200069', 2057020275804147715, NULL, '入库单'
-       , 2057020275938365443, NULL, 'admin', '2026-05-20 00:31:46.718', 'admin'
-       , '2026-05-20 16:47:06.072');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828107841543, 'WH1ITEM1000000006', 2056774315211571201, 2056774315278680066, '出库'
-       , NULL, NULL, NULL, NULL, '入库单'
-       , 2057020275804147713, 'RK05200069', 2057020275892228098, 2057028353144475649, '入库单'
-       , NULL, NULL, 'admin', '2026-05-20 00:31:46.725', 'admin'
-       , '2026-05-20 17:19:11.834');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828187533314, 'WH1ITEM1000000007', 2056774315211571201, 2056774315278680066, '在库'
-       , 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532933, '入库单'
-       , 2057384612725075970, 'RK05217410', 2057384612792184833, NULL, '入库单'
-       , 2057384612993511425, NULL, 'admin', '2026-05-20 00:31:46.726', 'admin'
-       , '2026-05-21 16:54:50.774');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828187533315, 'WH1ITEM1000000008', 2056774315211571201, 2056774315278680066, '在库'
-       , 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, '入库单'
-       , 2057404460297433090, 'RK05210078', 2057404460297433091, NULL, '入库单'
-       , 2057404460368736258, NULL, 'admin', '2026-05-20 00:31:46.729', 'admin'
-       , '2026-05-21 18:13:42.771');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828187533316, 'WH1ITEM1000000009', 2056774315211571201, 2056774315278680066, '在库'
-       , 2056769490864386049, 2056770610286374914, 2056771137254535169, 2056771137254535170, '调拨单'
-       , 2057412629375537153, 'DB05211481', 2057404460297433092, NULL, '调拨单'
-       , 2057404460452622337, NULL, 'admin', '2026-05-20 00:31:46.730', 'admin'
-       , '2026-05-21 18:46:10.516');
-INSERT INTO `wms_item_instance`
-VALUES (2056774828187533317, 'WH1ITEM1000000010', 2056774315211571201, 2056774315278680066, '在库'
-       , 1828364459110469633, 2056770222548135937, NULL, NULL, '调拨单'
-       , 2057463794524008450, 'DB05215912', NULL, NULL, '调拨单'
-       , NULL, NULL, 'admin', '2026-05-20 00:31:46.731', 'admin'
-       , '2026-05-21 21:55:29.388');
-DROP TABLE IF EXISTS `wms_item_qr_code_serial`;
-CREATE TABLE `wms_item_qr_code_serial` (
-                                           `item_key` varchar(255) NOT NULL COMMENT '器材名称+规格名称唯一键',
-                                           `current_value` bigint NOT NULL DEFAULT 1000000001 COMMENT '当前可分配的唯一值，默认从1000000001开始'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_item_qr_code_serial`
-VALUES ('WH1ITEM', 1000000011);
-INSERT INTO `wms_item_qr_code_serial`
-VALUES ('WH1RACK', 1000000007);
-DROP TABLE IF EXISTS `wms_item_sku`;
-CREATE TABLE `wms_item_sku` (
-                                `id` bigint NOT NULL AUTO_INCREMENT,
-                                `sku_name` varchar(255) NULL DEFAULT NULL COMMENT '规格名称',
-                                `product_identifier` varchar(128) NULL DEFAULT NULL COMMENT '产品标识',
-                                `quality_grade` varchar(32) NULL DEFAULT NULL COMMENT '质量等级',
-                                `item_id` bigint NULL DEFAULT NULL COMMENT '器材id',
-                                `status` varchar(32) NULL DEFAULT NULL COMMENT '启用状态',
-                                `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                INDEX idx_wms_item_sku_item_id39(`item_id`),
-                                INDEX idx_wms_item_sku_status40(`status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_item_sku`
-VALUES (2056768878252732418, '大', '', '', 2056768878227566594
-       , '1', 'admin', '2026-05-20 00:08:08.164', 'admin', '2026-05-20 00:08:08.164');
-INSERT INTO `wms_item_sku`
-VALUES (2056768878315646977, '小', '', '', 2056768878227566594
-       , '1', 'admin', '2026-05-20 00:08:08.166', 'admin', '2026-05-20 00:08:08.166');
-INSERT INTO `wms_item_sku`
-VALUES (2056774315278680066, '2023', 'xx', '高', 2056774315211571201
-       , '1', 'admin', '2026-05-20 00:29:44.447', 'admin', '2026-05-20 00:29:44.447');
-DROP TABLE IF EXISTS `wms_location`;
-CREATE TABLE `wms_location` (
-                                `id` bigint NOT NULL AUTO_INCREMENT,
-                                `location_code` varchar(32) NULL DEFAULT NULL COMMENT '货位编码',
-                                `location_name` varchar(60) NOT NULL COMMENT '货位名称',
-                                `warehouse_id` bigint NOT NULL COMMENT '所属仓库',
-                                `area_id` bigint NOT NULL COMMENT '所属库区',
-                                `rack_id` bigint NOT NULL COMMENT '所属货架',
-                                `location_status` varchar(32) NULL DEFAULT 'enabled' COMMENT '货位状态',
-                                `row_no` int NULL DEFAULT NULL COMMENT '行号',
-                                `column_no` int NULL DEFAULT NULL COMMENT '列号',
-                                `length` decimal(18, 2) NULL DEFAULT NULL COMMENT '长',
-                                `width` decimal(18, 2) NULL DEFAULT NULL COMMENT '宽',
-                                `height` decimal(18, 2) NULL DEFAULT NULL COMMENT '高',
-                                `occupied_flag` tinyint NULL DEFAULT 0 COMMENT '是否占用',
-                                `sort_no` bigint NULL DEFAULT NULL COMMENT '排序',
-                                `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                INDEX idx_wms_location_warehouse_id41(`warehouse_id`),
-                                INDEX idx_wms_location_area_id42(`area_id`),
-                                INDEX idx_wms_location_rack_id43(`rack_id`),
-                                INDEX idx_wms_location_status44(`location_status`),
-                                INDEX idx_wms_location_occupied45(`occupied_flag`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_location`
-VALUES (2056771039846019074, 'WH1RACK1000000001-R1-C1', '京A货1-1-1', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 1, 1, 200.00
-       , 600.00, 300.00, 0, 1001, NULL
-       , 'admin', '2026-05-20 00:16:43.518', 'admin', '2026-05-20 00:16:43.518');
-INSERT INTO `wms_location`
-VALUES (2056771039846019075, 'WH1RACK1000000001-R1-C2', '京A货1-1-2', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 1, 2, 200.00
-       , 600.00, 300.00, 0, 1002, NULL
-       , 'admin', '2026-05-20 00:16:43.522', 'admin', '2026-05-20 00:16:43.522');
-INSERT INTO `wms_location`
-VALUES (2056771039846019076, 'WH1RACK1000000001-R1-C3', '京A货1-1-3', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 1, 3, 200.00
-       , 600.00, 300.00, 0, 1003, NULL
-       , 'admin', '2026-05-20 00:16:43.525', 'admin', '2026-05-20 00:16:43.525');
-INSERT INTO `wms_location`
-VALUES (2056771039846019077, 'WH1RACK1000000001-R2-C1', '京A货1-2-1', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 2, 1, 200.00
-       , 600.00, 300.00, 0, 2001, NULL
-       , 'admin', '2026-05-20 00:16:43.527', 'admin', '2026-05-20 00:16:43.527');
-INSERT INTO `wms_location`
-VALUES (2056771039846019078, 'WH1RACK1000000001-R2-C2', '京A货1-2-2', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 2, 2, 200.00
-       , 600.00, 300.00, 0, 2002, NULL
-       , 'admin', '2026-05-20 00:16:43.531', 'admin', '2026-05-20 00:16:43.531');
-INSERT INTO `wms_location`
-VALUES (2056771039913127937, 'WH1RACK1000000001-R2-C3', '京A货1-2-3', 1828364459110469633, 2056770222548135937
-       , 2056771039778910209, 'enabled', 2, 3, 200.00
-       , 600.00, 300.00, 0, 2003, NULL
-       , 'admin', '2026-05-20 00:16:43.538', 'admin', '2026-05-20 00:16:43.538');
-INSERT INTO `wms_location`
-VALUES (2056771137254535170, 'WH1RACK1000000002-R1-C1', '京A货2-1-1', 1828364459110469633, 2056770222548135937
-       , 2056771137254535169, 'enabled', 1, 1, 200.00
-       , 200.00, 200.00, 1, 1001, NULL
-       , 'admin', '2026-05-20 00:17:06.742', 'admin', '2026-05-20 00:17:06.742');
-INSERT INTO `wms_location`
-VALUES (2056771221887201283, 'WH1RACK1000000003-R1-C1', '京B货1-1-1', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 1, 1, 300.00
-       , 900.00, 300.00, 1, 1001, NULL
-       , 'admin', '2026-05-20 00:17:26.922', 'admin', '2026-05-20 00:17:26.922');
-INSERT INTO `wms_location`
-VALUES (2056771221887201284, 'WH1RACK1000000003-R1-C2', '京B货1-1-2', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 1, 2, 300.00
-       , 900.00, 300.00, 0, 1002, NULL
-       , 'admin', '2026-05-20 00:17:26.925', 'admin', '2026-05-20 00:17:26.925');
-INSERT INTO `wms_location`
-VALUES (2056771221887201285, 'WH1RACK1000000003-R1-C3', '京B货1-1-3', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 1, 3, 300.00
-       , 900.00, 300.00, 0, 1003, NULL
-       , 'admin', '2026-05-20 00:17:26.928', 'admin', '2026-05-20 00:17:26.928');
-INSERT INTO `wms_location`
-VALUES (2056771221937532930, 'WH1RACK1000000003-R2-C1', '京B货1-2-1', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 2, 1, 300.00
-       , 900.00, 300.00, 0, 2001, NULL
-       , 'admin', '2026-05-20 00:17:26.931', 'admin', '2026-05-20 00:17:26.931');
-INSERT INTO `wms_location`
-VALUES (2056771221937532931, 'WH1RACK1000000003-R2-C2', '京B货1-2-2', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 2, 2, 300.00
-       , 900.00, 300.00, 0, 2002, NULL
-       , 'admin', '2026-05-20 00:17:26.936', 'admin', '2026-05-20 00:17:26.936');
-INSERT INTO `wms_location`
-VALUES (2056771221937532932, 'WH1RACK1000000003-R2-C3', '京B货1-2-3', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 2, 3, 300.00
-       , 900.00, 300.00, 0, 2003, NULL
-       , 'admin', '2026-05-20 00:17:26.939', 'admin', '2026-05-20 00:17:26.939');
-INSERT INTO `wms_location`
-VALUES (2056771221937532933, 'WH1RACK1000000003-R3-C1', '京B货1-3-1', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 3, 1, 300.00
-       , 900.00, 300.00, 1, 3001, NULL
-       , 'admin', '2026-05-20 00:17:26.942', 'admin', '2026-05-20 00:17:26.942');
-INSERT INTO `wms_location`
-VALUES (2056771221937532934, 'WH1RACK1000000003-R3-C2', '京B货1-3-2', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 3, 2, 300.00
-       , 900.00, 300.00, 1, 3002, NULL
-       , 'admin', '2026-05-20 00:17:26.945', 'admin', '2026-05-20 00:17:26.945');
-INSERT INTO `wms_location`
-VALUES (2056771222004641794, 'WH1RACK1000000003-R3-C3', '京B货1-3-3', 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 'enabled', 3, 3, 300.00
-       , 900.00, 300.00, 0, 3003, NULL
-       , 'admin', '2026-05-20 00:17:26.947', 'admin', '2026-05-20 00:17:26.947');
-INSERT INTO `wms_location`
-VALUES (2056771350060937219, 'WH1RACK1000000004-R1-C1', '海A货1-1-1', 2056769387227328513, 2056770367725580289
-       , 2056771350060937218, 'enabled', 1, 1, 50.00
-       , 50.00, 50.00, 0, 1001, NULL
-       , 'admin', '2026-05-20 00:17:57.482', 'admin', '2026-05-20 00:17:57.482');
-INSERT INTO `wms_location`
-VALUES (2056772480702689283, 'WH1RACK1000000005-R1-C1', '海B货1-1-1', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 1, 1, 200.00
-       , 600.00, 300.00, 0, 1001, NULL
-       , 'admin', '2026-05-20 00:22:27.059', 'admin', '2026-05-20 00:22:27.059');
-INSERT INTO `wms_location`
-VALUES (2056772480702689284, 'WH1RACK1000000005-R1-C2', '海B货1-1-2', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 1, 2, 200.00
-       , 600.00, 300.00, 0, 1002, NULL
-       , 'admin', '2026-05-20 00:22:27.063', 'admin', '2026-05-20 00:22:27.063');
-INSERT INTO `wms_location`
-VALUES (2056772480702689285, 'WH1RACK1000000005-R1-C3', '海B货1-1-3', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 1, 3, 200.00
-       , 600.00, 300.00, 0, 1003, NULL
-       , 'admin', '2026-05-20 00:22:27.066', 'admin', '2026-05-20 00:22:27.066');
-INSERT INTO `wms_location`
-VALUES (2056772480702689286, 'WH1RACK1000000005-R2-C1', '海B货1-2-1', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 2, 1, 200.00
-       , 600.00, 300.00, 0, 2001, NULL
-       , 'admin', '2026-05-20 00:22:27.068', 'admin', '2026-05-20 00:22:27.068');
-INSERT INTO `wms_location`
-VALUES (2056772480702689287, 'WH1RACK1000000005-R2-C2', '海B货1-2-2', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 2, 2, 200.00
-       , 600.00, 300.00, 0, 2002, NULL
-       , 'admin', '2026-05-20 00:22:27.072', 'admin', '2026-05-20 00:22:27.072');
-INSERT INTO `wms_location`
-VALUES (2056772480702689288, 'WH1RACK1000000005-R2-C3', '海B货1-2-3', 2056769387227328513, 2056770392228704258
-       , 2056772480702689282, 'enabled', 2, 3, 200.00
-       , 600.00, 300.00, 1, 2003, NULL
-       , 'admin', '2026-05-20 00:22:27.074', 'admin', '2026-05-20 00:22:27.074');
-INSERT INTO `wms_location`
-VALUES (2056772972304482306, 'WH1RACK1000000006-R1-C1', '海B货2-1-1', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 1, 1, 200.00
-       , 600.00, 300.00, 1, 1001, NULL
-       , 'admin', '2026-05-20 00:24:24.259', 'admin', '2026-05-20 00:24:24.259');
-INSERT INTO `wms_location`
-VALUES (2056772972304482307, 'WH1RACK1000000006-R1-C2', '海B货2-1-2', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 1, 2, 200.00
-       , 600.00, 300.00, 0, 1002, NULL
-       , 'admin', '2026-05-20 00:24:24.263', 'admin', '2026-05-20 00:24:24.263');
-INSERT INTO `wms_location`
-VALUES (2056772972367396865, 'WH1RACK1000000006-R1-C3', '海B货2-1-3', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 1, 3, 200.00
-       , 600.00, 300.00, 0, 1003, NULL
-       , 'admin', '2026-05-20 00:24:24.266', 'admin', '2026-05-20 00:24:24.266');
-INSERT INTO `wms_location`
-VALUES (2056772972367396866, 'WH1RACK1000000006-R2-C1', '海B货2-2-1', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 2, 1, 200.00
-       , 600.00, 300.00, 0, 2001, NULL
-       , 'admin', '2026-05-20 00:24:24.269', 'admin', '2026-05-20 00:24:24.269');
-INSERT INTO `wms_location`
-VALUES (2056772972367396867, 'WH1RACK1000000006-R2-C2', '海B货2-2-2', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 2, 2, 200.00
-       , 600.00, 300.00, 1, 2002, NULL
-       , 'admin', '2026-05-20 00:24:24.274', 'admin', '2026-05-20 00:24:24.274');
-INSERT INTO `wms_location`
-VALUES (2056772972438700034, 'WH1RACK1000000006-R2-C3', '海B货2-2-3', 2056769387227328513, 2056770392228704258
-       , 2056772972287705090, 'enabled', 2, 3, 200.00
-       , 600.00, 300.00, 0, 2003, NULL
-       , 'admin', '2026-05-20 00:24:24.281', 'admin', '2026-05-20 00:24:24.281');
-DROP TABLE IF EXISTS `wms_merchant`;
-CREATE TABLE `wms_merchant` (
-                                `id` bigint NOT NULL AUTO_INCREMENT,
-                                `merchant_code` varchar(20) NOT NULL COMMENT '单位编号',
-                                `merchant_name` varchar(60) NOT NULL COMMENT '单位名称',
-                                `address` varchar(200) NULL DEFAULT NULL COMMENT '地址',
-                                `mobile` varchar(13) NULL DEFAULT NULL COMMENT '手机号',
-                                `tel` varchar(13) NULL DEFAULT NULL COMMENT '座机号',
-                                `contact_person` varchar(30) NULL DEFAULT NULL COMMENT '联系人',
-                                `email` varchar(50) NULL DEFAULT NULL COMMENT 'Email',
-                                `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-DROP TABLE IF EXISTS `wms_movement_order`;
-CREATE TABLE `wms_movement_order` (
-                                      `id` bigint NOT NULL AUTO_INCREMENT,
-                                      `movement_order_no` varchar(30) NULL DEFAULT NULL COMMENT '编号',
-                                      `movement_type` varchar(32) NULL DEFAULT NULL COMMENT '调拨类型',
-                                      `dispatch_basis` varchar(255) NULL DEFAULT NULL COMMENT '调拨依据',
-                                      `dispatch_purpose` varchar(255) NULL DEFAULT NULL COMMENT '调拨目的',
-                                      `dispatch_mode` varchar(32) NULL DEFAULT NULL COMMENT '调拨方式',
-                                      `from_unit` varchar(128) NULL DEFAULT NULL COMMENT '发货单位',
-                                      `to_unit` varchar(128) NULL DEFAULT NULL COMMENT '收货单位',
-                                      `from_station` varchar(128) NULL DEFAULT NULL COMMENT '发站',
-                                      `to_station` varchar(128) NULL DEFAULT NULL COMMENT '到站',
-                                      `from_address` varchar(255) NULL DEFAULT NULL COMMENT '发货地址',
-                                      `to_address` varchar(255) NULL DEFAULT NULL COMMENT '收货地址',
-                                      `contact_address` varchar(255) NULL DEFAULT NULL COMMENT '通信地址',
-                                      `dispatch_date` date NULL DEFAULT NULL COMMENT '调拨日期',
-                                      `effective_date` date NULL DEFAULT NULL COMMENT '有效日期',
-                                      `issue_date` date NULL DEFAULT NULL COMMENT '发出日期',
-                                      `source_warehouse_id` bigint NULL DEFAULT NULL COMMENT '源仓库',
-                                      `source_area_id` bigint NULL DEFAULT NULL COMMENT '源库区',
-                                      `target_warehouse_id` bigint NULL DEFAULT NULL COMMENT '目标仓库',
-                                      `target_area_id` bigint NULL DEFAULT NULL COMMENT '目标库区',
-                                      `movement_order_status` tinyint NULL DEFAULT NULL COMMENT '状态',
-                                      `total_quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '总数量',
-                                      `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                      `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                      `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                      `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                      `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_movement_order`
-VALUES (2057385076648652802, 'DB05217966', '通装', NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 1828364459110469633, 2056770261064429569, 2056769648226283522, 2056770672827641857
-       , 1, 1.00, NULL, 'admin', '2026-05-21 16:56:41.309'
-       , 'admin', '2026-05-21 16:56:41.309');
-INSERT INTO `wms_movement_order`
-VALUES (2057405642227134465, 'DB05217208', '通装', 'z', 'z'
-       , 'air', 'z', 'z', NULL, 'z'
-       , NULL, NULL, 'z', NULL, '2026-05-20'
-       , '2026-05-21', 1828364459110469633, 2056770222548135937, 2056769466831024130, 2056770538748325889
-       , 1, 1.00, 'zz', 'admin', '2026-05-21 18:18:24.519'
-       , 'admin', '2026-05-21 18:18:24.519');
-INSERT INTO `wms_movement_order`
-VALUES (2057412629375537153, 'DB05211481', '通装', NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, NULL, NULL, NULL, NULL
-       , NULL, 1828364459110469633, 2056770222548135937, 2056769490864386049, 2056770610286374914
-       , 1, 1.00, NULL, 'admin', '2026-05-21 18:46:10.380'
-       , 'admin', '2026-05-21 18:46:10.380');
-INSERT INTO `wms_movement_order`
-VALUES (2057463794524008450, 'DB05215912', '通装', 'z', 'z'
-       , 'rail', 'z', 'zz', NULL, 'z'
-       , NULL, NULL, 'z', NULL, '2026-05-22'
-       , '2026-05-29', 1828364459110469633, 2056770261064429569, 1828364459110469633, 2056770222548135937
-       , 1, 1.00, 'zzz', 'admin', '2026-05-21 22:09:29.108'
-       , 'admin', '2026-05-21 22:09:29.108');
-DROP TABLE IF EXISTS `wms_movement_order_detail`;
-CREATE TABLE `wms_movement_order_detail` (
-                                             `id` bigint NOT NULL AUTO_INCREMENT,
-                                             `movement_order_id` bigint NULL DEFAULT NULL COMMENT '调拨单Id',
-                                             `sku_id` bigint NULL DEFAULT NULL COMMENT '规格id',
-                                             `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '数量',
-                                             `item_code` varchar(64) NULL DEFAULT NULL COMMENT '器材编码',
-                                             `item_name` varchar(128) NULL DEFAULT NULL COMMENT '器材名称',
-                                             `sku_name` varchar(255) NULL DEFAULT NULL COMMENT '规格型号',
-                                             `unit` varchar(32) NULL DEFAULT NULL COMMENT '计量单位',
-                                             `product_identifier` varchar(128) NULL DEFAULT NULL COMMENT '产品标识',
-                                             `quality_grade` varchar(32) NULL DEFAULT NULL COMMENT '质量等级',
-                                             `unit_price` decimal(18, 2) NULL DEFAULT NULL COMMENT '单价',
-                                             `line_amount` decimal(18, 2) NULL DEFAULT NULL COMMENT '行金额',
-                                             `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                             `source_warehouse_id` bigint NULL DEFAULT NULL COMMENT '源仓库',
-                                             `source_area_id` bigint NULL DEFAULT NULL COMMENT '源库区',
-                                             `source_rack_id` bigint NULL DEFAULT NULL COMMENT '源货架ID',
-                                             `source_location_id` bigint NULL DEFAULT NULL COMMENT '源货位ID',
-                                             `target_warehouse_id` bigint NULL DEFAULT NULL COMMENT '目标仓库',
-                                             `target_area_id` bigint NULL DEFAULT NULL COMMENT '目标库区',
-                                             `target_rack_id` bigint NULL DEFAULT NULL COMMENT '目标货架ID',
-                                             `target_location_id` bigint NULL DEFAULT NULL COMMENT '目标货位ID',
-                                             `inventory_detail_id` bigint NULL DEFAULT NULL COMMENT '入库记录id',
-                                             `item_instance_id` bigint NULL DEFAULT NULL COMMENT '器材实例ID',
-                                             `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                             `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                             `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                             `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                             INDEX idx_wms_movement_order_detail_item_instance_id46(`item_instance_id`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_movement_order_detail`
-VALUES (2057353034393247746, 2057353034334527489, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 6.00, 6.00, NULL, 1828364459110469633, 2056770261064429569
-       , NULL, NULL, 1828364459110469633, 2056770222548135937, NULL
-       , NULL, 2057002889092861954, NULL, 'admin', '2026-05-21 14:49:21.840'
-       , 'admin', '2026-05-21 14:52:44.748');
-INSERT INTO `wms_movement_order_detail`
-VALUES (2057385076719955969, 2057385076648652802, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 4444.00, 4444.00, NULL, 1828364459110469633, 2056770261064429569
-       , NULL, NULL, 2056769648226283522, 2056770672827641857, NULL
-       , NULL, 2057384626956349442, NULL, 'admin', '2026-05-21 16:56:41.317'
-       , 'admin', '2026-05-21 16:56:41.317');
-INSERT INTO `wms_movement_order_detail`
-VALUES (2057405642227134466, 2057405642227134465, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 1.00, 1.00, NULL, 1828364459110469633, 2056770222548135937
-       , NULL, NULL, 2056769466831024130, 2056770538748325889, NULL
-       , NULL, 2057404460763000833, NULL, 'admin', '2026-05-21 18:18:24.526'
-       , 'admin', '2026-05-21 18:18:24.526');
-INSERT INTO `wms_movement_order_detail`
-VALUES (2057412629497171970, 2057412629375537153, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 1.00, 1.00, NULL, 1828364459110469633, 2056770222548135937
-       , 2056771137254535169, 2056771137254535170, 2056769490864386049, 2056770610286374914, NULL
-       , NULL, 2057404460763000834, 2056774828187533316, 'admin', '2026-05-21 18:46:10.409'
-       , 'admin', '2026-05-21 18:46:10.409');
-INSERT INTO `wms_movement_order_detail`
-VALUES (2057463794586923010, 2057463794524008450, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 901.00, 901.00, NULL, 1828364459110469633, 2056770261064429569
-       , 2056771221887201282, 2056771221937532934, 1828364459110469633, 2056770222548135937, NULL
-       , NULL, 2057460272671797250, 2056774828187533317, 'admin', '2026-05-21 22:09:29.124'
-       , 'admin', '2026-05-21 22:09:29.124');
-DROP TABLE IF EXISTS `wms_rack`;
-CREATE TABLE `wms_rack` (
-                            `id` bigint NOT NULL AUTO_INCREMENT,
-                            `rack_code` varchar(32) NULL DEFAULT NULL COMMENT '货架编码',
-                            `rack_name` varchar(60) NOT NULL COMMENT '货架名称',
-                            `warehouse_id` bigint NOT NULL COMMENT '所属仓库',
-                            `area_id` bigint NOT NULL COMMENT '所属库区',
-                            `rack_status` varchar(32) NULL DEFAULT 'enabled' COMMENT '货架状态',
-                            `row_count` int NULL DEFAULT NULL COMMENT '行数',
-                            `column_count` int NULL DEFAULT NULL COMMENT '列数',
-                            `length` decimal(18, 2) NULL DEFAULT NULL COMMENT '长',
-                            `width` decimal(18, 2) NULL DEFAULT NULL COMMENT '宽',
-                            `height` decimal(18, 2) NULL DEFAULT NULL COMMENT '高',
-                            `order_num` bigint NULL DEFAULT NULL COMMENT '排序',
-                            `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                            `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                            `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                            `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                            INDEX idx_wms_rack_warehouse_id47(`warehouse_id`),
-                            INDEX idx_wms_rack_area_id48(`area_id`),
-                            INDEX idx_wms_rack_position49(`warehouse_id`, `area_id`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_rack`
-VALUES (2056771039778910209, 'WH1RACK1000000001', '京A货1', 1828364459110469633, 2056770222548135937
-       , 'enabled', 2, 3, 600.00, 600.00
-       , 600.00, 0, NULL, 'admin', '2026-05-20 00:16:43.507'
-       , 'admin', '2026-05-20 00:16:43.507');
-INSERT INTO `wms_rack`
-VALUES (2056771137254535169, 'WH1RACK1000000002', '京A货2', 1828364459110469633, 2056770222548135937
-       , 'enabled', 1, 1, 200.00, 200.00
-       , 200.00, 0, NULL, 'admin', '2026-05-20 00:17:06.738'
-       , 'admin', '2026-05-20 00:17:06.738');
-INSERT INTO `wms_rack`
-VALUES (2056771221887201282, 'WH1RACK1000000003', '京B货1', 1828364459110469633, 2056770261064429569
-       , 'enabled', 3, 3, 900.00, 900.00
-       , 900.00, 0, NULL, 'admin', '2026-05-20 00:17:26.919'
-       , 'admin', '2026-05-20 00:17:26.919');
-INSERT INTO `wms_rack`
-VALUES (2056771350060937218, 'WH1RACK1000000004', '海A货1', 2056769387227328513, 2056770367725580289
-       , 'enabled', 1, 1, 50.00, 50.00
-       , 50.00, 0, NULL, 'admin', '2026-05-20 00:17:57.480'
-       , 'admin', '2026-05-20 00:17:57.480');
-INSERT INTO `wms_rack`
-VALUES (2056772480702689282, 'WH1RACK1000000005', '海B货1', 2056769387227328513, 2056770392228704258
-       , 'enabled', 2, 3, 600.00, 600.00
-       , 600.00, 0, NULL, 'admin', '2026-05-20 00:22:27.057'
-       , 'admin', '2026-05-20 00:22:27.057');
-INSERT INTO `wms_rack`
-VALUES (2056772972287705090, 'WH1RACK1000000006', '海B货2', 2056769387227328513, 2056770392228704258
-       , 'enabled', 2, 3, 600.00, 600.00
-       , 600.00, 0, NULL, 'admin', '2026-05-20 00:24:24.246'
-       , 'admin', '2026-05-20 00:24:24.246');
-DROP TABLE IF EXISTS `wms_receipt_order`;
-CREATE TABLE `wms_receipt_order` (
-                                     `id` bigint NOT NULL AUTO_INCREMENT,
-                                     `receipt_order_no` varchar(32) NULL DEFAULT NULL COMMENT '入库单号',
-                                     `receipt_order_type` varchar(20) NULL DEFAULT NULL COMMENT '入库类型',
-                                     `basis_no` varchar(64) NULL DEFAULT NULL COMMENT '调拨根据',
-                                     `dispatch_mode` varchar(32) NULL DEFAULT NULL COMMENT '调拨方式',
-                                     `notice_org` varchar(128) NULL DEFAULT NULL COMMENT '通知机关',
-                                     `receive_unit` varchar(128) NULL DEFAULT NULL COMMENT '收物单位',
-                                     `purchase_date` date NULL DEFAULT NULL COMMENT '采购日期',
-                                     `receipt_date` date NULL DEFAULT NULL COMMENT '入库日期',
-                                     `total_quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '器材总数',
-                                     `payable_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '订单金额',
-                                     `receipt_order_status` tinyint NULL DEFAULT NULL COMMENT '入库状态',
-                                     `warehouse_id` bigint NULL DEFAULT NULL COMMENT '仓库id',
-                                     `area_id` bigint NULL DEFAULT NULL COMMENT '库区id',
-                                     `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                     `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                     `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                     `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_receipt_order`
-VALUES (2056999507242323970, 'RK05201617', '采购入库', '纸质', 'air'
-       , '北大', '清华', '2026-05-17', '2026-05-20', 2.00
-       , 100.00, 1, 1828364459110469633, 2056770222548135937, 'aaaaa'
-       , 'admin', '2026-05-20 15:24:34.390', 'admin', '2026-05-20 22:04:13.113');
-INSERT INTO `wms_receipt_order`
-VALUES (2057002888316915714, 'RK05207589', '采购入库', 'zzz', 'road'
-       , 'a', 'a', '2026-05-11', '2026-05-20', 1.00
-       , 6.00, 1, 1828364459110469633, 2056770261064429569, 'a'
-       , 'admin', '2026-05-20 15:38:00.510', 'admin', '2026-05-20 15:38:00.510');
-INSERT INTO `wms_receipt_order`
-VALUES (2057020275804147713, 'RK05200069', '采购入库', NULL, NULL
-       , NULL, NULL, NULL, NULL, 3.00
-       , 750.00, 1, 2056769387227328513, 2056770392228704258, NULL
-       , 'admin', '2026-05-20 16:47:06.005', 'admin', '2026-05-20 16:47:06.005');
-INSERT INTO `wms_receipt_order`
-VALUES (2057384612725075970, 'RK05217410', '采购入库', NULL, NULL
-       , NULL, NULL, NULL, NULL, 1.00
-       , 4444.00, 1, 1828364459110469633, 2056770261064429569, NULL
-       , 'admin', '2026-05-21 16:54:50.689', 'admin', '2026-05-21 16:54:50.689');
-INSERT INTO `wms_receipt_order`
-VALUES (2057404460297433090, 'RK05210078', '采购入库', NULL, NULL
-       , NULL, NULL, NULL, NULL, 2.00
-       , 2.00, 1, 1828364459110469633, 2056770222548135937, NULL
-       , 'admin', '2026-05-21 18:13:42.727', 'admin', '2026-05-21 18:13:42.727');
-INSERT INTO `wms_receipt_order`
-VALUES (2057460272143314946, 'RK05218626', '采购入库', NULL, NULL
-       , NULL, NULL, NULL, NULL, 1.00
-       , 901.00, 1, 1828364459110469633, 2056770261064429569, NULL
-       , 'admin', '2026-05-21 21:55:29.308', 'admin', '2026-05-21 21:55:29.308');
-DROP TABLE IF EXISTS `wms_receipt_order_detail`;
-CREATE TABLE `wms_receipt_order_detail` (
-                                            `id` bigint NOT NULL AUTO_INCREMENT,
-                                            `receipt_order_id` bigint NULL DEFAULT NULL COMMENT '入库单号',
-                                            `sku_id` bigint NULL DEFAULT NULL COMMENT '规格id',
-                                            `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '入库数量',
-                                            `item_code` varchar(64) NULL DEFAULT NULL COMMENT '器材编码',
-                                            `item_name` varchar(128) NULL DEFAULT NULL COMMENT '器材名称',
-                                            `sku_name` varchar(255) NULL DEFAULT NULL COMMENT '规格型号',
-                                            `unit` varchar(32) NULL DEFAULT NULL COMMENT '计量单位',
-                                            `product_identifier` varchar(128) NULL DEFAULT NULL COMMENT '产品标识',
-                                            `quality_grade` varchar(32) NULL DEFAULT NULL COMMENT '质量等级',
-                                            `unit_price` decimal(18, 2) NULL DEFAULT NULL COMMENT '单价',
-                                            `line_amount` decimal(18, 2) NULL DEFAULT NULL COMMENT '总价',
-                                            `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                            `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                            `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                            `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                            `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                            `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                            `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                            `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
-                                            `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2056999507401707521, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.427'
-       , 'admin', '2026-05-20 22:04:13.203', 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2056999507401707522, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.434'
-       , 'admin', '2026-05-20 22:04:13.205', 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057002888392413186, 2057002888316915714, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 6.00, 6.00, NULL, 'admin', '2026-05-20 15:38:00.517'
-       , 'admin', '2026-05-20 15:38:00.575', 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221887201283);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057020275804147714, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 50.00, 50.00, NULL, 'admin', '2026-05-20 16:47:06.009'
-       , 'admin', '2026-05-20 16:47:06.061', 2056769387227328513, 2056770392228704258, 2056772972287705090
-       , 2056772972304482306);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057020275804147715, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 400.00, 400.00, NULL, 'admin', '2026-05-20 16:47:06.010'
-       , 'admin', '2026-05-20 16:47:06.063', 2056769387227328513, 2056770392228704258, 2056772480702689282
-       , 2056772480702689288);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057020275892228098, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 300.00, 300.00, NULL, 'admin', '2026-05-20 16:47:06.023'
-       , 'admin', '2026-05-20 16:47:06.069', 2056769387227328513, 2056770392228704258, 2056772972287705090
-       , 2056772972367396867);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057384612792184833, 2057384612725075970, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 4444.00, 4444.00, NULL, 'admin', '2026-05-21 16:54:50.716'
-       , 'admin', '2026-05-21 16:54:50.771', 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221937532933);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057404460297433091, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.730'
-       , 'admin', '2026-05-21 18:13:42.766', 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057404460297433092, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.732'
-       , 'admin', '2026-05-21 18:13:42.769', 1828364459110469633, 2056770222548135937, 2056771137254535169
-       , 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail`
-VALUES (2057460272206229506, 2057460272143314946, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 901.00, 901.00, NULL, 'admin', '2026-05-21 21:55:29.335'
-       , 'admin', '2026-05-21 21:55:29.386', 1828364459110469633, 2056770261064429569, 2056771221887201282
-       , 2056771221937532934);
-DROP TABLE IF EXISTS `wms_shipment_order`;
-CREATE TABLE `wms_shipment_order` (
-                                      `id` bigint NOT NULL AUTO_INCREMENT,
-                                      `shipment_order_no` varchar(22) NULL DEFAULT NULL COMMENT '出库单号，系统自动生成',
-                                      `shipment_order_type` varchar(20) NULL DEFAULT NULL COMMENT '出库类型',
-                                      `basis_no` varchar(64) NULL DEFAULT NULL COMMENT '调拨根据',
-                                      `dispatch_mode` varchar(32) NULL DEFAULT NULL COMMENT '调拨方式',
-                                      `notice_org` varchar(128) NULL DEFAULT NULL COMMENT '通知机关',
-                                      `receive_unit` varchar(128) NULL DEFAULT NULL COMMENT '收物单位',
-                                      `purchase_date` date NULL DEFAULT NULL COMMENT '采购日期',
-                                      `shipment_date` date NULL DEFAULT NULL COMMENT '出库日期',
-                                      `receivable_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '订单金额',
-                                      `total_quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '出库数量',
-                                      `shipment_order_status` tinyint NULL DEFAULT NULL COMMENT '出库单状态',
-                                      `warehouse_id` bigint NULL DEFAULT NULL COMMENT '仓库id',
-                                      `area_id` bigint NULL DEFAULT NULL COMMENT '库区id',
-                                      `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                      `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                      `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                      `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                      `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间'
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_shipment_order`
-VALUES (2057020074368503809, 'CK05202806', '借用出库', NULL, NULL
-       , NULL, NULL, NULL, NULL, 50.00
-       , 1.00, 1, 1828364459110469633, 2056770222548135937, NULL
-       , 'admin', '2026-05-20 16:46:17.987', 'admin', '2026-05-21 15:02:49.057');
-INSERT INTO `wms_shipment_order`
-VALUES (2057024369574887426, 'CK05203134', '借用出库', 'aa', 'air'
-       , 'aa', 'aa', '2026-05-05', '2026-05-20', 900.00
-       , 1.00, 1, 2056769387227328513, 2056770392228704258, 'aa'
-       , 'admin', '2026-05-20 17:03:22.031', 'admin', '2026-05-20 17:03:22.031');
-INSERT INTO `wms_shipment_order`
-VALUES (2057028353064783874, 'CK05203882', '借用出库', 's', 'rail'
-       , 's', 's', '2026-05-11', '2026-05-20', 500.00
-       , 1.00, 1, 2056769387227328513, 2056770392228704258, 'ss'
-       , 'admin', '2026-05-20 17:19:11.768', 'admin', '2026-05-20 17:19:11.768');
-DROP TABLE IF EXISTS `wms_shipment_order_detail`;
-CREATE TABLE `wms_shipment_order_detail` (
-                                             `id` bigint NOT NULL AUTO_INCREMENT,
-                                             `shipment_order_id` bigint NULL DEFAULT NULL COMMENT '出库单',
-                                             `sku_id` bigint NULL DEFAULT NULL COMMENT '规格id',
-                                             `quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '数量',
-                                             `item_code` varchar(64) NULL DEFAULT NULL COMMENT '器材编码',
-                                             `item_name` varchar(128) NULL DEFAULT NULL COMMENT '器材名称',
-                                             `sku_name` varchar(255) NULL DEFAULT NULL COMMENT '规格型号',
-                                             `unit` varchar(32) NULL DEFAULT NULL COMMENT '计量单位',
-                                             `product_identifier` varchar(128) NULL DEFAULT NULL COMMENT '产品标识',
-                                             `quality_grade` varchar(32) NULL DEFAULT NULL COMMENT '质量等级',
-                                             `unit_price` decimal(18, 2) NULL DEFAULT NULL COMMENT '单价',
-                                             `line_amount` decimal(18, 2) NULL DEFAULT NULL COMMENT '总价',
-                                             `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
-                                             `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
-                                             `inventory_detail_id` bigint NULL DEFAULT NULL COMMENT '入库记录id',
-                                             `item_instance_id` bigint NULL DEFAULT NULL COMMENT '器材实例ID',
-                                             `box_id` bigint NULL DEFAULT NULL COMMENT '箱体ID',
-                                             `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                             `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                             `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                             `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                             `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                             INDEX idx_wms_shipment_detail_item_instance_id50(`item_instance_id`),
-                                             INDEX idx_wms_shipment_detail_box_id51(`box_id`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_shipment_order_detail`
-VALUES (2057024369574887427, 2057024369574887426, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 900.00, 900.00, 2056769387227328513, 2056770392228704258, 2057020276391350273
-       , 2056774828107841541, 2057020275938365442, NULL, 'admin', '2026-05-20 17:03:22.057'
-       , 'admin', '2026-05-20 17:03:22.057');
-INSERT INTO `wms_shipment_order_detail`
-VALUES (2057028353144475649, 2057028353064783874, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 500.00, 500.00, 2056769387227328513, 2056770392228704258, 2057020276391350275
-       , 2056774828107841543, 2057020276013862913, NULL, 'admin', '2026-05-20 17:19:11.798'
-       , 'admin', '2026-05-20 17:19:11.798');
-INSERT INTO `wms_shipment_order_detail`
-VALUES (2057356420182237185, 2057020074368503809, 2056774315278680066, 1.00, 'HUI-DYJ'
-       , '惠普打印机', '2023', '台', 'xx', '高'
-       , 50.00, 50.00, 1828364459110469633, 2056770222548135937, 2057100082160181250
-       , 2056774828107841538, 2057110762082902017, NULL, 'admin', '2026-05-21 15:02:49.071'
-       , 'admin', '2026-05-21 15:02:49.071');
-DROP TABLE IF EXISTS `wms_warehouse`;
-CREATE TABLE `wms_warehouse` (
-                                 `id` bigint NOT NULL AUTO_INCREMENT,
-                                 `warehouse_code` varchar(20) NULL DEFAULT NULL COMMENT '仓库编码',
-                                 `warehouse_name` varchar(50) NOT NULL COMMENT '仓库名称',
-                                 `remark` varchar(255) NULL DEFAULT NULL COMMENT '备注',
-                                 `order_num` bigint NULL DEFAULT 0 COMMENT '排序',
-                                 `status` varchar(32) NULL DEFAULT NULL COMMENT '启用状态',
-                                 `address` varchar(255) NULL DEFAULT NULL COMMENT '地址',
-                                 `manager_name` varchar(64) NULL DEFAULT NULL COMMENT '负责人',
-                                 `manager_phone` varchar(32) NULL DEFAULT NULL COMMENT '负责人电话',
-                                 `create_by` varchar(64) NULL DEFAULT NULL COMMENT '创建人',
-                                 `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) NULL DEFAULT NULL COMMENT '修改人',
-                                 `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
-                                 INDEX idx_wms_warehouse_status52(`status`)
-) ENGINE = InnoDB ROW_FORMAT = DYNAMIC;
-INSERT INTO `wms_warehouse`
-VALUES (1828364459110469633, 'WH1', '北京仓', NULL, 0
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2024-08-27 17:30:31.084', 'admin', '2026-05-20 00:09:53.409');
-INSERT INTO `wms_warehouse`
-VALUES (2056769387227328513, 'WH2', '海淀仓', NULL, 4
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2026-05-20 00:10:09.514', 'admin', '2026-05-20 00:10:09.514');
-INSERT INTO `wms_warehouse`
-VALUES (2056769437957435394, 'WH3', '朝阳仓', NULL, 5
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2026-05-20 00:10:21.609', 'admin', '2026-05-20 00:10:21.609');
-INSERT INTO `wms_warehouse`
-VALUES (2056769466831024130, 'WH4', '东城仓', NULL, 6
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2026-05-20 00:10:28.487', 'admin', '2026-05-20 00:10:28.487');
-INSERT INTO `wms_warehouse`
-VALUES (2056769490864386049, 'WH5', '西城仓', NULL, 7
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2026-05-20 00:10:34.217', 'admin', '2026-05-20 00:10:34.217');
-INSERT INTO `wms_warehouse`
-VALUES (2056769648226283522, 'WH6', '大兴仓', NULL, 8
-       , NULL, NULL, NULL, NULL, 'admin'
-       , '2026-05-20 00:11:11.735', 'admin', '2026-05-20 00:11:11.735');
-SET FOREIGN_KEY_CHECKS = 1;
+-- H2 2.2.224;
+;             
+CREATE USER IF NOT EXISTS "SA" SALT '128a4271b505a543' HASH '47b2b2bc7ff74dad92446a46658215e743526be08102b2d3cfcd139739b97351' ADMIN;         
+CREATE CACHED TABLE "public"."gen_table"(
+    "table_id" BIGINT COMMENT U&'\7f16\53f7' NOT NULL,
+    "table_name" CHARACTER VARYING(200) DEFAULT '' COMMENT U&'\8868\540d\79f0',
+    "table_comment" CHARACTER VARYING(500) DEFAULT '' COMMENT U&'\8868\63cf\8ff0',
+    "sub_table_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5173\8054\5b50\8868\7684\8868\540d',
+    "sub_table_fk_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5b50\8868\5173\8054\7684\5916\952e\540d',
+    "class_name" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b9e\4f53\7c7b\540d\79f0',
+    "tpl_category" CHARACTER VARYING(200) DEFAULT 'crud' COMMENT U&'\4f7f\7528\7684\6a21\677f\ff08crud\5355\8868\64cd\4f5c tree\6811\8868\64cd\4f5c\ff09',
+    "package_name" CHARACTER VARYING(100) DEFAULT NULL COMMENT U&'\751f\6210\5305\8def\5f84',
+    "module_name" CHARACTER VARYING(30) DEFAULT NULL COMMENT U&'\751f\6210\6a21\5757\540d',
+    "business_name" CHARACTER VARYING(30) DEFAULT NULL COMMENT U&'\751f\6210\4e1a\52a1\540d',
+    "function_name" CHARACTER VARYING(50) DEFAULT NULL COMMENT U&'\751f\6210\529f\80fd\540d',
+    "function_author" CHARACTER VARYING(50) DEFAULT NULL COMMENT U&'\751f\6210\529f\80fd\4f5c\8005',
+    "gen_type" CHARACTER(1) DEFAULT '0' COMMENT U&'\751f\6210\4ee3\7801\65b9\5f0f\ff080zip\538b\7f29\5305 1\81ea\5b9a\4e49\8def\5f84\ff09',
+    "gen_path" CHARACTER VARYING(200) DEFAULT '/' COMMENT U&'\751f\6210\8def\5f84\ff08\4e0d\586b\9ed8\8ba4\9879\76ee\8def\5f84\ff09',
+    "options" CHARACTER VARYING(1000) DEFAULT NULL COMMENT U&'\5176\5b83\751f\6210\9009\9879',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);              
+ALTER TABLE "public"."gen_table" ADD CONSTRAINT "public"."pk_gen_table" PRIMARY KEY("table_id");              
+-- 0 +/- SELECT COUNT(*) FROM public.gen_table;               
+CREATE CACHED TABLE "public"."gen_table_column"(
+    "column_id" BIGINT COMMENT U&'\7f16\53f7' NOT NULL,
+    "table_id" BIGINT DEFAULT NULL COMMENT U&'\5f52\5c5e\8868\7f16\53f7',
+    "column_name" CHARACTER VARYING(200) DEFAULT NULL COMMENT U&'\5217\540d\79f0',
+    "column_comment" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5217\63cf\8ff0',
+    "column_type" CHARACTER VARYING(100) DEFAULT NULL COMMENT U&'\5217\7c7b\578b',
+    "java_type" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'JAVA\7c7b\578b',
+    "java_field" CHARACTER VARYING(200) DEFAULT NULL COMMENT U&'JAVA\5b57\6bb5\540d',
+    "is_pk" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\4e3b\952e\ff081\662f\ff09',
+    "is_increment" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\81ea\589e\ff081\662f\ff09',
+    "is_required" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\5fc5\586b\ff081\662f\ff09',
+    "is_insert" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\4e3a\63d2\5165\5b57\6bb5\ff081\662f\ff09',
+    "is_edit" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\7f16\8f91\5b57\6bb5\ff081\662f\ff09',
+    "is_list" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\5217\8868\5b57\6bb5\ff081\662f\ff09',
+    "is_query" CHARACTER(1) DEFAULT NULL COMMENT U&'\662f\5426\67e5\8be2\5b57\6bb5\ff081\662f\ff09',
+    "query_type" CHARACTER VARYING(200) DEFAULT 'EQ' COMMENT U&'\67e5\8be2\65b9\5f0f\ff08\7b49\4e8e\3001\4e0d\7b49\4e8e\3001\5927\4e8e\3001\5c0f\4e8e\3001\8303\56f4\ff09',
+    "html_type" CHARACTER VARYING(200) DEFAULT NULL COMMENT U&'\663e\793a\7c7b\578b\ff08\6587\672c\6846\3001\6587\672c\57df\3001\4e0b\62c9\6846\3001\590d\9009\6846\3001\5355\9009\6846\3001\65e5\671f\63a7\4ef6\ff09',
+    "dict_type" CHARACTER VARYING(200) DEFAULT '' COMMENT U&'\5b57\5178\7c7b\578b',
+    "sort" INTEGER DEFAULT NULL COMMENT U&'\6392\5e8f',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4'
+);  
+ALTER TABLE "public"."gen_table_column" ADD CONSTRAINT "public"."pk_gen_table_column" PRIMARY KEY("column_id");               
+-- 0 +/- SELECT COUNT(*) FROM public.gen_table_column;        
+CREATE CACHED TABLE "public"."sys_config"(
+    "config_id" BIGINT COMMENT U&'\53c2\6570\4e3b\952e' NOT NULL,
+    "config_name" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\53c2\6570\540d\79f0',
+    "config_key" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\53c2\6570\952e\540d',
+    "config_value" CHARACTER VARYING(500) DEFAULT '' COMMENT U&'\53c2\6570\952e\503c',
+    "config_type" CHARACTER(1) DEFAULT 'N' COMMENT U&'\7cfb\7edf\5185\7f6e\ff08Y\662f N\5426\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);    
+ALTER TABLE "public"."sys_config" ADD CONSTRAINT "public"."pk_sys_config" PRIMARY KEY("config_id");           
+-- 6 +/- SELECT COUNT(*) FROM public.sys_config;              
+INSERT INTO "public"."sys_config" VALUES
+(1, U&'\4e3b\6846\67b6\9875-\9ed8\8ba4\76ae\80a4\6837\5f0f\540d\79f0', 'sys.index.skinName', 'skin-blue', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\84dd\8272 skin-blue\3001\7eff\8272 skin-green\3001\7d2b\8272 skin-purple\3001\7ea2\8272 skin-red\3001\9ec4\8272 skin-yellow'),
+(2, U&'\7528\6237\7ba1\7406-\8d26\53f7\521d\59cb\5bc6\7801', 'sys.user.initPassword', '123456', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\521d\59cb\5316\5bc6\7801 123456'),
+(3, U&'\4e3b\6846\67b6\9875-\4fa7\8fb9\680f\4e3b\9898', 'sys.index.sideTheme', 'theme-light', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', 'admin', TIMESTAMP '2024-07-16 11:25:33', U&'\6df1\8272\4e3b\9898theme-dark\ff0c\6d45\8272\4e3b\9898theme-light'),
+(4, U&'\8d26\53f7\81ea\52a9-\9a8c\8bc1\7801\5f00\5173', 'sys.account.captchaEnabled', 'true', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\662f\5426\5f00\542f\9a8c\8bc1\7801\529f\80fd\ff08true\5f00\542f\ff0cfalse\5173\95ed\ff09'),
+(5, U&'\8d26\53f7\81ea\52a9-\662f\5426\5f00\542f\7528\6237\6ce8\518c\529f\80fd', 'sys.account.registerUser', 'false', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\662f\5426\5f00\542f\6ce8\518c\7528\6237\529f\80fd\ff08true\5f00\542f\ff0cfalse\5173\95ed\ff09'),
+(11, U&'OSS\9884\89c8\5217\8868\8d44\6e90\5f00\5173', 'sys.oss.previewListResource', 'true', 'Y', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'true:\5f00\542f, false:\5173\95ed'); 
+CREATE CACHED TABLE "public"."sys_dept"(
+    "dept_id" BIGINT COMMENT U&'\90e8\95e8id' NOT NULL,
+    "parent_id" BIGINT DEFAULT 0 COMMENT U&'\7236\90e8\95e8id',
+    "ancestors" CHARACTER VARYING(500) DEFAULT '' COMMENT U&'\7956\7ea7\5217\8868',
+    "dept_name" CHARACTER VARYING(30) DEFAULT '' COMMENT U&'\90e8\95e8\540d\79f0',
+    "order_num" INTEGER DEFAULT 0 COMMENT U&'\663e\793a\987a\5e8f',
+    "leader" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\8d1f\8d23\4eba',
+    "phone" CHARACTER VARYING(11) DEFAULT NULL COMMENT U&'\8054\7cfb\7535\8bdd',
+    "email" CHARACTER VARYING(50) DEFAULT NULL COMMENT U&'\90ae\7bb1',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\90e8\95e8\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09',
+    "del_flag" CHARACTER(1) DEFAULT '0' COMMENT U&'\5220\9664\6807\5fd7\ff080\4ee3\8868\5b58\5728 2\4ee3\8868\5220\9664\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4'
+);   
+ALTER TABLE "public"."sys_dept" ADD CONSTRAINT "public"."pk_sys_dept" PRIMARY KEY("dept_id"); 
+-- 11 +/- SELECT COUNT(*) FROM public.sys_dept;               
+INSERT INTO "public"."sys_dept" VALUES
+(100, 0, '0', U&'\82e5\4f9d\79d1\6280', 0, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(101, 100, '0,100', U&'\6df1\5733\603b\516c\53f8', 1, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(102, 100, '0,100', U&'\957f\6c99\5206\516c\53f8', 2, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(103, 101, '0,100,101', U&'\7814\53d1\90e8\95e8', 1, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(104, 101, '0,100,101', U&'\5e02\573a\90e8\95e8', 2, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(105, 101, '0,100,101', U&'\6d4b\8bd5\90e8\95e8', 3, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(106, 101, '0,100,101', U&'\8d22\52a1\90e8\95e8', 4, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(107, 101, '0,100,101', U&'\8fd0\7ef4\90e8\95e8', 5, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(108, 102, '0,100,102', U&'\5e02\573a\90e8\95e8', 1, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(109, 102, '0,100,102', U&'\8d22\52a1\90e8\95e8', 2, U&'\82e5\4f9d', '15888888888', 'ry@qq.com', '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL),
+(1811589666899832833, 102, '0,100,102', U&'\6d4b\8bd5\90e8\95e82', 0, U&'\8d1f\8d23\4eba', '', '', '1', '0', 'admin', TIMESTAMP '2024-07-12 10:33:29', 'admin', TIMESTAMP '2024-07-12 10:33:29');   
+CREATE CACHED TABLE "public"."sys_dict_data"(
+    "dict_code" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 1900000000000010933) DEFAULT ON NULL COMMENT U&'\5b57\5178\7f16\7801' NOT NULL,
+    "dict_sort" INTEGER DEFAULT 0 COMMENT U&'\5b57\5178\6392\5e8f',
+    "dict_label" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b57\5178\6807\7b7e',
+    "dict_value" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b57\5178\952e\503c',
+    "dict_type" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b57\5178\7c7b\578b',
+    "css_class" CHARACTER VARYING(100) DEFAULT NULL COMMENT U&'\6837\5f0f\5c5e\6027\ff08\5176\4ed6\6837\5f0f\6269\5c55\ff09',
+    "list_class" CHARACTER VARYING(100) DEFAULT NULL COMMENT U&'\8868\683c\56de\663e\6837\5f0f',
+    "is_default" CHARACTER(1) DEFAULT 'N' COMMENT U&'\662f\5426\9ed8\8ba4\ff08Y\662f N\5426\ff09',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\72b6\6001\ff080\505c\7528 1\6b63\5e38\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);
+ALTER TABLE "public"."sys_dict_data" ADD CONSTRAINT "public"."pk_sys_dict_data" PRIMARY KEY("dict_code");     
+-- 85 +/- SELECT COUNT(*) FROM public.sys_dict_data;          
+INSERT INTO "public"."sys_dict_data" VALUES
+(1, 1, U&'\7537', '0', 'sys_user_sex', '', '', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\6027\522b\7537'),
+(2, 2, U&'\5973', '1', 'sys_user_sex', '', '', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\6027\522b\5973'),
+(3, 3, U&'\672a\77e5', '2', 'sys_user_sex', '', '', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\6027\522b\672a\77e5'),
+(4, 1, U&'\663e\793a', '1', 'sys_show_hide', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 16:34:54', U&'\663e\793a\83dc\5355'),
+(5, 2, U&'\9690\85cf', '0', 'sys_show_hide', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 16:35:07', U&'\9690\85cf\83dc\5355'),
+(6, 1, U&'\6b63\5e38', '1', 'sys_normal_disable', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 14:30:58', U&'\6b63\5e38\72b6\6001'),
+(7, 2, U&'\505c\7528', '0', 'sys_normal_disable', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 14:31:06', U&'\505c\7528\72b6\6001'),
+(12, 1, U&'\662f', 'Y', 'sys_yes_no', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\7cfb\7edf\9ed8\8ba4\662f'),
+(13, 2, U&'\5426', 'N', 'sys_yes_no', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\7cfb\7edf\9ed8\8ba4\5426'),
+(14, 1, U&'\901a\77e5', '1', 'sys_notice_type', '', 'warning', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\901a\77e5'),
+(15, 2, U&'\516c\544a', '2', 'sys_notice_type', '', 'success', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\516c\544a'),
+(16, 1, U&'\6b63\5e38', '1', 'sys_notice_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 17:24:35', U&'\6b63\5e38\72b6\6001'),
+(17, 2, U&'\5173\95ed', '0', 'sys_notice_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', 'admin', TIMESTAMP '2024-07-10 17:24:44', U&'\5173\95ed\72b6\6001'),
+(18, 1, U&'\65b0\589e', '1', 'sys_oper_type', '', 'info', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\65b0\589e\64cd\4f5c'),
+(19, 2, U&'\4fee\6539', '2', 'sys_oper_type', '', 'info', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\4fee\6539\64cd\4f5c'),
+(20, 3, U&'\5220\9664', '3', 'sys_oper_type', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\5220\9664\64cd\4f5c'),
+(21, 4, U&'\6388\6743', '4', 'sys_oper_type', '', 'primary', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\6388\6743\64cd\4f5c'),
+(22, 5, U&'\5bfc\51fa', '5', 'sys_oper_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\5bfc\51fa\64cd\4f5c'),
+(23, 6, U&'\5bfc\5165', '6', 'sys_oper_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\5bfc\5165\64cd\4f5c'),
+(24, 7, U&'\5f3a\9000', '7', 'sys_oper_type', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\5f3a\9000\64cd\4f5c'),
+(25, 8, U&'\751f\6210\4ee3\7801', '8', 'sys_oper_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\751f\6210\64cd\4f5c'),
+(26, 9, U&'\6e05\7a7a\6570\636e', '9', 'sys_oper_type', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', '', NULL, U&'\6e05\7a7a\64cd\4f5c'),
+(27, 1, U&'\5931\8d25', '0', 'sys_common_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', 'admin', TIMESTAMP '2024-07-15 10:50:52', U&'\6b63\5e38\72b6\6001'),
+(28, 2, U&'\6210\529f', '1', 'sys_common_status', '', 'success', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:37', 'admin', TIMESTAMP '2024-07-15 10:51:05', U&'\505c\7528\72b6\6001'),
+(29, 99, U&'\5176\4ed6', '0', 'sys_oper_type', '', 'info', 'N', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\5176\4ed6\64cd\4f5c'),
+(1813153852862160897, 0, U&'\672a\5165\5e93', '0', 'wms_receipt_status', NULL, 'info', 'N', '1', 'admin', TIMESTAMP '2024-07-16 18:09:00', 'admin', TIMESTAMP '2024-07-22 09:38:14', NULL);  
+INSERT INTO "public"."sys_dict_data" VALUES
+(1813153899775451137, 1, U&'\5df2\5165\5e93', '1', 'wms_receipt_status', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-07-16 18:09:11', 'admin', TIMESTAMP '2024-07-22 09:38:22', NULL),
+(1813397339171905537, 3, U&'\4f5c\5e9f', '-1', 'wms_receipt_status', NULL, 'danger', 'N', '1', 'admin', TIMESTAMP '2024-07-17 10:16:32', 'admin', TIMESTAMP '2024-07-22 09:38:29', NULL),
+(1818850397680640002, 2, U&'\4f5c\5e9f', '-1', 'wms_shipment_status', NULL, 'danger', 'N', '1', 'admin', TIMESTAMP '2024-08-01 11:25:02', 'admin', TIMESTAMP '2024-08-01 14:25:24', NULL),
+(1818850512650706945, 0, U&'\672a\51fa\5e93', '0', 'wms_shipment_status', NULL, 'info', 'N', '1', 'admin', TIMESTAMP '2024-08-01 11:25:29', 'admin', TIMESTAMP '2024-08-01 14:25:37', NULL),
+(1818850565389885441, 1, U&'\5df2\51fa\5e93', '1', 'wms_shipment_status', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-01 11:25:42', 'admin', TIMESTAMP '2024-08-01 14:25:32', NULL),
+(1821067084643434498, 0, U&'\5165\5e93', '1', 'wms_inventory_history_type', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-07 14:13:21', 'admin', TIMESTAMP '2024-08-07 14:57:41', NULL),
+(1821067144441626625, 1, U&'\51fa\5e93', '2', 'wms_inventory_history_type', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-07 14:13:36', 'admin', TIMESTAMP '2024-08-07 14:57:47', NULL),
+(1821067181917732866, 2, U&'\79fb\5e93', '3', 'wms_inventory_history_type', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-07 14:13:45', 'admin', TIMESTAMP '2024-08-07 14:57:54', NULL),
+(1821067222455681026, 3, U&'\76d8\5e93', '4', 'wms_inventory_history_type', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-07 14:13:54', 'admin', TIMESTAMP '2024-08-07 14:58:06', NULL),
+(1822820748966006786, 0, U&'\672a\79fb\5e93', '0', 'wms_movement_status', NULL, 'info', 'N', '1', 'admin', TIMESTAMP '2024-08-12 10:21:48', 'admin', TIMESTAMP '2024-08-12 10:21:48', NULL),
+(1822820794864275457, 1, U&'\5df2\79fb\5e93', '1', 'wms_movement_status', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-12 10:21:59', 'admin', TIMESTAMP '2024-08-12 10:21:59', NULL),
+(1822820855526494210, 2, U&'\4f5c\5e9f', '-1', 'wms_movement_status', NULL, 'danger', 'N', '1', 'admin', TIMESTAMP '2024-08-12 10:22:13', 'admin', TIMESTAMP '2024-08-12 10:22:13', NULL),
+(1823182345731391489, 0, U&'\5f85\76d8\5e93', '0', 'wms_check_status', NULL, 'info', 'N', '1', 'admin', TIMESTAMP '2024-08-13 10:18:39', 'admin', TIMESTAMP '2024-08-13 10:18:39', NULL),
+(1823182400756465666, 1, U&'\5df2\76d8\5e93', '1', 'wms_check_status', NULL, 'primary', 'N', '1', 'admin', TIMESTAMP '2024-08-13 10:18:52', 'admin', TIMESTAMP '2024-08-13 10:18:52', NULL),
+(1823182471136886786, 2, U&'\4f5c\5e9f', '-1', 'wms_check_status', NULL, 'danger', 'N', '1', 'admin', TIMESTAMP '2024-08-13 10:19:09', 'admin', TIMESTAMP '2024-08-13 10:19:09', NULL),
+(1900000000000002001, 1, U&'\542f\7528', 'enabled', 'wms_rack_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\67b6\542f\7528'),
+(1900000000000002002, 2, U&'\505c\7528', 'disabled', 'wms_rack_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\67b6\505c\7528'),
+(1900000000000002006, 1, U&'\542f\7528', 'enabled', 'wms_location_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\542f\7528'),
+(1900000000000002007, 2, U&'\505c\7528', 'disabled', 'wms_location_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\505c\7528'),
+(1900000000000002008, 3, U&'\5360\7528', 'occupied', 'wms_location_status', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\5360\7528'),
+(1900000000000004101, 1, U&'\5f85\5165\5e93', U&'\5f85\5165\5e93', 'wms_item_instance_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\6279\91cf\6253\5370\540e\5f85\5165\5e93');           
+INSERT INTO "public"."sys_dict_data" VALUES
+(1900000000000004102, 2, U&'\5728\5e93', U&'\5728\5e93', 'wms_item_instance_status', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\5df2\5165\5e93\4e14\53ef\53c2\4e0e\5728\5e93\4f5c\4e1a'),
+(1900000000000004103, 5, U&'\501f\51fa', U&'\501f\51fa', 'wms_item_instance_status', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\501f\7528\5355\501f\51fa'),
+(1900000000000004104, 3, U&'\51fa\5e93', U&'\51fa\5e93', 'wms_item_instance_status', '', 'info', 'N', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\5df2\5b8c\6210\51fa\5e93'),
+(1900000000000004105, 6, U&'\62a5\5e9f', U&'\62a5\5e9f', 'wms_item_instance_status', '', 'default', 'N', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\62a5\5e9f\51fa\5e93'),
+(1900000000000005101, 1, U&'\7a7a\7bb1', 'idle', 'wms_box_status', '', 'default', 'Y', '1', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\7a7a\7bb1\72b6\6001'),
+(1900000000000005102, 2, U&'\5df2\88c5\7bb1', 'packed', 'wms_box_status', '', 'primary', 'N', '1', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\5df2\88c5\7bb1\72b6\6001'),
+(1900000000000005103, 3, U&'\505c\7528', 'disabled', 'wms_box_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\505c\7528\72b6\6001'),
+(1900000000000006101, 1, U&'\501f\51fa\4e2d', 'borrowed', 'wms_borrow_status', '', 'warning', 'Y', '1', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\5f53\524d\5df2\501f\51fa'),
+(1900000000000006102, 2, U&'\5df2\5f52\8fd8', 'returned', 'wms_borrow_status', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\5f53\524d\5df2\5f52\8fd8'),
+(1900000000000007101, 4, U&'\5df2\51fa\5e93', 'outbound', 'wms_box_status', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-02 23:02:59', 'admin', TIMESTAMP '2026-05-02 23:02:59', U&'\7bb1\4f53\5df2\6574\7bb1\51fa\5e93'),
+(1900000000000010101, 1, U&'\901a\88c5', U&'\901a\88c5', 'wms_equipment_type', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\5668\6750\7c7b\578b'),
+(1900000000000010102, 2, U&'\4e13\88c5', U&'\4e13\88c5', 'wms_equipment_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\5668\6750\7c7b\578b'),
+(1900000000000010201, 1, U&'\542f\7528', '1', 'wms_item_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\5668\6750\4e3b\6863\542f\7528'),
+(1900000000000010202, 2, U&'\505c\7528', '0', 'wms_item_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\5668\6750\4e3b\6863\505c\7528'),
+(1900000000000010301, 1, U&'\542f\7528', '1', 'wms_item_sku_status', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\5668\6750\89c4\683c\542f\7528'),
+(1900000000000010302, 2, U&'\505c\7528', '0', 'wms_item_sku_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\5668\6750\89c4\683c\505c\7528'),
+(1900000000000010901, 4, U&'\5f02\5e38', 'abnormal', 'wms_location_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\8d27\4f4d\5f02\5e38'),
+(1900000000000010902, 4, U&'\76d8\4e8f', U&'\76d8\4e8f', 'wms_item_instance_status', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-18 09:45:08', 'admin', TIMESTAMP '2026-05-18 09:45:08', U&'\76d8\70b9\76d8\4e8f'),
+(1900000000000010903, 1, U&'\91c7\8d2d\5165\5e93', U&'\91c7\8d2d\5165\5e93', 'wms_receipt_type', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\91c7\8d2d\5165\5e93');               
+INSERT INTO "public"."sys_dict_data" VALUES
+(1900000000000010904, 2, U&'\5f52\8fd8\5165\5e93', U&'\5f52\8fd8\5165\5e93', 'wms_receipt_type', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\5f52\8fd8\5165\5e93'),
+(1900000000000010905, 3, U&'\8c03\62e8\5165\5e93', U&'\8c03\62e8\5165\5e93', 'wms_receipt_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\8c03\62e8\5165\5e93'),
+(1900000000000010906, 1, U&'\501f\7528\51fa\5e93', U&'\501f\7528\51fa\5e93', 'wms_shipment_type', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\501f\7528\51fa\5e93'),
+(1900000000000010907, 2, U&'\8c03\62e8\51fa\5e93', U&'\8c03\62e8\51fa\5e93', 'wms_shipment_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\8c03\62e8\51fa\5e93'),
+(1900000000000010908, 3, U&'\62a5\5e9f\51fa\5e93', U&'\62a5\5e9f\51fa\5e93', 'wms_shipment_type', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-18 11:44:06', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\62a5\5e9f\51fa\5e93'),
+(1900000000000010909, 1, U&'\7a7a\8fd0', 'air', 'wms_dispatch_mode', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-20 16:42:54', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\65b9\5f0f\ff1a\7a7a\8fd0'),
+(1900000000000010910, 2, U&'\516c\8def', 'road', 'wms_dispatch_mode', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-05-20 16:42:54', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\65b9\5f0f\ff1a\516c\8def'),
+(1900000000000010911, 3, U&'\94c1\8def', 'rail', 'wms_dispatch_mode', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-20 16:42:54', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\65b9\5f0f\ff1a\94c1\8def'),
+(1900000000000010912, 4, U&'\6c34\8fd0', 'sea', 'wms_dispatch_mode', '', 'info', 'N', '1', 'admin', TIMESTAMP '2026-05-20 16:42:54', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\65b9\5f0f\ff1a\6c34\8fd0'),
+(1900000000000010913, 1, U&'\901a\88c5', U&'\901a\88c5', 'wms_movement_type', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\7c7b\578b\ff1a\901a\88c5'),
+(1900000000000010914, 2, U&'\4e13\88c5', U&'\4e13\88c5', 'wms_movement_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8c03\62e8\7c7b\578b\ff1a\4e13\88c5'),
+(1900000000000010915, 1, U&'\6b63\5e38', '0', 'wms_overdue_flag', '', 'success', 'Y', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8d85\671f\72b6\6001\ff1a\6b63\5e38'),
+(1900000000000010916, 2, U&'\5df2\8d85\671f', '1', 'wms_overdue_flag', '', 'danger', 'N', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\8d85\671f\72b6\6001\ff1a\5df2\8d85\671f'),
+(1900000000000010917, 1, U&'\4ed3\5e93', 'warehouse', 'wms_check_scope_type', '', 'primary', 'Y', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\76d8\70b9\8303\56f4\ff1a\4ed3\5e93'),
+(1900000000000010918, 2, U&'\5e93\533a', 'area', 'wms_check_scope_type', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\76d8\70b9\8303\56f4\ff1a\5e93\533a'),
+(1900000000000010919, 3, U&'\8d27\67b6', 'rack', 'wms_check_scope_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'\76d8\70b9\8303\56f4\ff1a\8d27\67b6'),
+(1900000000000010930, 5, U&'\501f\7528', '5', 'wms_inventory_history_type', '', 'warning', 'N', '1', 'admin', TIMESTAMP '2026-05-20 23:15:58', 'admin', TIMESTAMP '2026-05-20 23:15:58', U&'\5e93\5b58\6d41\6c34\64cd\4f5c\7c7b\578b\ff1a\501f\7528'),
+(1900000000000010931, 6, U&'\5f52\8fd8', '6', 'wms_inventory_history_type', '', 'success', 'N', '1', 'admin', TIMESTAMP '2026-05-20 23:15:58', 'admin', TIMESTAMP '2026-05-20 23:15:58', U&'\5e93\5b58\6d41\6c34\64cd\4f5c\7c7b\578b\ff1a\5f52\8fd8');           
+INSERT INTO "public"."sys_dict_data" VALUES
+(1900000000000010932, 7, U&'\8c03\6574', '7', 'wms_inventory_history_type', '', 'info', 'N', '1', 'admin', TIMESTAMP '2026-05-20 23:15:58', 'admin', TIMESTAMP '2026-05-20 23:15:58', U&'\5e93\5b58\6d41\6c34\64cd\4f5c\7c7b\578b\ff1a\8c03\6574');              
+CREATE CACHED TABLE "public"."sys_dict_type"(
+    "dict_id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 1900000000000010013) DEFAULT ON NULL COMMENT U&'\5b57\5178\4e3b\952e' NOT NULL,
+    "dict_name" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b57\5178\540d\79f0',
+    "dict_type" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5b57\5178\7c7b\578b',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);   
+ALTER TABLE "public"."sys_dict_type" ADD CONSTRAINT "public"."pk_sys_dict_type" PRIMARY KEY("dict_id");       
+-- 27 +/- SELECT COUNT(*) FROM public.sys_dict_type;          
+INSERT INTO "public"."sys_dict_type" VALUES
+(1, U&'\7528\6237\6027\522b', 'sys_user_sex', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\7528\6237\6027\522b\5217\8868'),
+(2, U&'\83dc\5355\72b6\6001', 'sys_show_hide', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\83dc\5355\72b6\6001\5217\8868'),
+(3, U&'\7cfb\7edf\5f00\5173', 'sys_normal_disable', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\7cfb\7edf\5f00\5173\5217\8868'),
+(6, U&'\7cfb\7edf\662f\5426', 'sys_yes_no', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\7cfb\7edf\662f\5426\5217\8868'),
+(7, U&'\901a\77e5\7c7b\578b', 'sys_notice_type', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\901a\77e5\7c7b\578b\5217\8868'),
+(8, U&'\901a\77e5\72b6\6001', 'sys_notice_status', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\901a\77e5\72b6\6001\5217\8868'),
+(9, U&'\64cd\4f5c\7c7b\578b', 'sys_oper_type', '1', 'admin', TIMESTAMP '2024-06-13 16:06:35', '', NULL, U&'\64cd\4f5c\7c7b\578b\5217\8868'),
+(10, U&'\7cfb\7edf\72b6\6001', 'sys_common_status', '1', 'admin', TIMESTAMP '2024-06-13 16:06:36', '', NULL, U&'\767b\5f55\72b6\6001\5217\8868'),
+(1813152108564373505, U&'\5165\5e93\72b6\6001', 'wms_receipt_status', '1', 'admin', TIMESTAMP '2024-07-16 18:02:04', 'admin', TIMESTAMP '2024-07-16 18:02:17', U&'\5165\5e93\72b6\6001'),
+(1814219082624778242, U&'\5165\5e93\7c7b\578b', 'wms_receipt_type', '1', 'admin', TIMESTAMP '2024-07-19 16:41:51', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\5165\5e93\7c7b\578b'),
+(1818848671749709825, U&'\51fa\5e93\72b6\6001', 'wms_shipment_status', '1', 'admin', TIMESTAMP '2024-08-01 11:18:11', 'admin', TIMESTAMP '2024-08-01 11:18:11', NULL),
+(1818848738502057985, U&'\51fa\5e93\7c7b\578b', 'wms_shipment_type', '1', 'admin', TIMESTAMP '2024-08-01 11:18:26', 'admin', TIMESTAMP '2026-05-18 11:44:06', U&'\51fa\5e93\7c7b\578b'),
+(1821066855638630402, U&'\5e93\5b58\8bb0\5f55\64cd\4f5c\7c7b\578b', 'wms_inventory_history_type', '1', 'admin', TIMESTAMP '2024-08-07 14:12:27', 'admin', TIMESTAMP '2024-08-07 14:12:27', NULL),
+(1822820566366982146, U&'\79fb\5e93\72b6\6001', 'wms_movement_status', '1', 'admin', TIMESTAMP '2024-08-12 10:21:04', 'admin', TIMESTAMP '2024-08-12 10:21:04', NULL),
+(1823182238898274306, U&'\76d8\5e93\72b6\6001', 'wms_check_status', '1', 'admin', TIMESTAMP '2024-08-13 10:18:14', 'admin', TIMESTAMP '2024-08-13 10:18:14', NULL),
+(1900000000000001001, U&'\8d27\67b6\72b6\6001', 'wms_rack_status', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\67b6\72b6\6001\5b57\5178'),
+(1900000000000001003, U&'\8d27\4f4d\72b6\6001', 'wms_location_status', '1', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\72b6\6001\5b57\5178'),
+(1900000000000004001, U&'\5355\54c1\5b9e\4f8b\72b6\6001', 'wms_item_instance_status', '1', 'admin', TIMESTAMP '2026-04-30 16:29:04', 'admin', TIMESTAMP '2026-04-30 16:29:04', U&'\5355\54c1\5b9e\4f8b\72b6\6001\5b57\5178'),
+(1900000000000005001, U&'\7bb1\4f53\72b6\6001', 'wms_box_status', '1', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\7bb1\4f53\72b6\6001\5b57\5178'),
+(1900000000000006001, U&'\501f\8fd8\72b6\6001', 'wms_borrow_status', '1', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\501f\8fd8\72b6\6001\5b57\5178'),
+(1900000000000010001, U&'\5668\6750\7c7b\578b', 'wms_equipment_type', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\7b2c\4e00\9636\6bb5\5668\6750\7c7b\578b\5b57\5178'),
+(1900000000000010002, U&'\5668\6750\4e3b\6863\72b6\6001', 'wms_item_status', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\7b2c\4e00\9636\6bb5\5668\6750\4e3b\6863\72b6\6001\5b57\5178'),
+(1900000000000010003, U&'\5668\6750\89c4\683c\72b6\6001', 'wms_item_sku_status', '1', 'admin', TIMESTAMP '2026-05-07 11:17:06', 'admin', TIMESTAMP '2026-05-07 11:17:06', U&'\7b2c\4e00\9636\6bb5\5668\6750\89c4\683c\72b6\6001\5b57\5178');    
+INSERT INTO "public"."sys_dict_type" VALUES
+(1900000000000010009, U&'\8c03\62e8\65b9\5f0f', 'wms_dispatch_mode', '1', 'admin', TIMESTAMP '2026-05-20 16:42:54', 'admin', TIMESTAMP '2026-05-20 16:42:54', U&'WMS\8c03\62e8\65b9\5f0f\5b57\5178\ff0c\4f9b\5165\5e93/\51fa\5e93/\8c03\62e8\5355\5171\7528'),
+(1900000000000010010, U&'\8c03\62e8\7c7b\578b', 'wms_movement_type', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'WMS\8c03\62e8\7c7b\578b\5b57\5178'),
+(1900000000000010011, U&'\8d85\671f\72b6\6001', 'wms_overdue_flag', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'WMS\501f\7528\8d85\671f\72b6\6001\5b57\5178'),
+(1900000000000010012, U&'\76d8\70b9\8303\56f4\7c7b\578b', 'wms_check_scope_type', '1', 'admin', TIMESTAMP '2026-05-20 17:59:01', 'admin', TIMESTAMP '2026-05-20 17:59:01', U&'WMS\76d8\70b9\8303\56f4\7c7b\578b\5b57\5178');              
+CREATE CACHED TABLE "public"."sys_logininfor"(
+    "info_id" BIGINT COMMENT U&'\8bbf\95eeID' NOT NULL,
+    "user_name" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\7528\6237\8d26\53f7',
+    "ipaddr" CHARACTER VARYING(128) DEFAULT '' COMMENT U&'\767b\5f55IP\5730\5740',
+    "login_location" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\767b\5f55\5730\70b9',
+    "browser" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\6d4f\89c8\5668\7c7b\578b',
+    "os" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\64cd\4f5c\7cfb\7edf',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\767b\5f55\72b6\6001\ff080\6210\529f 1\5931\8d25\ff09',
+    "msg" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\63d0\793a\6d88\606f',
+    "login_time" TIMESTAMP DEFAULT NULL COMMENT U&'\8bbf\95ee\65f6\95f4'
+);          
+ALTER TABLE "public"."sys_logininfor" ADD CONSTRAINT "public"."pk_sys_logininfor" PRIMARY KEY("info_id");     
+-- 24 +/- SELECT COUNT(*) FROM public.sys_logininfor;         
+INSERT INTO "public"."sys_logininfor" VALUES
+(2049758328805208066, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-04-30 15:50:43'),
+(2051911181686620161, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-06 14:25:23'),
+(2052294143653543938, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-07 15:47:08'),
+(2052668409146343425, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-08 16:34:20'),
+(2052690942419636226, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\9000\51fa\6210\529f', TIMESTAMP '2026-05-08 18:03:52'),
+(2052691075416821762, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-08 18:04:24'),
+(2053038638946971649, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\9000\51fa\6210\529f', TIMESTAMP '2026-05-09 17:05:30'),
+(2053040509807882242, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-09 17:12:56'),
+(2053645979656462338, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '0', U&'\9a8c\8bc1\7801\5df2\5931\6548', TIMESTAMP '2026-05-11 09:18:51'),
+(2053646000707674114, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-11 09:18:56'),
+(2054017270859173890, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-12 09:54:14'),
+(2054390365717635074, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-13 10:36:47'),
+(2054804881378971649, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-14 14:03:55'),
+(2055090854125989890, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\9000\51fa\6210\529f', TIMESTAMP '2026-05-15 09:00:16'),
+(2055092984673038337, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '0', U&'\9a8c\8bc1\7801\5df2\5931\6548', TIMESTAMP '2026-05-15 09:08:44'),
+(2055092994273800193, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '0', U&'\9a8c\8bc1\7801\9519\8bef', TIMESTAMP '2026-05-15 09:08:46'),
+(2055093005623586818, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-15 09:08:49'),
+(2055527840410316801, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-16 13:56:42'),
+(2055973708791914497, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-17 19:28:25'),
+(2056372873405493250, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '0', U&'\9a8c\8bc1\7801\5df2\5931\6548', TIMESTAMP '2026-05-18 21:54:33'),
+(2056372896625160193, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-18 21:54:39'),
+(2056752436123877377, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-19 23:02:48'),
+(2057097095211753474, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-20 21:52:21');            
+INSERT INTO "public"."sys_logininfor" VALUES
+(2057459654594965506, 'admin', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', 'Chrome', 'Windows 10 or Windows Server 2016', '1', U&'\767b\5f55\6210\529f', TIMESTAMP '2026-05-21 21:53:02');             
+CREATE INDEX "public"."idx_sys_logininfor_s1" ON "public"."sys_logininfor"("status" NULLS FIRST);             
+CREATE INDEX "public"."idx_sys_logininfor_lt2" ON "public"."sys_logininfor"("login_time" NULLS FIRST);        
+CREATE CACHED TABLE "public"."sys_menu"(
+    "menu_id" BIGINT COMMENT U&'\83dc\5355ID' NOT NULL,
+    "menu_name" CHARACTER VARYING(50) COMMENT U&'\83dc\5355\540d\79f0' NOT NULL,
+    "parent_id" BIGINT DEFAULT 0 COMMENT U&'\7236\83dc\5355ID',
+    "order_num" INTEGER DEFAULT 0 COMMENT U&'\663e\793a\987a\5e8f',
+    "path" CHARACTER VARYING(200) DEFAULT '' COMMENT U&'\8def\7531\5730\5740',
+    "component" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\7ec4\4ef6\8def\5f84',
+    "query_param" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\8def\7531\53c2\6570',
+    "is_frame" INTEGER DEFAULT 1 COMMENT U&'\662f\5426\4e3a\5916\94fe\ff080\662f 1\5426\ff09',
+    "is_cache" INTEGER DEFAULT 0 COMMENT U&'\662f\5426\7f13\5b58\ff080\7f13\5b58 1\4e0d\7f13\5b58\ff09',
+    "menu_type" CHARACTER(1) DEFAULT '' COMMENT U&'\83dc\5355\7c7b\578b\ff08M\76ee\5f55 C\83dc\5355 F\6309\94ae\ff09',
+    "visible" CHARACTER(1) DEFAULT '0' COMMENT U&'\663e\793a\72b6\6001\ff080\663e\793a 1\9690\85cf\ff09',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\83dc\5355\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09',
+    "perms" CHARACTER VARYING(100) DEFAULT NULL COMMENT U&'\6743\9650\6807\8bc6',
+    "icon" CHARACTER VARYING(100) DEFAULT '#' COMMENT U&'\83dc\5355\56fe\6807',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT '' COMMENT U&'\5907\6ce8'
+);         
+ALTER TABLE "public"."sys_menu" ADD CONSTRAINT "public"."pk_sys_menu" PRIMARY KEY("menu_id"); 
+-- 118 +/- SELECT COUNT(*) FROM public.sys_menu;              
+INSERT INTO "public"."sys_menu" VALUES
+(1, U&'\7cfb\7edf\7ba1\7406', 0, 110, 'system', NULL, '', 0, 0, 'M', '1', '1', '', 'system', 'admin', TIMESTAMP '2024-06-13 16:06:26', 'admin', TIMESTAMP '2024-08-20 13:45:48', U&'\7cfb\7edf\7ba1\7406\76ee\5f55'),
+(2, U&'\7cfb\7edf\76d1\63a7', 0, 120, 'monitor', NULL, '', 0, 0, 'M', '1', '1', '', 'monitor', 'admin', TIMESTAMP '2024-06-13 16:06:26', 'admin', TIMESTAMP '2024-08-20 13:45:57', U&'\7cfb\7edf\76d1\63a7\76ee\5f55'),
+(100, U&'\7528\6237\7ba1\7406', 1, 1, 'user', 'system/user/index', '', 0, 0, 'C', '1', '1', 'system:user:list', 'user', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\7528\6237\7ba1\7406\83dc\5355'),
+(101, U&'\89d2\8272\7ba1\7406', 1, 2, 'role', 'system/role/index', '', 0, 0, 'C', '1', '1', 'system:role:list', 'peoples', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\89d2\8272\7ba1\7406\83dc\5355'),
+(102, U&'\83dc\5355\7ba1\7406', 1, 3, 'menu', 'system/menu/index', '', 0, 0, 'C', '1', '1', 'system:menu:list', 'tree-table', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\83dc\5355\7ba1\7406\83dc\5355'),
+(103, U&'\90e8\95e8\7ba1\7406', 1, 4, 'dept', 'system/dept/index', '', 0, 0, 'C', '1', '1', 'system:dept:list', 'tree', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\90e8\95e8\7ba1\7406\83dc\5355'),
+(104, U&'\5c97\4f4d\7ba1\7406', 1, 5, 'post', 'system/post/index', '', 0, 0, 'C', '1', '1', 'system:post:list', 'post', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\5c97\4f4d\7ba1\7406\83dc\5355'),
+(105, U&'\5b57\5178\7ba1\7406', 1, 6, 'dict', 'system/dict/index', '', 0, 0, 'C', '1', '1', 'system:dict:list', 'dict', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\5b57\5178\7ba1\7406\83dc\5355'),
+(106, U&'\53c2\6570\8bbe\7f6e', 1, 7, 'config', 'system/config/index', '', 0, 0, 'C', '1', '1', 'system:config:list', 'edit', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\53c2\6570\8bbe\7f6e\83dc\5355'),
+(107, U&'\901a\77e5\516c\544a', 1, 8, 'notice', 'system/notice/index', '', 0, 0, 'C', '1', '1', 'system:notice:list', 'message', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\901a\77e5\516c\544a\83dc\5355'),
+(108, U&'\65e5\5fd7\7ba1\7406', 0, 140, 'log', '', '', 0, 0, 'M', '1', '1', '', 'log', 'admin', TIMESTAMP '2024-06-13 16:06:27', 'admin', TIMESTAMP '2024-08-20 13:46:16', U&'\65e5\5fd7\7ba1\7406\83dc\5355'),
+(109, U&'\5728\7ebf\7528\6237', 2, 1, 'online', 'monitor/online/index', '', 0, 0, 'C', '1', '1', 'monitor:online:list', 'online', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\5728\7ebf\7528\6237\83dc\5355'),
+(112, U&'\7f13\5b58\5217\8868', 2, 6, 'cacheList', 'monitor/cache/list', '', 0, 0, 'C', '1', '1', 'monitor:cache:list', 'redis-list', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\7f13\5b58\5217\8868\83dc\5355'),
+(113, U&'\7f13\5b58\76d1\63a7', 2, 5, 'cache', 'monitor/cache/index', '', 0, 0, 'C', '1', '1', 'monitor:cache:list', 'redis', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\7f13\5b58\76d1\63a7\83dc\5355'),
+(115, U&'\4ee3\7801\751f\6210', 0, 130, 'gen', 'tool/gen/index', '', 0, 0, 'C', '1', '1', 'tool:gen:list', 'code', 'admin', TIMESTAMP '2024-06-13 16:06:27', 'admin', TIMESTAMP '2024-08-20 13:46:06', U&'\4ee3\7801\751f\6210\83dc\5355'),
+(118, U&'\6587\4ef6\7ba1\7406', 1, 10, 'oss', 'system/oss/index', '', 0, 0, 'C', '1', '1', 'system:oss:list', 'upload', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\6587\4ef6\7ba1\7406\83dc\5355'),
+(500, U&'\64cd\4f5c\65e5\5fd7', 108, 1, 'operlog', 'monitor/operlog/index', '', 0, 0, 'C', '1', '1', 'monitor:operlog:list', 'form', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\64cd\4f5c\65e5\5fd7\83dc\5355'),
+(501, U&'\767b\5f55\65e5\5fd7', 108, 2, 'logininfor', 'monitor/logininfor/index', '', 0, 0, 'C', '1', '1', 'monitor:logininfor:list', 'logininfor', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, U&'\767b\5f55\65e5\5fd7\83dc\5355'),
+(1001, U&'\7528\6237\67e5\8be2', 100, 1, '', '', '', 0, 0, 'F', '1', '1', 'system:user:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1002, U&'\7528\6237\65b0\589e', 100, 2, '', '', '', 0, 0, 'F', '1', '1', 'system:user:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, '');     
+INSERT INTO "public"."sys_menu" VALUES
+(1003, U&'\7528\6237\4fee\6539', 100, 3, '', '', '', 0, 0, 'F', '1', '1', 'system:user:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1004, U&'\7528\6237\5220\9664', 100, 4, '', '', '', 0, 0, 'F', '1', '1', 'system:user:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1005, U&'\7528\6237\5bfc\51fa', 100, 5, '', '', '', 0, 0, 'F', '1', '1', 'system:user:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1006, U&'\7528\6237\5bfc\5165', 100, 6, '', '', '', 0, 0, 'F', '1', '1', 'system:user:import', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1007, U&'\91cd\7f6e\5bc6\7801', 100, 7, '', '', '', 0, 0, 'F', '1', '1', 'system:user:resetPwd', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1008, U&'\89d2\8272\67e5\8be2', 101, 1, '', '', '', 0, 0, 'F', '1', '1', 'system:role:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1009, U&'\89d2\8272\65b0\589e', 101, 2, '', '', '', 0, 0, 'F', '1', '1', 'system:role:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:27', '', NULL, ''),
+(1010, U&'\89d2\8272\4fee\6539', 101, 3, '', '', '', 0, 0, 'F', '1', '1', 'system:role:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1011, U&'\89d2\8272\5220\9664', 101, 4, '', '', '', 0, 0, 'F', '1', '1', 'system:role:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1012, U&'\89d2\8272\5bfc\51fa', 101, 5, '', '', '', 0, 0, 'F', '1', '1', 'system:role:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1013, U&'\83dc\5355\67e5\8be2', 102, 1, '', '', '', 0, 0, 'F', '1', '1', 'system:menu:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1014, U&'\83dc\5355\65b0\589e', 102, 2, '', '', '', 0, 0, 'F', '1', '1', 'system:menu:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1015, U&'\83dc\5355\4fee\6539', 102, 3, '', '', '', 0, 0, 'F', '1', '1', 'system:menu:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1016, U&'\83dc\5355\5220\9664', 102, 4, '', '', '', 0, 0, 'F', '1', '1', 'system:menu:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1017, U&'\90e8\95e8\67e5\8be2', 103, 1, '', '', '', 0, 0, 'F', '1', '1', 'system:dept:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1018, U&'\90e8\95e8\65b0\589e', 103, 2, '', '', '', 0, 0, 'F', '1', '1', 'system:dept:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1019, U&'\90e8\95e8\4fee\6539', 103, 3, '', '', '', 0, 0, 'F', '1', '1', 'system:dept:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1020, U&'\90e8\95e8\5220\9664', 103, 4, '', '', '', 0, 0, 'F', '1', '1', 'system:dept:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1021, U&'\5c97\4f4d\67e5\8be2', 104, 1, '', '', '', 0, 0, 'F', '1', '1', 'system:post:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1022, U&'\5c97\4f4d\65b0\589e', 104, 2, '', '', '', 0, 0, 'F', '1', '1', 'system:post:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1023, U&'\5c97\4f4d\4fee\6539', 104, 3, '', '', '', 0, 0, 'F', '1', '1', 'system:post:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1024, U&'\5c97\4f4d\5220\9664', 104, 4, '', '', '', 0, 0, 'F', '1', '1', 'system:post:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1025, U&'\5c97\4f4d\5bfc\51fa', 104, 5, '', '', '', 0, 0, 'F', '1', '1', 'system:post:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1026, U&'\5b57\5178\67e5\8be2', 105, 1, '#', '', '', 0, 0, 'F', '1', '1', 'system:dict:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1027, U&'\5b57\5178\65b0\589e', 105, 2, '#', '', '', 0, 0, 'F', '1', '1', 'system:dict:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1028, U&'\5b57\5178\4fee\6539', 105, 3, '#', '', '', 0, 0, 'F', '1', '1', 'system:dict:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, '');             
+INSERT INTO "public"."sys_menu" VALUES
+(1029, U&'\5b57\5178\5220\9664', 105, 4, '#', '', '', 0, 0, 'F', '1', '1', 'system:dict:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:28', '', NULL, ''),
+(1030, U&'\5b57\5178\5bfc\51fa', 105, 5, '#', '', '', 0, 0, 'F', '1', '1', 'system:dict:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1031, U&'\53c2\6570\67e5\8be2', 106, 1, '#', '', '', 0, 0, 'F', '1', '1', 'system:config:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1032, U&'\53c2\6570\65b0\589e', 106, 2, '#', '', '', 0, 0, 'F', '1', '1', 'system:config:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1033, U&'\53c2\6570\4fee\6539', 106, 3, '#', '', '', 0, 0, 'F', '1', '1', 'system:config:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1034, U&'\53c2\6570\5220\9664', 106, 4, '#', '', '', 0, 0, 'F', '1', '1', 'system:config:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1035, U&'\53c2\6570\5bfc\51fa', 106, 5, '#', '', '', 0, 0, 'F', '1', '1', 'system:config:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1036, U&'\516c\544a\67e5\8be2', 107, 1, '#', '', '', 0, 0, 'F', '1', '1', 'system:notice:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1037, U&'\516c\544a\65b0\589e', 107, 2, '#', '', '', 0, 0, 'F', '1', '1', 'system:notice:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1038, U&'\516c\544a\4fee\6539', 107, 3, '#', '', '', 0, 0, 'F', '1', '1', 'system:notice:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1039, U&'\516c\544a\5220\9664', 107, 4, '#', '', '', 0, 0, 'F', '1', '1', 'system:notice:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1040, U&'\64cd\4f5c\67e5\8be2', 500, 1, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:operlog:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1041, U&'\64cd\4f5c\5220\9664', 500, 2, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:operlog:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1042, U&'\65e5\5fd7\5bfc\51fa', 500, 4, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:operlog:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1043, U&'\767b\5f55\67e5\8be2', 501, 1, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:logininfor:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1044, U&'\767b\5f55\5220\9664', 501, 2, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:logininfor:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1045, U&'\65e5\5fd7\5bfc\51fa', 501, 3, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:logininfor:export', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1046, U&'\5728\7ebf\67e5\8be2', 109, 1, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:online:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1047, U&'\6279\91cf\5f3a\9000', 109, 2, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:online:batchLogout', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1048, U&'\5355\6761\5f3a\9000', 109, 3, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:online:forceLogout', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1050, U&'\8d26\6237\89e3\9501', 501, 4, '#', '', '', 0, 0, 'F', '1', '1', 'monitor:logininfor:unlock', '#', 'admin', TIMESTAMP '2024-06-13 16:06:29', '', NULL, ''),
+(1055, U&'\751f\6210\67e5\8be2', 115, 1, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1056, U&'\751f\6210\4fee\6539', 115, 2, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1057, U&'\751f\6210\5220\9664', 115, 3, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1058, U&'\5bfc\5165\4ee3\7801', 115, 2, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:import', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1059, U&'\9884\89c8\4ee3\7801', 115, 4, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:preview', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, '');           
+INSERT INTO "public"."sys_menu" VALUES
+(1060, U&'\751f\6210\4ee3\7801', 115, 5, '#', '', '', 0, 0, 'F', '1', '1', 'tool:gen:code', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1600, U&'\6587\4ef6\67e5\8be2', 118, 1, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:query', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1601, U&'\6587\4ef6\4e0a\4f20', 118, 2, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:upload', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1602, U&'\6587\4ef6\4e0b\8f7d', 118, 3, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:download', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1603, U&'\6587\4ef6\5220\9664', 118, 4, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:remove', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1604, U&'\914d\7f6e\6dfb\52a0', 118, 5, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:add', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1605, U&'\914d\7f6e\7f16\8f91', 118, 6, '#', '', '', 0, 0, 'F', '1', '1', 'system:oss:edit', '#', 'admin', TIMESTAMP '2024-06-13 16:06:30', '', NULL, ''),
+(1808758090157985794, U&'\57fa\7840\8d44\6599', 0, 100, 'basic', NULL, NULL, 0, 0, 'M', '1', '1', NULL, 'excel', 'admin', TIMESTAMP '2024-07-04 15:01:48', 'admin', TIMESTAMP '2024-08-20 13:45:39', ''),
+(1809059968309743618, U&'\5f80\6765\5355\4f4d', 1808758090157985794, 6, 'merchant', 'wms/basic/merchant/index', NULL, 0, 0, 'C', '0', '1', 'wms:merchant:list', 'documentation', 'admin', TIMESTAMP '2024-07-05 11:58:12', 'admin', TIMESTAMP '2026-05-22 09:13:53.051795', U&'\7b2c\4e8c\9636\6bb5\5f80\6765\5355\4f4d\5165\53e3'),
+(1809059968309743619, U&'\5f80\6765\5355\4f4d\67e5\8be2', 1809059968309743618, 1, '#', '', NULL, 0, 0, 'F', '1', '1', 'wms:merchant:list', '#', 'admin', TIMESTAMP '2024-07-05 11:58:12', 'admin', TIMESTAMP '2024-08-30 10:43:54', ''),
+(1809059968309743621, U&'\5f80\6765\5355\4f4d\4fee\6539', 1809059968309743618, 3, '#', '', NULL, 0, 0, 'F', '1', '1', 'wms:merchant:edit', '#', 'admin', TIMESTAMP '2024-07-05 11:58:12', '', NULL, ''),
+(1813458070128599041, U&'\4ed3\50a8\5e03\5c40', 0, 3, 'layout', 'wms/basic/layout/index', NULL, 0, 0, 'C', '0', '1', 'wms:warehouse:list', 'documentation', 'admin', TIMESTAMP '2024-07-17 14:17:51', 'admin', TIMESTAMP '2026-05-08 16:49:17', U&'\5e03\5c40\6d4f\89c8\ff0c\4e0d\66ff\4ee3\4ed3\5e93/\5e93\533a\7ef4\62a4'),
+(1813820131794837506, U&'\5668\6750\7ba1\7406', 1808758090157985794, 0, 'item', 'wms/basic/item/index', NULL, 0, 0, 'C', '1', '1', 'wms:item:list', 'documentation', 'admin', TIMESTAMP '2024-07-18 14:16:33', 'admin', TIMESTAMP '2026-05-08 16:37:00', U&'\7b2c\4e8c\9636\6bb5\5668\6750\4e3b\6863\5165\53e3'),
+(1815207165755183105, U&'\7f16\8f91\5165\5e93\5355', 0, 1000, 'receiptOrderEdit', 'wms/order/receipt/edit', NULL, 0, 0, 'C', '0', '1', 'wms:receipt:edit', '#', 'admin', TIMESTAMP '2024-07-22 10:08:08', 'admin', TIMESTAMP '2024-08-27 16:43:28', ''),
+(1818466281474822145, U&'\5165\5e93\4f5c\4e1a', 2060000000000001001, 1, 'receiptOrder', 'wms/order/receipt/index', NULL, 0, 0, 'C', '1', '1', 'wms:receipt:all', 'exit-fullscreen', 'admin', TIMESTAMP '2024-07-31 09:58:42', 'admin', TIMESTAMP '2024-08-30 08:58:25', U&'\7b2c\4e8c\9636\6bb5\4f5c\4e1a\4e2d\5fc3\5165\53e3'),
+(1818854933803638785, U&'\51fa\5e93\4f5c\4e1a', 2060000000000001001, 2, 'shipmentOrder', 'wms/order/shipment/index', NULL, 0, 0, 'C', '1', '1', 'wms:shipment:all', 'fullscreen', 'admin', TIMESTAMP '2024-08-01 11:43:04', 'admin', TIMESTAMP '2024-08-30 08:58:35', U&'\7b2c\4e8c\9636\6bb5\4f5c\4e1a\4e2d\5fc3\5165\53e3'),
+(1818855673632727042, U&'\7f16\8f91\51fa\5e93\5355', 0, 1000, 'shipmentOrderEdit', 'wms/order/shipment/edit', NULL, 0, 0, 'C', '0', '1', 'wms:shipment:edit', '#', 'admin', TIMESTAMP '2024-08-01 11:46:00', 'admin', TIMESTAMP '2024-08-27 16:43:37', ''),
+(1821075355068559361, U&'\5e93\5b58\6d41\6c34', 2060000000000001003, 3, 'inventoryHistory', 'wms/inventory/history', NULL, 0, 0, 'C', '1', '1', 'wms:inventoryHistory:all', 'list', 'admin', TIMESTAMP '2024-08-07 14:46:13', 'admin', TIMESTAMP '2024-08-30 08:58:13', U&'\7b2c\4e8c\9636\6bb5\5e93\5b58\4e2d\5fc3\5165\53e3');     
+INSERT INTO "public"."sys_menu" VALUES
+(1822862323595145218, U&'\7f16\8f91\8c03\62e8\5355', 0, 1000, 'movementOrderEdit', 'wms/order/movement/edit', NULL, 0, 0, 'C', '0', '1', 'wms:movement:edit', '#', 'admin', TIMESTAMP '2024-08-12 13:07:00', 'admin', TIMESTAMP '2024-08-27 16:43:50', U&'\8c03\62e8\4f5c\4e1a\9690\85cf\7f16\8f91\9875'),
+(1823187248797270018, U&'\5e93\5b58\76d8\70b9', 2060000000000001002, 3, 'checkOrder', 'wms/order/check/index', NULL, 0, 0, 'C', '1', '1', 'wms:check:all', 'example', 'admin', TIMESTAMP '2024-08-13 10:38:08', 'admin', TIMESTAMP '2024-08-30 08:58:57', U&'\7b2c\4e8c\9636\6bb5\5e93\5185\7ba1\7406\5165\53e3'),
+(1823190638784757762, U&'\7f16\8f91\76d8\5e93\5355', 0, 1000, 'checkOrderEdit', 'wms/order/check/edit', NULL, 0, 0, 'C', '0', '1', 'wms:check:edit', '#', 'admin', TIMESTAMP '2024-08-13 10:51:36', 'admin', TIMESTAMP '2024-08-27 16:43:44', ''),
+(1825769009480142850, U&'\5e93\5b58\660e\7ec6', 2060000000000001003, 2, 'inventoryDetail', 'wms/itemInstance/index', NULL, 0, 0, 'C', '1', '1', 'wms:inventoryDetail:all', 'table', 'admin', TIMESTAMP '2024-08-20 13:37:08', 'admin', TIMESTAMP '2026-05-21 14:29:50', U&'\7b2c\4e8c\9636\6bb5\5e93\5b58\4e2d\5fc3\5165\53e3\ff1b2026-05-21 \7edf\4e00\5230\5668\6750\5b9e\4f8b\53f0\8d26\9875'),
+(1829349433573822466, U&'\4ed3\5e93\5e93\533a\67e5\8be2', 1813458070128599041, 1, '', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:warehouse:list', '#', 'admin', TIMESTAMP '2024-08-30 10:44:27', 'admin', TIMESTAMP '2024-08-30 10:44:27', ''),
+(1829350022131142658, U&'\4ed3\5e93\5e93\533a\7f16\8f91', 1813458070128599041, 2, '', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:warehouse:edit', '#', 'admin', TIMESTAMP '2024-08-30 10:46:48', 'admin', TIMESTAMP '2024-08-30 10:46:48', ''),
+(1829351081448755202, U&'\5546\54c1\67e5\8be2', 1813820131794837506, 1, '', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:item:list', '#', 'admin', TIMESTAMP '2024-08-30 10:51:00', 'admin', TIMESTAMP '2024-08-30 10:51:00', ''),
+(1829351166857367553, U&'\5546\54c1\7f16\8f91', 1813820131794837506, 2, '', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:item:edit', '#', 'admin', TIMESTAMP '2024-08-30 10:51:21', 'admin', TIMESTAMP '2024-08-30 10:51:21', ''),
+(1900000000000003001, U&'\8d27\67b6\7ba1\7406', 1808758090157985794, 3, 'rack', 'wms/basic/rack/index', NULL, 0, 0, 'C', '1', '1', 'wms:rack:list', 'documentation', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-05-08 16:36:30', U&'\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40'),
+(1900000000000003002, U&'\8d27\4f4d\7ba1\7406', 1808758090157985794, 4, 'location', 'wms/basic/location/index', NULL, 0, 0, 'C', '1', '1', 'wms:location:list', 'documentation', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-05-08 16:36:40', U&'\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40'),
+(1900000000000003101, U&'\8d27\67b6\67e5\8be2', 1900000000000003001, 1, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:rack:list', '#', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\67b6\67e5\8be2\6743\9650'),
+(1900000000000003102, U&'\8d27\67b6\7f16\8f91', 1900000000000003001, 2, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:rack:edit', '#', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\67b6\7f16\8f91\6743\9650'),
+(1900000000000003201, U&'\8d27\4f4d\67e5\8be2', 1900000000000003002, 1, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:location:list', '#', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\67e5\8be2\6743\9650'),
+(1900000000000003202, U&'\8d27\4f4d\7f16\8f91', 1900000000000003002, 2, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:location:edit', '#', 'admin', TIMESTAMP '2026-04-30 14:04:34', 'admin', TIMESTAMP '2026-04-30 14:04:34', U&'\8d27\4f4d\7f16\8f91\6743\9650'),
+(1900000000000005201, U&'\7bb1\4f53\7ba1\7406', 1808758090157985794, 5, 'box', 'wms/basic/box/index', NULL, 0, 0, 'C', '1', '1', 'wms:box:list', 'documentation', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-05-08 16:36:52', U&'\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40');      
+INSERT INTO "public"."sys_menu" VALUES
+(1900000000000005202, U&'\7bb1\4f53\67e5\8be2', 1900000000000005201, 1, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:box:list', '#', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\7bb1\4f53\67e5\8be2\6743\9650'),
+(1900000000000005203, U&'\7bb1\4f53\7f16\8f91', 1900000000000005201, 2, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:box:edit', '#', 'admin', TIMESTAMP '2026-04-30 17:27:59', 'admin', TIMESTAMP '2026-04-30 17:27:59', U&'\7bb1\4f53\7f16\8f91\6743\9650'),
+(1900000000000006201, U&'\5668\6750\501f\7528', 2060000000000001001, 4, 'borrow-record', 'wms/business/borrow-record/index', NULL, 0, 0, 'C', '1', '1', 'wms:borrowRecord:list', 'documentation', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\7b2c\4e8c\9636\6bb5\4f5c\4e1a\4e2d\5fc3\5165\53e3'),
+(1900000000000006202, U&'\501f\8fd8\67e5\8be2', 1900000000000006201, 1, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:borrowRecord:list', '#', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\501f\8fd8\67e5\8be2\6743\9650'),
+(1900000000000006203, U&'\501f\8fd8\7f16\8f91', 1900000000000006201, 2, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:borrowRecord:edit', '#', 'admin', TIMESTAMP '2026-04-30 17:44:30', 'admin', TIMESTAMP '2026-04-30 17:44:30', U&'\501f\8fd8\7f16\8f91\6743\9650'),
+(2060000000000001001, U&'\4f5c\4e1a\4e2d\5fc3', 0, 101, 'operation', NULL, NULL, 0, 0, 'M', '1', '1', NULL, 'guide', 'admin', TIMESTAMP '2026-05-07 14:23:08', 'admin', TIMESTAMP '2026-05-07 14:23:08', U&'\7b2c\4e8c\9636\6bb5\4f5c\4e1a\4e2d\5fc3\76ee\5f55'),
+(2060000000000001002, U&'\5e93\5185\7ba1\7406', 0, 102, 'internal', NULL, NULL, 0, 0, 'M', '1', '1', NULL, 'drag', 'admin', TIMESTAMP '2026-05-07 14:23:08', 'admin', TIMESTAMP '2026-05-07 14:23:08', U&'\7b2c\4e8c\9636\6bb5\5e93\5185\7ba1\7406\76ee\5f55'),
+(2060000000000001003, U&'\5e93\5b58\4e2d\5fc3', 0, 103, 'inventoryCenter', NULL, NULL, 0, 0, 'M', '1', '1', NULL, 'chart', 'admin', TIMESTAMP '2026-05-07 14:23:08', 'admin', TIMESTAMP '2026-05-07 14:23:08', U&'\7b2c\4e8c\9636\6bb5\5e93\5b58\4e2d\5fc3\76ee\5f55'),
+(2060000000000001101, U&'\4ed3\5e93\7ba1\7406', 1808758090157985794, 1, 'warehouse', 'wms/basic/warehouse/index', NULL, 0, 0, 'C', '1', '1', 'wms:warehouse:list', 'documentation', 'admin', TIMESTAMP '2026-05-08 15:47:46', 'admin', TIMESTAMP '2026-05-08 15:47:46', U&'\57fa\7840\8d44\6599\4ed3\5e93\7ba1\7406\5165\53e3'),
+(2060000000000001102, U&'\5e93\533a\7ba1\7406', 1808758090157985794, 2, 'area', 'wms/basic/area/index', NULL, 0, 0, 'C', '1', '1', 'wms:area:list', 'documentation', 'admin', TIMESTAMP '2026-05-08 15:47:46', 'admin', TIMESTAMP '2026-05-08 15:47:46', U&'\57fa\7840\8d44\6599\5e93\533a\7ba1\7406\5165\53e3'),
+(2060000000000001103, U&'\5e93\533a\67e5\8be2', 2060000000000001102, 1, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:area:list', '#', 'admin', TIMESTAMP '2026-05-08 15:47:46', 'admin', TIMESTAMP '2026-05-08 15:47:46', U&'\5e93\533a\67e5\8be2\6743\9650'),
+(2060000000000001104, U&'\5e93\533a\7f16\8f91', 2060000000000001102, 2, '#', NULL, NULL, 0, 0, 'F', '1', '1', 'wms:area:edit', '#', 'admin', TIMESTAMP '2026-05-08 15:47:46', 'admin', TIMESTAMP '2026-05-08 15:47:46', U&'\5e93\533a\7f16\8f91\6743\9650'),
+(2060000000000002103, U&'\8c03\62e8\4f5c\4e1a', 2060000000000001001, 3, 'transferOrder', 'wms/order/movement/index', NULL, 0, 0, 'C', '1', '1', 'wms:movement:all', 'switch', 'admin', TIMESTAMP '2026-05-07 14:23:08', 'admin', TIMESTAMP '2026-05-07 14:23:08', U&'\8c03\62e8\4f5c\4e1a\5165\53e3\ff0c\590d\7528\73b0\6709\8c03\62e8\5355\6d41\7a0b');          
+CREATE CACHED TABLE "public"."sys_notice"(
+    "notice_id" BIGINT COMMENT U&'\516c\544aID' NOT NULL,
+    "notice_title" CHARACTER VARYING(50) COMMENT U&'\516c\544a\6807\9898' NOT NULL,
+    "notice_type" CHARACTER(1) COMMENT U&'\516c\544a\7c7b\578b\ff081\901a\77e5 2\516c\544a\ff09' NOT NULL,
+    "notice_content" BINARY LARGE OBJECT COMMENT U&'\516c\544a\5185\5bb9',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\516c\544a\72b6\6001\ff080\6b63\5e38 1\5173\95ed\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);               
+ALTER TABLE "public"."sys_notice" ADD CONSTRAINT "public"."pk_sys_notice" PRIMARY KEY("notice_id");           
+-- 2 +/- SELECT COUNT(*) FROM public.sys_notice;              
+INSERT INTO "public"."sys_notice" VALUES
+(1, U&'\6e29\99a8\63d0\9192\ff1a2018-07-01 \65b0\7248\672c\53d1\5e03\5566', '2', X'e696b0e78988e69cace58685e5aeb9', '1', 'admin', TIMESTAMP '2024-06-13 16:06:38', '', NULL, U&'\7ba1\7406\5458'),
+(2, U&'\7ef4\62a4\901a\77e5\ff1a2018-07-01 \7cfb\7edf\51cc\6668\7ef4\62a4', '1', X'e7bbb4e68aa4e58685e5aeb9', '1', 'admin', TIMESTAMP '2024-06-13 16:06:38', '', NULL, U&'\7ba1\7406\5458');    
+CREATE CACHED TABLE "public"."sys_oper_log"(
+    "oper_id" BIGINT COMMENT U&'\65e5\5fd7\4e3b\952e' NOT NULL,
+    "title" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\6a21\5757\6807\9898',
+    "business_type" INTEGER DEFAULT 0 COMMENT U&'\4e1a\52a1\7c7b\578b\ff080\5176\5b83 1\65b0\589e 2\4fee\6539 3\5220\9664\ff09',
+    "method" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\65b9\6cd5\540d\79f0',
+    "request_method" CHARACTER VARYING(10) DEFAULT '' COMMENT U&'\8bf7\6c42\65b9\5f0f',
+    "operator_type" INTEGER DEFAULT 0 COMMENT U&'\64cd\4f5c\7c7b\522b\ff080\5176\5b83 1\540e\53f0\7528\6237 2\624b\673a\7aef\7528\6237\ff09',
+    "oper_name" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\64cd\4f5c\4eba\5458',
+    "dept_name" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\90e8\95e8\540d\79f0',
+    "oper_url" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\8bf7\6c42URL',
+    "oper_ip" CHARACTER VARYING(128) DEFAULT '' COMMENT U&'\4e3b\673a\5730\5740',
+    "oper_location" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\64cd\4f5c\5730\70b9',
+    "oper_param" CHARACTER VARYING(2000) DEFAULT '' COMMENT U&'\8bf7\6c42\53c2\6570',
+    "json_result" CHARACTER VARYING(2000) DEFAULT '' COMMENT U&'\8fd4\56de\53c2\6570',
+    "status" INTEGER DEFAULT 0 COMMENT U&'\64cd\4f5c\72b6\6001\ff080\5f02\5e38 1\6b63\5e38\ff09',
+    "error_msg" CHARACTER VARYING(2000) DEFAULT '' COMMENT U&'\9519\8bef\6d88\606f',
+    "oper_time" TIMESTAMP DEFAULT NULL COMMENT U&'\64cd\4f5c\65f6\95f4'
+);               
+ALTER TABLE "public"."sys_oper_log" ADD CONSTRAINT "public"."pk_sys_oper_log" PRIMARY KEY("oper_id");         
+-- 289 +/- SELECT COUNT(*) FROM public.sys_oper_log;          
+INSERT INTO "public"."sys_oper_log" VALUES
+(2049759030667456514, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2049759028125708290","receiptOrderNo":"RK04309955","receiptOrderType":2,"merchantId":null,"orderNo":null,"totalQuantity":"1","payableAmount":null,"receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"1829399118304964609","quantity":"1","amount":null,"batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-04-30 15:53:30'),
+(2049770937386307585, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2049770935654060034","receiptOrderNo":"RK04309512","receiptOrderType":2,"merchantId":null,"orderNo":null,"totalQuantity":"6","payableAmount":null,"receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"1829399118304964609","quantity":"6","amount":null,"batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-04-30 16:40:49'),
+(2051911939979034625, U&'\7bb1\4f53', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2051911939723182080","boxName":"\4e00\7bb1\6c34\679c","boxStatus":"idle","warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-06 14:28:24'),
+(2051912397502103553, U&'\7bb1\4f53', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2051912397434994688","boxName":"\4e00\7bb1\6c34\679c","boxStatus":"idle","warehouseId":"1828364740028174337","areaId":"1829397566185992193","rackId":"1900000000000000001","locationId":"1900000000000000101","remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-06 14:30:13'),
+(2051915098029899777, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"\6df1\6d77\5927\9b54\738b","itemCategory":"1829398007993004034","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":"single","equipmentName":null,"defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\5927","itemId":"2051915097832767489","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"length":"10","width":"20","height":"30","grossWeight":null,"netWeight":null,"costPrice":"5","sellingPrice":"10","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-06 14:40:57');         
+INSERT INTO "public"."sys_oper_log" VALUES
+(2051915277218955266, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2051915276543672322","receiptOrderNo":"RK05068886","receiptOrderType":2,"merchantId":"1828354153193836545","orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"10","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2051915097966985218","quantity":"10","amount":"0","equipmentCode":null,"specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-06 14:41:39'),
+(2051926764859789314, U&'\83dc\5355\7ba1\7406', 1, 'com.ruoyi.system.controller.system.SysMenuController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"menuId":null,"parentId":0,"menuName":"\603b\8d26","orderNum":90,"path":"ledger","component":"wms/inventory/ledger","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","icon":"excel","remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-06 15:27:18'),
+(2051927929655758850, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399579699376129","receiptOrderNo":"RK08302046","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"998","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531841","receiptOrderId":"1829399579699376129","skuId":"1829399118304964609","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":0,"generatedInstanceQuantity":0},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531842","receiptOrderId":"1829399579699376129","skuId":"1829399118304964610","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","generateItemInstance":0,"generatedInstanceQuantity":0},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1829399580026531843","receiptOrderId":"1829399579699376129","skuId":"1829398702011904001","quantity":"100","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397661719654401","generateItemInstance":0,"generatedInstanceQuantity":0},{"cre', '', 0, U&'\5165\5e93\5355\5df2\5b8c\6210\5165\5e93', TIMESTAMP '2026-05-06 15:31:56');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052571160655491074, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052571159107792897","receiptOrderNo":"RK05080728","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2051915097966985218","quantity":"1","amount":"0","equipmentCode":"IT051915097832767489","specModel":"\5927","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364740028174337","areaId":"1829397566185992193","rackId":"1900000000000000001","locationId":"1900000000000000101","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 10:07:54'),
+(2052596719624216577, U&'\88c5\7bb1', 2, 'com.ruoyi.wms.controller.BoxController.pack()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box/pack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"boxId":"2051912397434994690","itemInstanceIds":["2052571160454164482"]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 11:49:28'),
+(2052635492739276802, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1828364988754595841', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:23:32'),
+(2052635506840526849, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1828405743737016322', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\5220\9664\5931\8d25\ff01\8bf7\5148\5220\9664\8be5\5206\7c7b\4e0b\7684\5b50\5206\7c7b\ff01', TIMESTAMP '2026-05-08 14:23:36'),
+(2052635524322385921, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1828405773474631681', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:23:40'),
+(2052635532165734401, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1828405825714688001', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:23:42'),
+(2052635565422370818, U&'\7269\6599\7c7b\578b', 2, 'com.ruoyi.wms.controller.ItemCategoryController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1828408600515219457","parentId":-1,"categoryName":"\5065\8eab\5668\6750","orderNum":null,"status":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:23:50'),
+(2052636524890382338, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"batch","allowBox":0,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"batch","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\60e0\666e6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.125","length":"50","width":"50","height":"50","grossWeight":"5","netWeight":"5","costPrice":"50","sellingPrice":"100","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:27:38');         
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052636940990504961, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":"","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A\90e8","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"\60e0\666e6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 14:29:18'),
+(2052668955555102722, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2026-04-30 14:04:34","updateBy":null,"updateTime":null,"menuId":"1900000000000003001","parentId":"1808758090157985794","menuName":"\8d27\67b6\7ba1\7406","orderNum":3,"path":"rack","component":"wms/basic/rack/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:rack:list","icon":"documentation","remark":"\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:36:30'),
+(2052668993853292545, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2026-04-30 14:04:34","updateBy":null,"updateTime":null,"menuId":"1900000000000003002","parentId":"1808758090157985794","menuName":"\8d27\4f4d\7ba1\7406","orderNum":4,"path":"location","component":"wms/basic/location/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:location:list","icon":"documentation","remark":"\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:36:40'),
+(2052669044629536770, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2026-04-30 17:27:59","updateBy":null,"updateTime":null,"menuId":"1900000000000005201","parentId":"1808758090157985794","menuName":"\7bb1\4f53\7ba1\7406","orderNum":5,"path":"box","component":"wms/basic/box/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:box:list","icon":"documentation","remark":"\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\4ed3\50a8\5e03\5c40"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:36:52'),
+(2052669081535217665, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-18 14:16:33","updateBy":null,"updateTime":null,"menuId":"1813820131794837506","parentId":"1808758090157985794","menuName":"\5668\6750\7ba1\7406","orderNum":0,"path":"item","component":"wms/basic/item/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:item:list","icon":"documentation","remark":"\7b2c\4e8c\9636\6bb5\5668\6750\4e3b\6863\5165\53e3"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:37:00');             
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052669247684182017, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-17 14:17:51","updateBy":null,"updateTime":null,"menuId":"1813458070128599041","parentId":0,"menuName":"\4ed3\50a8\5e03\5c40","orderNum":3,"path":"layout","component":"wms/basic/layout/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:warehouse:list","icon":"documentation","remark":"\5e03\5c40\6d4f\89c8\ff0c\4e0d\66ff\4ee3\4ed3\5e93/\5e93\533a\7ef4\62a4"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:37:40'),
+(2052669311332745217, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-05 11:58:12","updateBy":null,"updateTime":null,"menuId":"1809059968309743618","parentId":"1808758090157985794","menuName":"\5f80\6765\5355\4f4d","orderNum":6,"path":"merchant","component":"wms/basic/merchant/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:merchant:list","icon":"documentation","remark":"\7b2c\4e8c\9636\6bb5\5f80\6765\5355\4f4d\5165\53e3"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:37:55'),
+(2052669347097575425, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-30 11:18:27","updateBy":null,"updateTime":null,"menuId":"1818123963605549057","parentId":"1808758090157985794","menuName":"\54c1\724c\7ba1\7406","orderNum":7,"path":"itemBrand","component":"wms/basic/itemBrand/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:itemBrand:list","icon":"documentation","remark":""}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:38:04'),
+(2052671087318499330, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":5,"columnCount":6,"length":"200","width":"200","height":"200","orderNum":1,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:44:59'),
+(2052672070442385410, U&'\83dc\5355\7ba1\7406', 3, 'com.ruoyi.system.controller.system.SysMenuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu/1813458070128599041', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":601,"msg":"\5b58\5728\5b50\83dc\5355,\4e0d\5141\8bb8\5220\9664","data":null}', 1, '', TIMESTAMP '2026-05-08 16:48:53'),
+(2052672172884066306, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-17 14:17:51","updateBy":null,"updateTime":null,"menuId":"1813458070128599041","parentId":0,"menuName":"\4ed3\50a8\5e03\5c40","orderNum":3,"path":"layout","component":"wms/basic/layout/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:warehouse:list","icon":"documentation","remark":"\5e03\5c40\6d4f\89c8\ff0c\4e0d\66ff\4ee3\4ed3\5e93/\5e93\533a\7ef4\62a4"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-08 16:49:17'),
+(2052918577095610370, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:08:25');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052921598265364481, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":1,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:20:25'),
+(2052921948800126977, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"200","width":"50","height":"200","orderNum":1,"remark":null}', '', 0, U&'\540c\4e00\5e93\533a\4e0b\8d27\67b6\540d\79f0\91cd\590d', TIMESTAMP '2026-05-09 09:21:49'),
+(2052922082527121409, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:22:21'),
+(2052922260910870529, U&'\8d27\67b6', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052922082288046081","rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:23:03'),
+(2052922646400962562, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"D","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"600","width":"50","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:24:35'),
+(2052924212667305986, U&'\8d27\67b6', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052922082288046081","rackCode":null,"rackName":"C","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":2,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:30:48'),
+(2052924376794615809, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"E","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"300","width":"50","height":"300","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:31:28');    
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052925526797275137, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052925524435881986","receiptOrderNo":"RK05094002","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"10","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052918576537767938","locationId":"2052918576604876801","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 09:36:02'),
+(2052936709579296769, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709201809409","receiptOrderNo":"RK05092373","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"5","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":null,"locationId":null,"generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 10:20:28'),
+(2052938171923386370, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709201809409","receiptOrderNo":"RK05092373","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"5","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052936709256335362","receiptOrderId":"2052936709201809409","skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052922415722631170","locationId":"2052922645545324545","generateItemInstance":1,"generatedInstanceQuantity":5}]}', '', 0, U&'\5165\5e93\5355\5df2\5b8c\6210\5165\5e93', TIMESTAMP '2026-05-09 10:26:17');           
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052938934653374465, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052938934393327617","receiptOrderNo":"RK05099378","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"3","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052924376542957569","locationId":"2052924376614260738","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 10:29:18'),
+(2052956894704996353, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderNo":"CK05097524","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"15","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052936709256335363","itemInstanceId":"2052936709411524615","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":', '', 0, '', TIMESTAMP '2026-05-09 11:40:40'),
+(2052957076985253890, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052957076427411457","shipmentOrderNo":"CK05095352","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"5","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"5","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052936709256335363","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 11:41:24');   
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052958034972676097, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052958032862941186","shipmentOrderNo":"CK05092243","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"3","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"3.00","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052938934393327619","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 11:45:12'),
+(2052961111117172738, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052961110991343617","shipmentOrderNo":"CK05099456","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 11:57:26'),
+(2052964295529238530, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295403409409","shipmentOrderNo":"CK05095909","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"0","equipmentCode":"","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 12:10:05');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2052995188960579586, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295403409409","shipmentOrderNo":"CK05095909","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052964295470518274","shipmentOrderId":"2052964295403409409","skuId":"2052636524764553218","quantity":"2","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 14:12:51'),
+(2052998365462188034, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052998364958871553","movementOrderNo":"DB05096553","movementType":"common","dispatchBasis":null,"dispatchPurpose":null,"supportNo":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"fromHandler":null,"toHandler":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"1828364518342430721","sourceRackId":"2052918576537767938","sourceLocationId":"2052918576604876801","targetWarehouseId":"1828364459110469633","targetAreaId":"1828364518342430721","targetRackId":null,"targetLocationId":null,"movementScope":null,"movementOrderStatus":1,"totalQuantity":"2","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2052636524764553218","quantity":"2","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"remark":null,"batchNo":null,"productionDate":null,"expirationDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"1828364518342430721","sourceRackId":"2052918576537767938","sourceLocationId":"2052918576604876801","targetWarehouseId":"1828364459110469633","targetAreaId":"1828364518342430721","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2052925524633014273","itemInstanceId":null,"boxId":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 14:25:28'),
+(2053022266028322818, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053022264082165762","receiptOrderNo":"RK05091420","receiptOrderType":2,"merchantId":"1828354284882399233","orderNo":"","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-08","receiptDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"10","payableAmount":"50","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"50","equipmentCode":"","specModel":"","productMark":"qqq","qualityGrade":"grade_a","unitPrice":"5","lineAmount":"50","batchNo":null,"productionDate":"2026-05-08 00:00:00","expirationDate":"2026-05-20 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052919288873193473","locationId":"2052921598110175233","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:00:26');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053025133032239106, U&'\7bb1\4f53', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2053025132923187200","boxName":"\4e00\7bb1\4e1c\897f","boxStatus":"idle","length":null,"width":null,"height":null,"volume":null,"maxWeight":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2052919288873193473","locationId":"2052921598072426498","itemCount":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:11:50'),
+(2053027138857463809, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A\90e8","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"\60e0\666e6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50","width":"50","height":"50","grossWeight":"5","netWeight":"5","costPrice":"50","sellingPrice":"100","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:19:48'),
+(2053027205957939202, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A\90e8","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"\60e0\666e6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:20:04'),
+(2053027303773302786, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"normal","status":"1","defaultTrackingMode":"instance","defaultBelongUnit":"A\90e8","defaultQualityGrade":"grade_a","productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524764553218","skuName":"\60e0\666e6","itemId":"2052636524512894978","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":"grade_a","status":"1","volume":"0.1250","length":"50.0","width":"50.0","height":"50.0","grossWeight":"5.000","netWeight":"5.000","costPrice":"50.00","sellingPrice":"100.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:20:27');  
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053029251067015169, U&'\8d27\67b6', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack/2052924376542957569', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:28:12'),
+(2053029258029559810, U&'\8d27\67b6', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack/2052918576537767938', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:28:13'),
+(2053029262932701186, U&'\8d27\67b6', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack/2052922415722631170', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:28:14'),
+(2053029267710013442, U&'\8d27\67b6', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack/2052919288873193473', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:28:16'),
+(2053029272541851649, U&'\8d27\67b6', 3, 'com.ruoyi.wms.controller.RackController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack/2052922082288046081', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:28:17'),
+(2053033045213442050, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"B3","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:43:16'),
+(2053033109776363522, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C1","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:43:32'),
+(2053033134812164098, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C2","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:43:38'),
+(2053033153170632705, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"C3","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:43:42'),
+(2053033253456441345, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"D1","warehouseId":"1828364740028174337","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:44:06');    
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053033327955668993, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"A","status":null,"warehouseType":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 16:44:24'),
+(2053041346957406210, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"600","width":"50","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:16:15'),
+(2053041423599923202, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"B","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:16:34'),
+(2053042128108777474, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053042127790010370","receiptOrderNo":"RK05098919","receiptOrderType":2,"merchantId":"1828354016258199554","orderNo":null,"basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-06","receiptDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"10","payableAmount":"500","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"receiptOrderId":null,"skuId":"2052636524764553218","quantity":"10","amount":"500","equipmentCode":"DYJ","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":"50","lineAmount":"500","batchNo":null,"productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:19:22'),
+(2053045196950990849, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196825161730","shipmentOrderNo":"CK05098379","shipmentOrderType":2,"orderNo":null,"merchantId":"1828354284882399233","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-09","shipmentDate":"2026-05-09","purchaserName":"a","acceptorName":"a","keeperName":"a","receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"100","equipmentCode":"DYJ","specModel":"","productMark":null,"qualityGrade":"grade_a","unitPrice":"50","lineAmount":"100","warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:31:33');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053045241419001858, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196825161730","shipmentOrderNo":"CK05098379","shipmentOrderType":2,"orderNo":null,"merchantId":"1828354284882399233","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053045196888076289","shipmentOrderId":"2053045196825161730","skuId":"2052636524764553218","quantity":"2","amount":"100.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:31:44'),
+(2053049024794402818, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053049023712272386","shipmentOrderNo":"CK05091941","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"100","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2052636524764553218","quantity":"2","amount":"100","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","batchNo":null,"productionDate":null,"expirationDate":null,"inventoryDetailId":"2053042127790010372","itemInstanceId":null,"boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2052636524764553218"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 17:46:46'),
+(2053114723961217026, U&'\8d27\67b6', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423335682050","rackCode":"HJ-B","rackName":"B","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackStatus":"enabled","rackType":"standard","rowCount":3,"columnCount":3,"length":"900","width":"50","height":"900","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:07:50'),
+(2053114758937518082, U&'\8d27\67b6', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041345556508674","rackCode":"HJ-A","rackName":"A","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackStatus":"enabled","rackType":"standard","rowCount":2,"columnCount":3,"length":"600.00","width":"50.00","height":"600.00","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:07:58');     
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053114964802347009, U&'\5e93\533a', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area/2053033253095731201', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:08:47'),
+(2053114973786546178, U&'\5e93\533a', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area/2053033109776363521', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:08:49'),
+(2053114981457928194, U&'\5e93\533a', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area/2053033153111912450', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:08:51'),
+(2053114994619654146, U&'\5e93\533a', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area/2053033045150527490', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:08:54'),
+(2053115004321079297, U&'\5e93\533a', 3, 'com.ruoyi.wms.controller.AreaController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area/2053033134749249537', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:08:57'),
+(2053119223287586817, U&'\7bb1\4f53', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"aaaaa","boxName":"aa","boxStatus":"idle","length":null,"width":null,"height":null,"volume":null,"maxWeight":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","itemCount":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 22:25:43'),
+(2053127253072879617, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"128","itemId":"2053127250589851649","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"256","itemId":"2053127250589851649","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, U&'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127250589851649-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''\000d\000a; Duplicate entry ''2053127250589851649-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''', TIMESTAMP '2026-05-09 22:57:37');         
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053127354751197186, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127354688282625","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127354688282625","barcode":"","skuCode":"","specModel":"","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, U&'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127354688282625-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''\000d\000a; Duplicate entry ''2053127354688282625-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''', TIMESTAMP '2026-05-09 22:58:01'),
+(2053127861280514050, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127861184045057","barcode":"","skuCode":"","specModel":"128","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127861184045057","barcode":"","skuCode":"","specModel":"256","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', '', 0, U&'com.ruoyi.wms.mapper.ItemSkuMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''2053127861184045057-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''\000d\000a; Duplicate entry ''2053127861184045057-'' for key ''wms_item_sku.uk_wms_item_sku_item_code''', TIMESTAMP '2026-05-09 23:00:02'),
+(2053127932717899777, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"iphone12","itemCategory":"1828365043024695300","unit":null,"itemBrand":null,"itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","defaultTrackingMode":"instance","defaultBelongUnit":null,"defaultQualityGrade":null,"productMarkRule":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"1280","itemId":"2053127932654985217","barcode":"","skuCode":"128","specModel":"128","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2560","itemId":"2053127932654985217","barcode":"","skuCode":"256","specModel":"256","defaultUnitPrice":null,"defaultQualityGrade":null,"status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:00:19');   
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053130064548405250, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1829397860466749441', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\5220\9664\5931\8d25\ff01\8bf7\5148\5220\9664\8be5\5206\7c7b\4e0b\7684\5b50\5206\7c7b\ff01', TIMESTAMP '2026-05-09 23:08:47'),
+(2053130076367953921, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1829398007993004034', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:08:50'),
+(2053130081652776961, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1829397958923841538', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:08:51'),
+(2053130087696769025, U&'\7269\6599\7c7b\578b', 3, 'com.ruoyi.wms.controller.ItemCategoryController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory/1829397860466749441', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:08:53'),
+(2053132230637985794, U&'\5e93\5b58\76d8\70b9\5355\636e', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05092830","checkOrderStatus":1,"checkOrderTotal":"-4","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2052636524764553218","quantity":"6","checkQuantity":"2","profitAndLoss":"-4","differenceQuantity":"-4","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","batchNo":null,"productionDate":null,"expirationDate":null,"receiptTime":"2026-05-09 17:19:21","inventoryDetailId":"2053042127790010372","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:17:24'),
+(2053132967078076418, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-08-12 10:19:35","updateBy":null,"updateTime":null,"menuId":"1822820194307051521","parentId":"2060000000000001002","menuName":"\5e93\5185\79fb\5e93","orderNum":1,"path":"internalMoveOrder","component":"wms/internal/move/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:internalMove:list","icon":"drag","remark":"\72ec\7acb\5e93\5185\79fb\5e93\5165\53e3"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:20:19'),
+(2053132980105584641, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2026-05-07 14:23:08","updateBy":null,"updateTime":null,"menuId":"2060000000000003102","parentId":"2060000000000001002","menuName":"\5e93\5b58\8c03\6574","orderNum":2,"path":"inventoryAdjust","component":"wms/internal/adjust/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:inventoryDetail:all","icon":"edit","remark":"\7b2c\4e8c\9636\6bb5\9875\9762\843d\4f4d\5165\53e3\ff0c\6267\884c\903b\8f91\7559\5f85\7b2c\4e09\9636\6bb5"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-09 23:20:23');  
+INSERT INTO "public"."sys_oper_log" VALUES
+(2053766214623547393, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"a","warehouseId":"1828364459110469633","status":null,"areaType":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-11 17:16:37'),
+(2053852496691310593, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828365014901887000","unit":"a","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"instance","allowBox":1,"specLevel":null,"equipmentName":"a","equipmentType":"a","status":"1","productMarkRule":"a","modelText":null,"remark":"a","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"a","itemId":"2053852496372543489","specModel":"a","status":"1","volume":"0","length":"1","width":"2","height":"2","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-11 22:59:29'),
+(2053858205621325826, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365043024695300","unit":"b","itemBrand":"1828407291103842306","itemType":"normal","trackingMode":"batch","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"b","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"c","itemId":"2053858205260615682","specModel":"c","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-11 23:22:10'),
+(2054089783102410754, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"a","equipmentType":"\901a\88c5","status":"1","productMark":"a","modelText":null,"remark":"a","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496494178305","skuName":"a","itemId":"2053852496372543489","specModel":"a","status":"1","volume":"0.0000","length":"1","width":"2","height":"2","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 14:42:22'),
+(2054089831961858050, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205260615682","ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365014901886978","unit":"b","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"\901a\88c5","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753025","skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753026","skuName":"c","itemId":"2053858205260615682","specModel":"c","status":"1","volume":"0.0000","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 14:42:34');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054089980733820929, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"d","itemCategory":"1828365043024695297","unit":"d","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"d","equipmentType":"\4e13\88c5","status":"1","productMark":"d","modelText":null,"remark":"d","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"d","itemId":"2054089980620574721","specModel":"d","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 14:43:09'),
+(2054090129816162305, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:43:45'),
+(2054090140914290689, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985218', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:43:47'),
+(2054090176813338626, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985218', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:43:56'),
+(2054090870790295553, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:46:41'),
+(2054090892172857346, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:46:47'),
+(2054091460647849985, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:49:02'),
+(2054092002220576770, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\81f3\5c11\5305\542b\4e00\4e2a\5546\54c1\89c4\683c', TIMESTAMP '2026-05-12 14:51:11'),
+(2054099228096303106, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053127932654985219', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 15:19:54'),
+(2054099322778521601, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053127932654985217","ids":null,"itemCode":"IP","itemName":"iphone12","itemCategory":"1828365043024695297","unit":null,"itemBrand":null,"allowBox":1,"specLevel":null,"equipmentName":null,"equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053127932654985218","skuName":"1280","itemId":"2053127932654985217","specModel":"128","status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 15:20:17');        
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054100788436111362, U&'sku\4fe1\606f', 3, 'com.ruoyi.wms.controller.ItemSkuController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemSku/2053858205306753026', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 15:26:06'),
+(2054100799756537857, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205260615682","ids":null,"itemCode":null,"itemName":"b","itemCategory":"1828365014901886978","unit":"b","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"b","equipmentType":"\901a\88c5","status":"1","productMark":"b","modelText":null,"remark":"b","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053858205306753025","skuName":"b","itemId":"2053858205260615682","specModel":"b","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 15:26:09'),
+(2054101197615632385, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"xx","itemCategory":"1828365014901886978","unit":"xx","itemBrand":"1828407291103842306","allowBox":1,"specLevel":null,"equipmentName":"xx","equipmentType":"xx","status":"1","productMark":"xx","modelText":null,"remark":"xx","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"xx","itemId":"2054101197485608961","specModel":"","status":"1","volume":null,"length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 15:27:44'),
+(2054199224246280194, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"\901a\88c5","status":"1","productMark":"n","modelText":null,"remark":"n","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"n","itemId":"2054199223839432706","specModel":"n","status":"1","volume":"0","length":"1","width":"1","height":"1","grossWeight":"1","netWeight":"1","costPrice":"1","sellingPrice":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 21:57:15'),
+(2054199255686782977, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"\4e13\88c5","status":"1","productMark":"n","modelText":null,"remark":"n","sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223948484610","skuName":"n","itemId":"2054199223839432706","specModel":"n","status":"1","volume":"0.0000","length":"1.0","width":"1.0","height":"1.0","grossWeight":"1.000","netWeight":"1.000","costPrice":"1.00","sellingPrice":"1.00","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 21:57:22');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054199361722982402, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"\4e13\88c5","status":"1","productMark":"n","modelText":null,"remark":"n","sku":null},"qrCodeCount":20}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"n||n","qrCodeCount":20,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054199223839432706","ids":null,"itemCode":null,"itemName":"n","itemCategory":"1828365014901886978","unit":"n","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"n","equipmentType":"\4e13\88c5","status":"1","productMark":"n","modelText":null,"remark":"n","sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"n||n1000000001","qrContent":"n||n1000000001"},{"serialValue":1000000002,"instanceCode":"1000000002","qrCodeValue":"n||n1000000002","qrContent":"n||n1000000002"},{"serialValue":1000000003,"instanceCode":"1000000003","qrCodeValue":"n||n1000000003","qrContent":"n||n1000000003"},{"serialValue":1000000004,"instanceCode":"1000000004","qrCodeValue":"n||n1000000004","qrContent":"n||n1000000004"},{"serialValue":1000000005,"instanceCode":"1000000005","qrCodeValue":"n||n1000000005","qrContent":"n||n1000000005"},{"serialValue":1000000006,"instanceCode":"1000000006","qrCodeValue":"n||n1000000006","qrContent":"n||n1000000006"},{"serialValue":1000000007,"instanceCode":"1000000007","qrCodeValue":"n||n1000000007","qrContent":"n||n1000000007"},{"serialValue":1000000008,"instanceCode":"1000000008","qrCodeValue":"n||n1000000008","qrContent":"n||n1000000008"},{"serialValue":1000000009,"instanceCode":"1000000009","qrCodeValue":"n||n1000000009","qrContent":"n||n1000000009"},{"serialValue":1000000010,"instanceCode":"1000000010","qrCodeValue":"n||n1000000010","qrContent":"n||n1000000010"},{"serialValue":1000000011,"instanceCode":"1000000011","qrCodeValue":"n||n1000000011","qrContent":"n||n1000000011"},{"serialValue":1000000012,"instanceCode":"1000000012","qrCodeValue":"n||n1000000012","qrContent":"n||n1000000012"},{"serialValue":1000000013,"instanceCode":"1000000013","qrCodeValue":"n||n1000000013","qrContent":"n||n1000000013"},{"serialValue":1000000014,"instanceCode":"1000000014","qrCodeValue":"n', 1, '', TIMESTAMP '2026-05-12 21:57:48'),
+(2054200473041575937, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"\901a\88c5","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"qrCodeCount":5}', '', 0, U&'com.ruoyi.wms.mapper.ItemInstanceMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Duplicate entry ''1000000001'' for key ''wms_item_instance.uk_wms_item_instance_code''\000d\000a; Duplicate entry ''1000000001'' for key ''wms_item_instance.uk_wms_item_instance_code''', TIMESTAMP '2026-05-12 22:02:13'),
+(2054201007081332738, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"\60e0\666e||\60e0\666e6","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"\60e0\666e||\60e0\666e61000000001","qrContent":"\60e0\666e||\60e0\666e61000000001"}]}}', 1, '', TIMESTAMP '2026-05-12 22:04:20');    
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054222567930400769, U&'\7269\6599', 3, 'com.ruoyi.wms.controller.ItemController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/2054101197485608961', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-12 23:30:00'),
+(2054237443369304066, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"301","volume":"40500000","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 00:29:07'),
+(2054390584119238657, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094083","locationCode":"HJ-B-R2-C3","locationName":"B-2-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":3,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":2003,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:37:39'),
+(2054390685638172674, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094084","locationCode":"HJ-B-R3-C1","locationName":"B-3-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":3,"columnNo":1,"length":"299","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":3001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:38:03'),
+(2054390702251810817, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094084","locationCode":"HJ-B-R3-C1","locationName":"B-3-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":3,"columnNo":1,"length":"299","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":3001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:38:07'),
+(2054390763895496706, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:38:22');        
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054390943747252225, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:39:04'),
+(2054391184571604993, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:40:02'),
+(2054391358601666561, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\4e4b\548c\4e0d\80fd\8d85\8fc7\8d27\67b6\5b9e\9645\957f\5ea6(900.00cm)', TIMESTAMP '2026-05-13 10:40:43'),
+(2054445955898748929, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"\901a\88c5","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"qrCodeCount":10}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"a-a","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053852496372543489","ids":null,"itemCode":"a","itemName":"a","itemCategory":"1828405743737016322","unit":"a","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"a","equipmentType":"\901a\88c5","status":"1","productMark":"a","modelText":null,"remark":"a","sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"a-a1000000001","qrContent":"a-a1000000001"},{"serialValue":1000000002,"instanceCode":"1000000002","qrCodeValue":"a-a1000000002","qrContent":"a-a1000000002"},{"serialValue":1000000003,"instanceCode":"1000000003","qrCodeValue":"a-a1000000003","qrContent":"a-a1000000003"},{"serialValue":1000000004,"instanceCode":"1000000004","qrCodeValue":"a-a1000000004","qrContent":"a-a1000000004"},{"serialValue":1000000005,"instanceCode":"1000000005","qrCodeValue":"a-a1000000005","qrContent":"a-a1000000005"},{"serialValue":1000000006,"instanceCode":"1000000006","qrCodeValue":"a-a1000000006","qrContent":"a-a1000000006"},{"serialValue":1000000007,"instanceCode":"1000000007","qrCodeValue":"a-a1000000007","qrContent":"a-a1000000007"},{"serialValue":1000000008,"instanceCode":"1000000008","qrCodeValue":"a-a1000000008","qrContent":"a-a1000000008"},{"serialValue":1000000009,"instanceCode":"1000000009","qrCodeValue":"a-a1000000009","qrContent":"a-a1000000009"},{"serialValue":1000000010,"instanceCode":"1000000010","qrCodeValue":"a-a1000000010","qrContent":"a-a1000000010"}]}}', 1, '', TIMESTAMP '2026-05-13 14:17:40');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054446271838892035, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"\60e0\666e-\60e0\666e6","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","itemBrand":"1828407291103842306","specLevel":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"1000000001","qrCodeValue":"\60e0\666e-\60e0\666e61000000001","qrContent":"\60e0\666e-\60e0\666e61000000001"}]}}', 1, '', TIMESTAMP '2026-05-13 14:18:56'),
+(2054492915343126529, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642882","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642883","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963459","instanceCode":"a-a1000000004","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642884","receiptOrderId":null,"skuId":"2053852', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:24:16'),
+(2054493599459274753, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054493598368755713","receiptOrderNo":"RK05136865","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054493598368755714","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955265409026","instanceCode":"a-a1000000001","boxCode":"99999999","productMark":"a","qualityGrade":null,"remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:26:59');             
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054493806725001218, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054492913195642884', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:27:49'),
+(2054493816199933954, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054492913195642882', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:27:51'),
+(2054493829051281410, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054492913195642883', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:27:54'),
+(2054494021225902082, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878658","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878659","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054494021095878660","rec', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:28:40'),
+(2054499863459360769, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054494021095878660', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:51:53'),
+(2054499870736478209, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054494021095878658', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:51:55');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054499885726920706, U&'\5165\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ReceiptOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrderDetail/2054494021095878659', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:51:58'),
+(2054500093005230082, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054492913195642881","receiptOrderNo":"RK05138177","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102849","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102850","receiptOrderId":"2054492913195642881","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500092657102851","rec', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:52:48'),
+(2054500261146488833, U&'\5165\5e93\5355', 3, 'com.ruoyi.wms.controller.ReceiptOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/2054492913195642881', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:53:28'),
+(2054500600377602049, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600260161538","receiptOrderNo":"RK05131358","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270402","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270403","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963460","instanceCode":"a-a1000000005","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054500600327270404","receiptOrderId":null,"skuId":"2053852', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:54:49');        
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054500717935554561, U&'\5165\5e93\5355', 3, 'com.ruoyi.wms.controller.ReceiptOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/2054500600260161538', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 17:55:17'),
+(2054510260040036354, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259423473665","receiptOrderNo":"RK05137553","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"3","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165442","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165443","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963462","instanceCode":"a-a1000000007","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165444","receiptOrderId":null,"skuId":"2053852', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 18:33:12'),
+(2054510528634875905, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528441937921","receiptOrderNo":"RK05131657","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":0,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528534212610","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationId":"2053041423398596609","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963457","instanceCode":"a-a1000000002","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 18:34:16');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054510631814754306, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528441937921","receiptOrderNo":"RK05131657","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"1","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510528534212610","receiptOrderId":"2054510528441937921","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationId":"2053041423398596609","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963457","instanceCode":"a-a1000000002","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 18:34:40'),
+(2054513015580323842, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-08-06 15:50:30","updateBy":null,"updateTime":null,"menuId":"1820729144067321858","parentId":"2060000000000001003","menuName":"\5668\6750\603b\8d26","orderNum":0,"path":"inventory","component":"wms/inventory/statistic","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"1","status":"1","perms":"wms:inventory:all","icon":"chart","remark":"\517c\5bb9\4fdd\7559\ff1a\7b2c\4e8c\9636\6bb5\4e3b\5165\53e3\5df2\6536\53e3\5230\5668\6750\603b\8d26"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 18:44:09'),
+(2054513184275230721, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2026-05-06 15:27:18","updateBy":null,"updateTime":null,"menuId":"2051926764629102594","parentId":"2060000000000001003","menuName":"\5e93\5b58\603b\8d26","orderNum":1,"path":"ledger","component":"wms/inventory/ledger","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:ledger:list","icon":"excel","remark":"\7b2c\4e8c\9636\6bb5\5e93\5b58\4e2d\5fc3\4e3b\5165\53e3"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 18:44:49'),
+(2054522541360607234, U&'\7bb1\4f53', 3, 'com.ruoyi.wms.controller.BoxController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box/2053119223216283650', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-13 19:22:00'),
+(2054730992300965890, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\9ad82","warehouseId":"1828364740028174337","areaId":"1829397621378838530","rackStatus":"enabled","rackType":"standard","rowCount":1,"columnCount":1,"length":"50","width":"50","height":"50","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:10:18'),
+(2054731372506234882, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"299","width":"50","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:11:49');    
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054731414612852737, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:11:59'),
+(2054731449983418369, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300.00","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:12:07'),
+(2054731758495449089, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"301","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:13:21'),
+(2054731781996134402, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"300","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:13:27'),
+(2054731800174247937, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423398596609","locationCode":"HJ-B-R1-C1","locationName":"B-1-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":1,"length":"300.00","width":"50.00","height":"299","maxWeight":null,"occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:13:31'),
+(2054731815370211330, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423474094081","locationCode":"HJ-B-R2-C1","locationName":"B-2-1","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":2,"columnNo":1,"length":"300.00","width":"50.00","height":"301","maxWeight":null,"occupiedFlag":0,"sortNo":2001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:13:35');         
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054731870080712706, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"100","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:13:48'),
+(2054732104273870850, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790914","locationCode":"HJ-B-R1-C3","locationName":"B-1-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":3,"length":"500","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1003,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:14:43'),
+(2054732172653608962, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"0","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', '', 0, U&'\8d27\4f4d\957f\5ea6\5fc5\987b\5927\4e8e0', TIMESTAMP '2026-05-14 09:15:00'),
+(2054732187987984386, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790913","locationCode":"HJ-B-R1-C2","locationName":"B-1-2","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":2,"length":"1","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1002,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:15:03'),
+(2054732210595282946, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2053041423402790914","locationCode":"HJ-B-R1-C3","locationName":"B-1-3","warehouseId":"1828364609002311682","areaId":"1828364666585911297","rackId":"2053041423335682050","locationStatus":"enabled","locationType":null,"rowNo":1,"columnNo":3,"length":"599","width":"50.00","height":"300.00","maxWeight":null,"occupiedFlag":0,"sortNo":1003,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:15:09'),
+(2054732521187688449, U&'\7269\6599\7c7b\578b', 1, 'com.ruoyi.wms.controller.ItemCategoryController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemCategory', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"parentId":null,"categoryName":"\5668\6750\7bb1","orderNum":null,"status":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:16:23');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054733101314457601, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":null,"itemName":"\5668\6750\7bb1","itemCategory":"2054732521107996674","unit":null,"itemBrand":null,"specLevel":null,"equipmentName":null,"equipmentType":null,"status":"1","productMark":null,"modelText":null,"remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\5c0f\7bb1\5b50","itemId":"2054733100475596802","specModel":"","status":"1","length":null,"width":null,"height":null,"grossWeight":null,"netWeight":null,"costPrice":null,"sellingPrice":null,"itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null,"itemBrand":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:18:41'),
+(2054735451844362241, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451613675522","shipmentOrderNo":"CK05143470","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 09:28:02'),
+(2054930695135289345, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694493560834","receiptOrderNo":"RK05142665","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"2","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694673915905","receiptOrderId":null,"skuId":101,"quantity":"1","amount":"0","equipmentCode":"GL","specModel":"20KG\6807\51c6\578b","productMark":"P2026","qualityGrade":"1","unitPrice":null,"lineAmount":"0","productionDate":"2026-01-01 00:00:00","expirationDate":"2030-01-01 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":1002,"instanceCode":"INSTANCE20260004","boxCode":"BOX20260001","productMark":"P2026","qualityGrade":"1","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930694736830466","receiptOrderId":null,"skuId":101,"quantity":"1","amount":"0","equipmentCode":"GL","specModel":"20KG\6807\51c6\578b","productMark":"P2027","qualityGrade":"1","unitPrice":null,"lineAmount":"0","productionDate":"2026-02-01 00:00:00","expirationDate":"2030-02-01 00:00:00","remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":1003,"instanceCode":"INSTANCE20260005","boxCode":"BOX20260001","productMark":"P2027","qualityGrade":"1","remark":null}]}]}', '', 0, U&'\5668\6750\5b9e\4f8b\4e0d\5b58\5728', TIMESTAMP '2026-05-14 22:23:51');          
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054930922126827521, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920805621761","receiptOrderNo":"RK05142665","receiptOrderType":2,"merchantId":null,"orderNo":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"totalQuantity":"2","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920805621762","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963458","instanceCode":"a-a1000000003","boxCode":"BOX20260001","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054930920876924930","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963459","instanceCode":"a-a1000000004","boxCode":"BOX20260001","productMark":"a","qualityGrade":null,"remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 22:24:45'),
+(2054933008931479554, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259423473665","receiptOrderNo":"RK05137553","receiptOrderType":2,"merchantId":"1828354284882399233","orderNo":"a","basisNo":"a","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-13","receiptDate":"2026-05-15","purchaserName":"a","acceptorName":"a","keeperName":"a","totalQuantity":"3","payableAmount":"0","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165442","receiptOrderId":"2054510259423473665","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963461","instanceCode":"a-a1000000006","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054510259503165443","receiptOrderId":"2054510259423473665","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","productionDate":null,"expirationDate":null,"remark":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423233","generateItemInstance":1,"generatedInstanceQuantity":0,"receiptItemInstances":[{"id":"2054445955298963462","instanceCode":"a-a1000000007","boxCode":"","productMark":"a","qualityGrade":null,"remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id"', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-14 22:33:03');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2054957254437072898, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054957253988282370","shipmentOrderNo":"CK05150115","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963462","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 00:09:23'),
+(2054957324079296513, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054957323764723714","shipmentOrderNo":"CK05157373","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963462","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000003","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963461","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 00:09:40'),
+(2055184097836609538, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451613675522","shipmentOrderNo":"CK05143470","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":-1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2054735451726921729","shipmentOrderId":"2054735451613675522","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a","specModel":"a","productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 15:10:47');             
+INSERT INTO "public"."sys_oper_log" VALUES
+(2055184121710587905, U&'\51fa\5e93\5355', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/2054735451613675522', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 15:10:53'),
+(2055184131537842177, U&'\51fa\5e93\5355', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/2054957253988282370', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 15:10:55'),
+(2055184140706590722, U&'\51fa\5e93\5355', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/2054957323764723714', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-15 15:10:57'),
+(2055528939015974913, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938118393858","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000001","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963459","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938437160962","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":"a-a1000000003","specModel":"a","productMark":"a","qualityGrade":null,"unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963458","boxId":"2054930921195692034","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-16 14:01:04'),
+(2055551078075019265, U&'\5e93\5b58\76d8\70b9\5355\636e', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05162985","checkOrderStatus":1,"checkOrderTotal":"-1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":null,"checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"0","profitAndLoss":"-1","differenceQuantity":"-1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-13 17:26:59","inventoryDetailId":"2054493598884655106","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-14 22:24:45","inventoryDetailId":"2054930921522847745","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2053852496494178305","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345556508675","productionDate":null,"expirationDate":null,"receiptTime":"2026-05-14 22:24:45","i', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-16 15:29:02');             
+INSERT INTO "public"."sys_oper_log" VALUES
+(2055552085139992578, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938118393858","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"0","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054493598884655106","itemInstanceId":"2054445955298963459","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938437160962","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"1","amount":"0.00","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963458","boxId":"2054930921195692034","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', '', 0, U&'\6309\5355\54c1\5b9e\4f8b\51fa\5e93\65f6\ff0c\6570\91cf\5fc5\987b\4e3a1', TIMESTAMP '2026-05-16 15:33:02'),
+(2055552112654626817, U&'\51fa\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrderDetail/2055528938118393858', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-16 15:33:09'),
+(2055552126143508481, U&'\51fa\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrderDetail/2055528938437160962', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-16 15:33:12'),
+(2055552288500822017, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055528938051284994","shipmentOrderNo":"CK05165124","shipmentOrderType":2,"orderNo":null,"merchantId":null,"basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"purchaserName":null,"acceptorName":null,"keeperName":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2055552287376748546","shipmentOrderId":"2055528938051284994","skuId":"2053852496494178305","quantity":"1","amount":"0","equipmentCode":null,"specModel":null,"productMark":null,"qualityGrade":null,"unitPrice":null,"lineAmount":null,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","productionDate":null,"expirationDate":null,"inventoryDetailId":"2054930921522847745","itemInstanceId":"2054445955298963460","boxId":null,"remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-16 15:33:51'); 
+INSERT INTO "public"."sys_oper_log" VALUES
+(2055979507337502722, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","level":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"qrCodeCount":1}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":1,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","level":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","productMark":null,"modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"}]}}', 1, '', TIMESTAMP '2026-05-17 19:51:27'),
+(2055998963526770690, U&'\7bb1\4f53', 1, 'com.ruoyi.wms.controller.BoxController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"boxCode":"BOX2055998963338027008","boxName":"aaa","boxStatus":"idle","warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"itemCount":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-17 21:08:46'),
+(2056203328992686082, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","level":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","modelText":null,"remark":null,"sku":null},"qrCodeCount":5}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":5,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2052636524512894978","ids":null,"itemCode":"DYJ","itemName":"\60e0\666e","itemCategory":"1828365014901886978","unit":"\53f0","level":null,"equipmentName":"\88c5\5907\540d\79f0","equipmentType":"\901a\88c5","status":"1","modelText":null,"remark":null,"sku":null},"details":[{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"}]}}', 1, '', TIMESTAMP '2026-05-18 10:40:51'),
+(2056286419052486658, U&'\5355\54c1\5b9e\4f8b', 5, 'com.ruoyi.wms.controller.ItemInstanceController.export()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemInstance/export', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"instanceCode":null,"itemId":null,"skuId":null,"instanceStatus":null,"inBox":null,"borrowed":null,"warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"sourceType":null,"sourceOrderType":null,"boxId":null,"boxCode":null,"sourceOrderId":null,"sourceOrderNo":null,"receiptOrderDetailId":null,"shipmentOrderDetailId":null,"belongUnit":null,"currentOwnerUnit":null,"lastOperationType":null,"lastOperationTime":null,"productionDate":null,"expirationDate":null,"remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', '', 1, '', TIMESTAMP '2026-05-18 16:11:01');           
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056399868721987585, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056399867396587521","shipmentOrderNo":"CK05187208","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"1","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056399867451113474","shipmentOrderId":null,"skuId":"2053852496494178305","quantity":"1","amount":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","inventoryDetailId":"2054933008474300417","itemInstanceId":"2054445955265409026","boxId":"2054493598427475969","remark":null,"key":"1828364459110469633_1828364518342430721_2053852496494178305"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-18 23:41:49'),
+(2056577523224182785, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056577521617764354","receiptOrderNo":"RK05196065","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"1","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056577521710039041","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","itemCode":"a","itemName":"a","skuName":"a","unit":"a","productIdentifier":null,"qualityGrade":null,"unitPrice":"1","lineAmount":"1.00","amount":"1.00","remark":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","receiptItemInstances":[{"id":"2054445955361878019","instanceCode":"a-a1000000010","boxCode":"2121211","remark":"1"}]}]}', '', 0, U&'com.ruoyi.wms.mapper.InventoryDetailMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Unknown column ''equipment_code'' in ''field list''\000d\000a; bad SQL grammar []', TIMESTAMP '2026-05-19 11:27:46'),
+(2056582073318449153, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056582069300305922","receiptOrderNo":"RK05196065","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"1","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"1828364518342430721","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056582069354831873","receiptOrderId":null,"skuId":"2053852496494178305","quantity":"1","itemCode":"a","itemName":"a","skuName":"a","unit":"a","productIdentifier":null,"qualityGrade":null,"unitPrice":"1","lineAmount":"1.00","amount":"1.00","remark":"1","warehouseId":"1828364459110469633","areaId":"1828364518342430721","rackId":"2053041345556508674","locationId":"2053041345619423237","receiptItemInstances":[{"id":"2054445955361878019","instanceCode":"a-a1000000010","boxCode":"2121211","remark":"1"}]}]}', '', 0, U&'com.ruoyi.wms.mapper.InventoryDetailMapper.insert (batch index #1) failed. Cause: java.sql.BatchUpdateException: Unknown column ''unit_price'' in ''field list''\000d\000a; bad SQL grammar []', TIMESTAMP '2026-05-19 11:45:50');          
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056752728802410497, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"box","itemName":"\5668\6750\7bb1","itemCategory":"2054732521107996674","unit":"\4e2a","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\5927","productIdentifier":"","qualityGrade":"","itemId":"2056752728542363650","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-19 23:03:58'),
+(2056768878512779265, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"box","itemName":"\5668\6750\7bb1","itemCategory":"2054732521107996674","unit":"\4e2a","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\5927","productIdentifier":"","qualityGrade":"","itemId":"2056768878227566594","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"\5c0f","productIdentifier":"","qualityGrade":"","itemId":"2056768878227566594","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:08:08'),
+(2056769240380551169, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056768878227566594","ids":null,"itemCode":"box","itemName":"\5668\6750\7bb1","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2056768878252732418","qrCodeCount":10}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056768878227566594","ids":null,"itemCode":"box","itemName":"\5668\6750\7bb1","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"},{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"},{"serialValue":1000000007,"instanceCode":"WH1ITEM1000000007","qrCodeValue":"WH1ITEM1000000007","qrContent":"WH1ITEM1000000007"},{"serialValue":1000000008,"instanceCode":"WH1ITEM1000000008","qrCodeValue":"WH1ITEM1000000008","qrContent":"WH1ITEM1000000008"},{"serialValue":1000000009,"instanceCode":"WH1ITEM1000000009","qrCodeValue":"WH1ITEM1000000009","qrContent":"WH1ITEM1000000009"},{"serialValue":1000000010,"instanceCode":"WH1ITEM1000000010","qrCodeValue":"WH1ITEM1000000010","qrContent":"WH1ITEM1000000010"}]}}', 1, '', TIMESTAMP '2026-05-20 00:09:35');     
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056769319761948674, U&'\4ed3\5e93', 2, 'com.ruoyi.wms.controller.WarehouseController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"1828364459110469633","warehouseCode":"WH1","warehouseName":"\5317\4eac\4ed3","status":"enabled","address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":0}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:09:53'),
+(2056769387365740546, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"\6d77\6dc0\4ed3","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:10'),
+(2056769438028738561, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"\671d\9633\4ed3","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:22'),
+(2056769466898132993, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"\4e1c\57ce\4ed3","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:29'),
+(2056769490910523393, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"\897f\57ce\4ed3","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:34'),
+(2056769502834929666, U&'\4ed3\5e93', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse/2053033327892754434', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:37'),
+(2056769510850244609, U&'\4ed3\5e93', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse/1828364740028174337', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:39'),
+(2056769517800206337, U&'\4ed3\5e93', 3, 'com.ruoyi.wms.controller.WarehouseController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse/1828364609002311682', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:10:41'),
+(2056769648293392385, U&'\4ed3\5e93', 1, 'com.ruoyi.wms.controller.WarehouseController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/warehouse', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"warehouseCode":null,"warehouseName":"\5927\5174\4ed3","status":null,"address":null,"managerName":null,"managerPhone":null,"remark":null,"orderNum":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:11:12');              
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056770222615244801, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"A\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:13:29'),
+(2056770261127344129, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"B\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:13:38'),
+(2056770294870519810, U&'\5e93\533a', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770261064429569","areaCode":null,"areaName":"\5317B\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:13:46'),
+(2056770316508934146, U&'\5e93\533a', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770222548135937","areaCode":null,"areaName":"\5317A\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:13:51'),
+(2056770367792689153, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\6d77A\533a","warehouseId":"2056769387227328513","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:03'),
+(2056770392295813122, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\6d77B\533a","warehouseId":"2056769387227328513","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:09'),
+(2056770428949835778, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\671dA\533a","warehouseId":"2056769437957435394","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:18'),
+(2056770456254754817, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\671dB\533a","warehouseId":"2056769437957435394","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:24'),
+(2056770508129906690, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\4e1cA\533a","warehouseId":"2056769466831024130","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:37');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056770538815434753, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\4e1cB\533a","warehouseId":"2056769466831024130","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:44'),
+(2056770584361381889, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\897fA\533a","warehouseId":"2056769490864386049","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:14:55'),
+(2056770610353483778, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\897fB\533a","warehouseId":"2056769490864386049","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:15:01'),
+(2056770643463319553, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\5927A\533a","warehouseId":"2056769648226283522","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:15:09'),
+(2056770672877973506, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\5927B\533a","warehouseId":"2056769648226283522","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:15:16'),
+(2056770719334084609, U&'\5e93\533a', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770261064429569","areaCode":null,"areaName":"\4eacB\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:15:27'),
+(2056770739433189378, U&'\5e93\533a', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770222548135937","areaCode":null,"areaName":"\4eacA\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:15:32'),
+(2056771039967653889, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\4eacA\8d271","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:16:44');           
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056771137321644034, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\4eacA\8d272","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackStatus":"enabled","rowCount":1,"columnCount":1,"length":"200","width":"200","height":"200","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:17:07'),
+(2056771222071750658, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\4eacB\8d271","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackStatus":"enabled","rowCount":3,"columnCount":3,"length":"900","width":"900","height":"900","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:17:27'),
+(2056771350128046082, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\6d77A\8d271","warehouseId":"2056769387227328513","areaId":"2056770367725580289","rackStatus":"enabled","rowCount":1,"columnCount":1,"length":"50","width":"50","height":"50","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:17:57'),
+(2056772480916598785, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\6d77B\8d271","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:22:27'),
+(2056772973021708289, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\6d77B\8d272","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:24:24'),
+(2056774315412897794, U&'\7269\6599', 1, 'com.ruoyi.wms.controller.ItemController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":"1828365014901886978","unit":"\53f0","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2023","productIdentifier":"xx","qualityGrade":"\9ad8","itemId":"2056774315211571201","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 00:29:44'),
+(2056774828229476353, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2056774315278680066","qrCodeCount":10}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"},{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"},{"serialValue":1000000007,"instanceCode":"WH1ITEM1000000007","qrCodeValue":"WH1ITEM1000000007","qrContent":"WH1ITEM1000000007"},{"serialValue":1000000008,"instanceCode":"WH1ITEM1000000008","qrCodeValue":"WH1ITEM1000000008","qrContent":"WH1ITEM1000000008"},{"serialValue":1000000009,"instanceCode":"WH1ITEM1000000009","qrCodeValue":"WH1ITEM1000000009","qrContent":"WH1ITEM1000000009"},{"serialValue":1000000010,"instanceCode":"WH1ITEM1000000010","qrCodeValue":"WH1ITEM1000000010","qrContent":"WH1ITEM1000000010"}]}}', 1, '', TIMESTAMP '2026-05-20 00:31:47');          
+INSERT INTO "public"."sys_oper_log" VALUES
+(2056999507997298690, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507242323970","receiptOrderNo":"RK05201617","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":"\7eb8\8d28","dispatchMode":"air","noticeOrg":"\5317\5927","receiveUnit":"\6e05\534e","purchaseDate":"2026-05-17","receiptDate":"2026-05-20","totalQuantity":"2","payableAmount":"100","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"aaaaa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707521","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841539","instanceCode":"WH1ITEM1000000002","boxCode":"BOX1122334455","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707522","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","boxCode":"BOX1122334466","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 15:24:35'),
+(2057002889411629058, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057002888316915714","receiptOrderNo":"RK05207589","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":"zzz","dispatchMode":"road","noticeOrg":"a","receiveUnit":"a","purchaseDate":"2026-05-11","receiptDate":"2026-05-20","totalQuantity":"1","payableAmount":"6","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057002888392413186","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"6","lineAmount":"6.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptItemInstances":[{"id":"2056774828107841540","instanceCode":"WH1ITEM1000000003","boxCode":"aa","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 15:38:01'),
+(2057019388994064386, U&'\5b57\5178\7c7b\578b', 9, 'com.ruoyi.system.controller.system.SysDictTypeController.refreshCache()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/dict/type/refreshCache', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 16:43:35'),
+(2057019423626432513, U&'\5b57\5178\7c7b\578b', 9, 'com.ruoyi.system.controller.system.SysDictTypeController.refreshCache()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/dict/type/refreshCache', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 16:43:43');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057020074561441794, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503810","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","inventoryDetailId":"2057002889092861954","itemInstanceId":"2056774828107841540","boxId":null,"remark":null,"key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 16:46:18'),
+(2057020276588482562, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147713","receiptOrderNo":"RK05200069","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"3","payableAmount":"750","receiptOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147714","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772972287705090","locationId":"2056772972304482306","receiptItemInstances":[{"id":"2056774828107841541","instanceCode":"WH1ITEM1000000004","boxCode":"hadfad","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275804147715","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"400","lineAmount":"400.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772480702689282","locationId":"2056772480702689288","receiptItemInstances":[{"id":"2056774828107841542","instanceCode":"WH1ITEM1000000005","boxCode":"fadsfdas","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020275892228098","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"300","lineAmount":"300.00","remark":null,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"20567', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 16:47:06'),
+(2057020612040527874, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderNo":"CK05203134","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"aa","purchaseDate":"2026-05-05","shipmentDate":"2026-05-20","receivableAmount":"900","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"aa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"900","lineAmount":"900","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350273","itemInstanceId":"2056774828107841541","boxId":"2057020275938365442","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', '', 0, U&'\000d\000a### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column ''production_date'' in ''field list''\000d\000a### The error may exist in com/ruoyi/wms/mapper/InventoryDetailMapper.java (best guess)\000d\000a### The error may involve defaultParameterMap\000d\000a### The error occurred while setting parameters\000d\000a### SQL: SELECT id,receipt_order_id,receipt_order_type,order_no,type,sku_id,warehouse_id,area_id,rack_id,location_id,item_instance_id,box_id,source_order_type,source_order_id,line_no,quantity,production_date,expiration_date,unit_price,line_amount,remark,remain_quantity,create_by,create_time,update_by,update_time FROM wms_inventory_detail WHERE id IN (   ?  )\000d\000a### Cause: java.sql.SQLSyntaxErrorException: Unknown column ''production_date'' in ''field list''\000d\000a; bad SQL grammar []', TIMESTAMP '2026-05-20 16:48:26');            
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057024371240026114, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057024369574887426","shipmentOrderNo":"CK05203134","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"aa","purchaseDate":"2026-05-05","shipmentDate":"2026-05-20","receivableAmount":"900","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"aa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057024369574887427","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"900","lineAmount":"900.00","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350273","itemInstanceId":"2056774828107841541","boxId":"2057020275938365442","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 17:03:22'),
+(2057028354226606081, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057028353064783874","shipmentOrderNo":"CK05203882","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"s","dispatchMode":"rail","noticeOrg":"s","receiveUnit":"s","purchaseDate":"2026-05-11","shipmentDate":"2026-05-20","receivableAmount":"500","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"2056769387227328513","areaId":"2056770392228704258","remark":"ss","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057028353144475649","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"500","lineAmount":"500.00","warehouseId":"2056769387227328513","areaId":"2056770392228704258","inventoryDetailId":"2057020276391350275","itemInstanceId":"2056774828107841543","boxId":"2057020276013862913","remark":null,"key":"2056769387227328513_2056770392228704258_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 17:19:12'),
+(2057100083145842690, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507242323970","receiptOrderNo":"RK05201617","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":"\7eb8\8d28","dispatchMode":"air","noticeOrg":"\5317\5927","receiveUnit":"\6e05\534e","purchaseDate":"2026-05-17","receiptDate":"2026-05-20","totalQuantity":"2","payableAmount":"100","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"aaaaa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707521","receiptOrderId":"2056999507242323970","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841539","instanceCode":"WH1ITEM1000000002","boxCode":"","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056999507401707522","receiptOrderId":"2056999507242323970","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","boxCode":"","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 22:04:14');      
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057102397088833537, U&'\501f\51fa\767b\8bb0', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841539","borrowStatus":null,"borrower":"\5f20\54e5","fromUnit":"A","toUnit":"B","fromPerson":"\5c0fa","toPerson":"\5c0fb","docDate":"2026-05-20","borrowNo":null,"planReturnDate":"2026-05-30","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000002","borrowTime":"2026-05-20 22:12:33","returnTime":null,"borrowRemark":"zzz","returnRemark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 22:13:25'),
+(2057102620561350657, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', '', 0, U&'\5f53\524d\5355\54c1\4e0d\5b58\5728\672a\5f52\8fd8\501f\7528\8bb0\5f55', TIMESTAMP '2026-05-20 22:14:19'),
+(2057102684860030977, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', '', 0, U&'\5f53\524d\5355\54c1\4e0d\5b58\5728\672a\5f52\8fd8\501f\7528\8bb0\5f55', TIMESTAMP '2026-05-20 22:14:34'),
+(2057102760772739073, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', '', 0, U&'\5f53\524d\5355\54c1\4e0d\5b58\5728\672a\5f52\8fd8\501f\7528\8bb0\5f55', TIMESTAMP '2026-05-20 22:14:52'),
+(2057102866418868225, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', '', 0, U&'\5f53\524d\5355\54c1\4e0d\5b58\5728\672a\5f52\8fd8\501f\7528\8bb0\5f55', TIMESTAMP '2026-05-20 22:15:17'),
+(2057103085663526914, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841500","borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-21 00:00:00","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', '', 0, U&'\5f53\524d\5355\54c1\4e0d\5b58\5728\672a\5f52\8fd8\501f\7528\8bb0\5f55', TIMESTAMP '2026-05-20 22:16:09');           
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057105562932715522, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.rebuildByRack()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location/rebuildByRack/2056772972287705090', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '"2056772972287705090"', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"rackId":"2056772972287705090","rackCode":"WH1RACK1000000006","rackName":"\6d77B\8d272","expectedLocationCount":6,"existingLocationCount":6,"createdLocationCount":0,"blockedLocationCount":0,"messages":[]}}', 1, '', TIMESTAMP '2026-05-20 22:26:00'),
+(2057105659552702466, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.rebuildByRack()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location/rebuildByRack/2056771137254535169', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '"2056771137254535169"', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"rackId":"2056771137254535169","rackCode":"WH1RACK1000000002","rackName":"\4eacA\8d272","expectedLocationCount":1,"existingLocationCount":1,"createdLocationCount":0,"blockedLocationCount":0,"messages":[]}}', 1, '', TIMESTAMP '2026-05-20 22:26:23'),
+(2057110762208731138, U&'\5355\54c1\5b9e\4f8b', 2, 'com.ruoyi.wms.controller.ItemInstanceController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemInstance', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774828107841538","instanceCode":"WH1ITEM1000000001","itemId":"2056774315211571201","skuId":"2056774315278680066","instanceStatus":"\5728\5e93","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","sourceType":"\5165\5e93\5355","sourceOrderType":"\5165\5e93\5355","boxId":null,"boxCode":"bolkjfladdffa","sourceOrderId":"2056999507242323970","sourceOrderNo":"RK05201617","receiptOrderDetailId":"2056999507401707522","shipmentOrderDetailId":null,"lastOperationType":"batch_print","lastOperationTime":"2026-05-20 00:31:46","remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 22:46:40'),
+(2057111300065304578, U&'\7bb1\4f53', 3, 'com.ruoyi.wms.controller.BoxController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/box/2057110762082902017', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', '', 0, U&'\7bb1\4f53\5185\4ecd\6709\5355\54c1\ff0c\65e0\6cd5\5220\9664', TIMESTAMP '2026-05-20 22:48:48'),
+(2057114735401607169, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057102396967198721","itemInstanceId":null,"borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-20 23:02:11","borrowRemark":null,"returnRemark":"\5df2\8fd8"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 23:02:27'),
+(2057116912979386370, U&'\501f\51fa\767b\8bb0', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2056774828107841539","borrowStatus":null,"borrower":"aa","fromUnit":"aa","toUnit":"aa","fromPerson":"a","toPerson":"a","docDate":"2026-05-20","borrowNo":null,"planReturnDate":"2026-05-21","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000002","borrowTime":"2026-05-20 23:10:06","returnTime":null,"borrowRemark":"\501f\7528","returnRemark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-20 23:11:06');      
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057122662745198593, U&'\5355\54c1\5b9e\4f8b', 5, 'com.ruoyi.wms.controller.ItemInstanceController.export()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/itemInstance/export', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"instanceCode":null,"itemId":null,"skuId":null,"instanceStatus":null,"warehouseId":null,"areaId":null,"rackId":null,"locationId":null,"sourceType":null,"sourceOrderType":null,"boxId":null,"boxCode":null,"sourceOrderId":null,"sourceOrderNo":null,"receiptOrderDetailId":null,"shipmentOrderDetailId":null,"lastOperationType":null,"lastOperationTime":null,"remark":null,"unreceivedOnly":null,"unshippedOnly":null,"targetStatus":null}', '', 1, '', TIMESTAMP '2026-05-20 23:33:57'),
+(2057144243794034689, U&'\5e93\5b58\76d8\70b9\5355\636e', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05212439","checkOrderStatus":1,"checkOrderTotal":"0","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":"2026-05-21 00:59:37","checkerName":"a","reviewerName":"a","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181250","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181251","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptTime":"2026-05-20 15:38:00","inventoryDetailId":"2057002889092861954","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 00:59:42'),
+(2057301176236675073, U&'\5e93\5b58\76d8\70b9\5355\636e', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05213385","checkOrderStatus":1,"checkOrderTotal":"0","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":null,"checkerName":null,"reviewerName":null,"remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181250","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptTime":"2026-05-20 22:04:13","inventoryDetailId":"2057100082160181251","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":"0","differenceQuantity":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221887201283","receiptTime":"2026-05-20 15:38:00","inventoryDetailId":"2057002889092861954","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 11:23:18');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057353035051753473, U&'\8c03\62e8\5355', 1, 'com.ruoyi.wms.controller.MovementOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034334527489","movementOrderNo":"DB05215667","movementType":"\901a\88c5","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":0,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"6","lineAmount":"6.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","inventoryDetailId":"2057002889092861954","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 14:49:22'),
+(2057353886222835713, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034334527489","movementOrderNo":"DB05215667","movementType":"\901a\88c5","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":1,"totalQuantity":"1.00","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057353034393247746","movementOrderId":"2057353034334527489","skuId":"2056774315278680066","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"6","lineAmount":"6.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","inventoryDetailId":"2057002889092861954","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 14:52:45'),
+(2057356266884620290, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"0","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503810","shipmentOrderId":"2057020074368503809","skuId":"2056774315278680066","quantity":"0","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":null,"lineAmount":"0","warehouseId":"1828364459110469633","areaId":"2056770261064429569","inventoryDetailId":"2057002889092861954","itemInstanceId":"2056774828107841540","boxId":null,"remark":null,"key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', '', 0, U&'\6309\5355\54c1\5b9e\4f8b\51fa\5e93\65f6\ff0c\6570\91cf\5fc5\987b\4e3a1', TIMESTAMP '2026-05-21 15:02:13');       
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057356315366580226, U&'\51fa\5e93\5355\8be6\60c5', 3, 'com.ruoyi.wms.controller.ShipmentOrderDetailController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrderDetail/2057020074368503810', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 15:02:24'),
+(2057356420693942274, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057020074368503809","shipmentOrderNo":"CK05202806","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"shipmentDate":null,"receivableAmount":"50","totalQuantity":"1","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057356420182237185","shipmentOrderId":"2057020074368503809","skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"50","lineAmount":"50.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057100082160181250","itemInstanceId":"2056774828107841538","boxId":"2057110762082902017","remark":null,"key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 15:02:49'),
+(2057384631653969922, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057384612725075970","receiptOrderNo":"RK05217410","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"4444","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057384612792184833","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"4444","lineAmount":"4444.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221937532933","receiptItemInstances":[{"id":"2056774828187533314","instanceCode":"WH1ITEM1000000007","boxCode":"dfadfad","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 16:54:55'),
+(2057385076975808514, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057385076648652802","movementOrderNo":"DB05217966","movementType":"\901a\88c5","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","movementOrderStatus":1,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"4444","lineAmount":"4444.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","inventoryDetailId":"2057384626956349442","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 16:56:41');               
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057404460960133122, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433090","receiptOrderNo":"RK05210078","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"2","payableAmount":"2","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433091","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"1","lineAmount":"1.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828187533315","instanceCode":"WH1ITEM1000000008","boxCode":"zzzzz","remark":null}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057404460297433092","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"1","lineAmount":"1.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2056774828187533316","instanceCode":"WH1ITEM1000000009","boxCode":"zzz","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 18:13:43'),
+(2057405642420072449, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057405642227134465","movementOrderNo":"DB05217208","movementType":"\901a\88c5","dispatchBasis":"z","dispatchPurpose":"z","dispatchMode":"air","fromUnit":"z","toUnit":"z","fromStation":null,"toStation":"z","fromAddress":null,"toAddress":null,"contactAddress":"z","dispatchDate":null,"effectiveDate":"2026-05-20","issueDate":"2026-05-21","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769466831024130","targetAreaId":"2056770538748325889","movementOrderStatus":1,"totalQuantity":"1","remark":"zz","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"1","lineAmount":"1.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769466831024130","targetAreaId":"2056770538748325889","inventoryDetailId":"2057404460763000833","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 18:18:25'),
+(2057412630440890370, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057412629375537153","movementOrderNo":"DB05211481","movementType":"\901a\88c5","dispatchBasis":null,"dispatchPurpose":null,"dispatchMode":null,"fromUnit":null,"toUnit":null,"fromStation":null,"toStation":null,"fromAddress":null,"toAddress":null,"contactAddress":null,"dispatchDate":null,"effectiveDate":null,"issueDate":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769490864386049","targetAreaId":"2056770610286374914","movementOrderStatus":1,"totalQuantity":"1","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"1","lineAmount":"1.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769490864386049","targetAreaId":"2056770610286374914","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057404460763000834","itemInstanceId":"2056774828187533316","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 18:46:11');        
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057460273196085250, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057460272143314946","receiptOrderNo":"RK05218626","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":null,"dispatchMode":null,"noticeOrg":null,"receiveUnit":null,"purchaseDate":null,"receiptDate":null,"totalQuantity":"1","payableAmount":"901","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","remark":null,"details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057460272206229506","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"901","lineAmount":"901.00","remark":null,"warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationId":"2056771221937532934","receiptItemInstances":[{"id":"2056774828187533317","instanceCode":"WH1ITEM1000000010","boxCode":"xxzxcx","remark":null}]}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 21:55:30'),
+(2057463795098628098, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057463794524008450","movementOrderNo":"DB05215912","movementType":"\901a\88c5","dispatchBasis":"z","dispatchPurpose":"z","dispatchMode":"rail","fromUnit":"z","toUnit":"zz","fromStation":null,"toStation":"z","fromAddress":null,"toAddress":null,"contactAddress":"z","dispatchDate":null,"effectiveDate":"2026-05-22","issueDate":"2026-05-29","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","movementOrderStatus":1,"totalQuantity":"1","remark":"zzz","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"901","lineAmount":"901.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770261064429569","sourceRackId":"2056771221887201282","sourceLocationId":"2056771221937532934","targetWarehouseId":"1828364459110469633","targetAreaId":"2056770222548135937","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057460272671797250","itemInstanceId":"2056774828187533317","warehouseId":"1828364459110469633","areaId":"2056770261064429569","key":"1828364459110469633_2056770261064429569_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 22:09:29'),
+(2057483704738340865, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2056774315278680066","qrCodeCount":10}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":10,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000001,"instanceCode":"WH1ITEM1000000001","qrCodeValue":"WH1ITEM1000000001","qrContent":"WH1ITEM1000000001"},{"serialValue":1000000002,"instanceCode":"WH1ITEM1000000002","qrCodeValue":"WH1ITEM1000000002","qrContent":"WH1ITEM1000000002"},{"serialValue":1000000003,"instanceCode":"WH1ITEM1000000003","qrCodeValue":"WH1ITEM1000000003","qrContent":"WH1ITEM1000000003"},{"serialValue":1000000004,"instanceCode":"WH1ITEM1000000004","qrCodeValue":"WH1ITEM1000000004","qrContent":"WH1ITEM1000000004"},{"serialValue":1000000005,"instanceCode":"WH1ITEM1000000005","qrCodeValue":"WH1ITEM1000000005","qrContent":"WH1ITEM1000000005"},{"serialValue":1000000006,"instanceCode":"WH1ITEM1000000006","qrCodeValue":"WH1ITEM1000000006","qrContent":"WH1ITEM1000000006"},{"serialValue":1000000007,"instanceCode":"WH1ITEM1000000007","qrCodeValue":"WH1ITEM1000000007","qrContent":"WH1ITEM1000000007"},{"serialValue":1000000008,"instanceCode":"WH1ITEM1000000008","qrCodeValue":"WH1ITEM1000000008","qrContent":"WH1ITEM1000000008"},{"serialValue":1000000009,"instanceCode":"WH1ITEM1000000009","qrCodeValue":"WH1ITEM1000000009","qrContent":"WH1ITEM1000000009"},{"serialValue":1000000010,"instanceCode":"WH1ITEM1000000010","qrCodeValue":"WH1ITEM1000000010","qrContent":"WH1ITEM1000000010"}]}}', 1, '', TIMESTAMP '2026-05-21 23:28:36.075269');          
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057483830236110850, U&'\7269\6599', 2, 'com.ruoyi.wms.controller.ItemController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":"1828365014901886978","unit":"\53f0","equipmentName":null,"equipmentType":null,"status":"1","remark":null,"sku":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315278680066","skuName":"2023","productIdentifier":"xx","qualityGrade":"\9ad8","itemId":"2056774315211571201","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"skuName":"2024","productIdentifier":"yy","qualityGrade":"\4f4e","itemId":"2056774315211571201","status":"1","itemName":null,"itemCode":null,"equipmentName":null,"itemCategory":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-21 23:29:05.996319'),
+(2057483864058978305, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2057483830236110849","qrCodeCount":5}', '', 0, '', TIMESTAMP '2026-05-21 23:29:14.061689'),
+(2057487208194306049, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2057483830236110849","qrCodeCount":5}', '', 0, '', TIMESTAMP '2026-05-21 23:42:31.346348'),
+(2057496855018037250, U&'\5e93\533a', 2, 'com.ruoyi.wms.controller.AreaController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056770672827641857","areaCode":null,"areaName":"\5927B\533a","warehouseId":"2056769648226283522","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:20:51.330536'),
+(2057496897007214593, U&'\8d27\67b6', 2, 'com.ruoyi.wms.controller.RackController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056772972287705090","rackCode":"WH1RACK1000000006","rackName":"\6d77B\8d272","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackStatus":"enabled","rowCount":2,"columnCount":3,"length":"600","width":"600","height":"600","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:21:01.347874'),
+(2057496947305308161, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056772972304482306","locationCode":"WH1RACK1000000006-R1-C1","locationName":"\6d77B\8d272-1-1","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772972287705090","locationStatus":"enabled","rowNo":1,"columnNo":1,"length":"200","width":"600","height":"299","occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:21:13.340172');             
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057496972269805570, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056772972304482306","locationCode":"WH1RACK1000000006-R1-C1","locationName":"\6d77B\8d272-1-1","warehouseId":"2056769387227328513","areaId":"2056770392228704258","rackId":"2056772972287705090","locationStatus":"enabled","rowNo":1,"columnNo":1,"length":"200.00","width":"600.00","height":"300","occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:21:19.304844'),
+(2057496990808629249, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056771221887201283","locationCode":"WH1RACK1000000003-R1-C1","locationName":"\4eacB\8d271-1-1","warehouseId":"1828364459110469633","areaId":"2056770261064429569","rackId":"2056771221887201282","locationStatus":"enabled","rowNo":1,"columnNo":1,"length":"300.00","width":"900.00","height":"300.00","occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:21:23.724723'),
+(2057497001755762690, U&'\8d27\4f4d', 2, 'com.ruoyi.wms.controller.LocationController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/location', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056771137254535170","locationCode":"WH1RACK1000000002-R1-C1","locationName":"\4eacA\8d272-1-1","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationStatus":"enabled","rowNo":1,"columnNo":1,"length":"200.00","width":"200.00","height":"200.00","occupiedFlag":0,"sortNo":1001,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 00:21:26.317516'),
+(2057497148363464706, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2057483830236110849","qrCodeCount":5}', '', 0, '', TIMESTAMP '2026-05-22 00:22:01.290101'),
+(2057506758419898370, U&'\7269\6599', 0, 'com.ruoyi.wms.controller.ItemController.batchPrintQrCode()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/item/batchPrintQrCode', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"skuId":"2057483830236110849","qrCodeCount":5}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":{"itemKey":"WH1ITEM","qrCodeCount":5,"row":{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2056774315211571201","ids":null,"itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","itemCategory":null,"unit":null,"equipmentName":null,"equipmentType":null,"status":null,"remark":null,"sku":null},"details":[{"serialValue":1000000011,"instanceCode":"WH1ITEM1000000011","qrCodeValue":"WH1ITEM1000000011","qrContent":"WH1ITEM1000000011"},{"serialValue":1000000012,"instanceCode":"WH1ITEM1000000012","qrCodeValue":"WH1ITEM1000000012","qrContent":"WH1ITEM1000000012"},{"serialValue":1000000013,"instanceCode":"WH1ITEM1000000013","qrCodeValue":"WH1ITEM1000000013","qrContent":"WH1ITEM1000000013"},{"serialValue":1000000014,"instanceCode":"WH1ITEM1000000014","qrCodeValue":"WH1ITEM1000000014","qrContent":"WH1ITEM1000000014"},{"serialValue":1000000015,"instanceCode":"WH1ITEM1000000015","qrCodeValue":"WH1ITEM1000000015","qrContent":"WH1ITEM1000000015"}]}}', 1, '', TIMESTAMP '2026-05-22 01:00:12.497756');   
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057630411132329987, U&'\5e93\533a', 1, 'com.ruoyi.wms.controller.AreaController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/area', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"areaCode":null,"areaName":"\4eacC\533a","warehouseId":"1828364459110469633","status":null,"orderNum":null,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 09:11:33.608039'),
+(2057630568078991367, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\4eacC\8d271","warehouseId":"1828364459110469633","areaId":"2057630411132329986","rackStatus":"enabled","rowCount":3,"columnCount":3,"length":"900","width":"900","height":"900","orderNum":0,"remark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 09:12:11.023676'),
+(2057630593089626113, U&'\8d27\67b6', 1, 'com.ruoyi.wms.controller.RackController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/rack', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"rackCode":null,"rackName":"\4eacC\8d271","warehouseId":"1828364459110469633","areaId":"2057630411132329986","rackStatus":"enabled","rowCount":3,"columnCount":3,"length":"900","width":"900","height":"900","orderNum":0,"remark":null}', '', 0, U&'\540c\4e00\5e93\533a\4e0b\8d27\67b6\540d\79f0\91cd\590d', TIMESTAMP '2026-05-22 09:12:16.980389'),
+(2057630878436515841, U&'\5f80\6765\5355\4f4d', 1, 'com.ruoyi.wms.controller.MerchantController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/merchant', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"merchantCode":"aa","merchantName":"aa","address":"a","mobile":"a","tel":"a","contactPerson":"a","email":"a","remark":"a"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 09:13:25.011506'),
+(2057630996036411394, U&'\83dc\5355\7ba1\7406', 2, 'com.ruoyi.system.controller.system.SysMenuController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/system/menu', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":"2024-07-05 11:58:12","updateBy":null,"updateTime":null,"menuId":"1809059968309743618","parentId":"1808758090157985794","menuName":"\5f80\6765\5355\4f4d","orderNum":6,"path":"merchant","component":"wms/basic/merchant/index","queryParam":null,"isFrame":"0","isCache":"0","menuType":"C","visible":"0","status":"1","perms":"wms:merchant:list","icon":"documentation","remark":"\7b2c\4e8c\9636\6bb5\5f80\6765\5355\4f4d\5165\53e3"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 09:13:53.056316'),
+(2057642794311581697, U&'\5165\5e93\5355', 1, 'com.ruoyi.wms.controller.ReceiptOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057642793514663938","receiptOrderNo":"RK05223505","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"a","purchaseDate":"2026-05-20","receiptDate":"2026-05-22","totalQuantity":"5","payableAmount":"16","receiptOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057642793598550017","receiptOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2057506758352789509","instanceCode":"WH1ITEM1000000014","boxCode":"fadsf","remark":"z"}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057642793598550018","receiptOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"2","lineAmount":"2.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2057506758352789510","instanceCode":"WH1ITEM1000000015","boxCode":"fadsf","remark":"z"}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057642793598550019","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"4","lineAmount":"4.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771039', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:00:45.97864');  
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057642834866307073, U&'\5165\5e93\5355', 3, 'com.ruoyi.wms.controller.ReceiptOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/2057642793514663938', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:00:55.644938'),
+(2057643054496841729, U&'\5165\5e93\5355', 2, 'com.ruoyi.wms.controller.ReceiptOrderController.doWarehousing()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/receiptOrder/warehousing', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057643053632815105","receiptOrderNo":"RK05227975","receiptOrderType":"\91c7\8d2d\5165\5e93","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"a","purchaseDate":"2026-05-20","receiptDate":"2026-05-22","totalQuantity":"5","payableAmount":"20","receiptOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057643053632815106","receiptOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"2","lineAmount":"2.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2057506758352789510","instanceCode":"WH1ITEM1000000015","boxCode":"dsfa","remark":"z"}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057643053632815107","receiptOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771137254535169","locationId":"2056771137254535170","receiptItemInstances":[{"id":"2057506758352789509","instanceCode":"WH1ITEM1000000014","boxCode":"dsfa","remark":"z"}]},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057643053632815108","receiptOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"4","lineAmount":"4.00","remark":"z","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"205677103977', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:01:48.033959'),
+(2057645541106745347, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645541043830786","shipmentOrderNo":"CK05222806","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"aa","dispatchMode":"air","noticeOrg":"aa","receiveUnit":"a","purchaseDate":"2026-05-21","shipmentDate":"2026-05-22","receivableAmount":"7","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"a","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645541043830787","shipmentOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320833","itemInstanceId":"2057506758352789510","boxId":null,"remark":"x","key":"1828364459110469633_2056770222548135937_2057483830236110849"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645541106745346","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"4","lineAmount":"4.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320835","itemInstanceId":"2057483704289550338","boxId":null,"remark":"x","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:11:40.871106');      
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057645570840166402, U&'\51fa\5e93\5355', 3, 'com.ruoyi.wms.controller.ShipmentOrderController.remove()', 'DELETE', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/2057645541043830786', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:11:47.962951'),
+(2057645653115633666, U&'\51fa\5e93\5355', 1, 'com.ruoyi.wms.controller.ShipmentOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913409","shipmentOrderNo":"CK05223161","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"a","dispatchMode":"road","noticeOrg":"adfd","receiveUnit":"sd","purchaseDate":"2026-05-20","shipmentDate":"2026-05-22","receivableAmount":"5","totalQuantity":"2","shipmentOrderStatus":0,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"dfa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913410","shipmentOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320833","itemInstanceId":"2057506758352789510","boxId":null,"remark":"z","key":"1828364459110469633_2056770222548135937_2057483830236110849"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913411","shipmentOrderId":null,"skuId":"2056774315278680066","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"2","lineAmount":"2.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320835","itemInstanceId":"2057483704289550338","boxId":null,"remark":"z","key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:12:07.573735'),
+(2057645675370610690, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913409","shipmentOrderNo":"CK05223161","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"a","dispatchMode":"road","noticeOrg":"adfd","receiveUnit":"sd","purchaseDate":"2026-05-20","shipmentDate":"2026-05-22","receivableAmount":"5","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"dfa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913410","shipmentOrderId":"2057645653056913409","skuId":"2057483830236110849","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320833","itemInstanceId":"2057506758352789510","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2057483830236110849"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913411","shipmentOrderId":"2057645653056913409","skuId":"2056774315278680066","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"2","lineAmount":"2.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320835","itemInstanceId":"2057483704289550338","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', '', 0, U&'\7bb1\5185\5355\54c1\5fc5\987b\4e00\6b21\6027\6574\7bb1\51fa\5e93', TIMESTAMP '2026-05-22 10:12:12.884428');         
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057645701790531585, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913409","shipmentOrderNo":"CK05223161","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"a","dispatchMode":"road","noticeOrg":"adfd","receiveUnit":"sd","purchaseDate":"2026-05-20","shipmentDate":"2026-05-22","receivableAmount":"5","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"dfa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913410","shipmentOrderId":"2057645653056913409","skuId":"2057483830236110849","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320833","itemInstanceId":"2057506758352789510","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2057483830236110849"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913411","shipmentOrderId":"2057645653056913409","skuId":"2056774315278680066","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"2","lineAmount":"2.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320835","itemInstanceId":"2057483704289550338","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', '', 0, U&'\7bb1\5185\5355\54c1\5fc5\987b\4e00\6b21\6027\6574\7bb1\51fa\5e93', TIMESTAMP '2026-05-22 10:12:19.185325'),
+(2057647749785239554, U&'\51fa\5e93\5355', 2, 'com.ruoyi.wms.controller.ShipmentOrderController.shipment()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/shipmentOrder/shipment', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913409","shipmentOrderNo":"CK05223161","shipmentOrderType":"\501f\7528\51fa\5e93","basisNo":"a","dispatchMode":"road","noticeOrg":"adfd","receiveUnit":"sd","purchaseDate":"2026-05-20","shipmentDate":"2026-05-22","receivableAmount":"5","totalQuantity":"2","shipmentOrderStatus":1,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","remark":"dfa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913410","shipmentOrderId":"2057645653056913409","skuId":"2057483830236110849","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320833","itemInstanceId":"2057506758352789510","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2057483830236110849"},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057645653056913411","shipmentOrderId":"2057645653056913409","skuId":"2056774315278680066","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2023","unit":"\53f0","productIdentifier":"xx","qualityGrade":"\9ad8","unitPrice":"2","lineAmount":"2.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","inventoryDetailId":"2057643054291320835","itemInstanceId":"2057483704289550338","boxId":null,"remark":null,"key":"1828364459110469633_2056770222548135937_2056774315278680066"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:20:27.457898'),
+(2057650188437516290, U&'\501f\51fa\767b\8bb0', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2057483704289550339","borrowStatus":null,"borrower":"aa","fromUnit":"a","toUnit":"a","fromPerson":"a","toPerson":"dd","docDate":"2026-05-23","borrowNo":null,"planReturnDate":"2026-05-30","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000002","borrowTime":"2026-05-22 10:28:06","returnTime":null,"borrowRemark":"adfd","returnRemark":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:30:08.906272');            
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057650259644215298, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057650187955171330","itemInstanceId":null,"borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-23 00:00:00","borrowRemark":null,"returnRemark":"zz"}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:30:25.860705'),
+(2057654665433403394, U&'\501f\51fa\767b\8bb0', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2057483704348270594","borrowStatus":null,"borrower":"adfsad","fromUnit":"adsf","toUnit":"fdad","fromPerson":"adsfdsf","toPerson":"dasf","docDate":"2026-05-22","borrowNo":null,"planReturnDate":"2026-05-21","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000003","borrowTime":"2026-05-22 10:47:53","returnTime":null,"borrowRemark":"dasffd","returnRemark":null,"originalBoxId":null,"returnedBoxId":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:47:56.28905'),
+(2057654761873035267, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057654664724566017","itemInstanceId":null,"borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-22 10:48:18","borrowRemark":null,"returnRemark":"fdsa","originalBoxId":null,"returnedBoxId":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:48:19.271282'),
+(2057656234073739266, U&'\8c03\62e8\5355', 1, 'com.ruoyi.wms.controller.MovementOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656233872412673","movementOrderNo":"DB05226389","movementType":"\901a\88c5","dispatchBasis":"fdsafd","dispatchPurpose":"fa","dispatchMode":"road","fromUnit":"fdsa","toUnit":"fads","fromStation":null,"toStation":"sdf","fromAddress":null,"toAddress":null,"contactAddress":"dsfdsa","dispatchDate":null,"effectiveDate":"2026-05-23","issueDate":"2026-05-23","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","movementOrderStatus":0,"totalQuantity":"1","remark":"fadsfd","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057643054291320834","itemInstanceId":"2057506758352789509","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2057483830236110849"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:54:10.264267');            
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057656325174022146, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.edit()', 'PUT', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656233872412673","movementOrderNo":"DB05226389","movementType":"\901a\88c5","dispatchBasis":"fdsafd","dispatchPurpose":"fa","dispatchMode":"road","fromUnit":"fdsa","toUnit":"fads","fromStation":null,"toStation":"sdf","fromAddress":null,"toAddress":null,"contactAddress":"dsfdsa","dispatchDate":null,"effectiveDate":"2026-05-23","issueDate":"2026-05-23","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","movementOrderStatus":-1,"totalQuantity":"1.00","remark":"fadsfd","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656233939521537","movementOrderId":"2057656233872412673","skuId":"2057483830236110849","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769648226283522","targetAreaId":"2056770672827641857","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057643054291320834","itemInstanceId":"2057506758352789509","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2057483830236110849"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:54:31.991907'),
+(2057656545400147972, U&'\8c03\62e8\5355', 1, 'com.ruoyi.wms.controller.MovementOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656545400147970","movementOrderNo":"DB05225375","movementType":"\901a\88c5","dispatchBasis":"dsfad","dispatchPurpose":"sfdas","dispatchMode":"rail","fromUnit":"afdfd","toUnit":"adsf","fromStation":null,"toStation":"das","fromAddress":null,"toAddress":null,"contactAddress":"da","dispatchDate":null,"effectiveDate":"2026-05-29","issueDate":"2026-05-30","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769437957435394","targetAreaId":"2056770456179257345","movementOrderStatus":0,"totalQuantity":"1","remark":"dafa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"movementOrderId":null,"skuId":"2057483830236110849","quantity":"1","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769437957435394","targetAreaId":"2056770456179257345","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057643054291320834","itemInstanceId":"2057506758352789509","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2057483830236110849"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:55:24.500058'),
+(2057656569584504836, U&'\8c03\62e8\5355', 2, 'com.ruoyi.wms.controller.MovementOrderController.move()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/movementOrder/move', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', U&'{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656545400147970","movementOrderNo":"DB05225375","movementType":"\901a\88c5","dispatchBasis":"dsfad","dispatchPurpose":"sfdas","dispatchMode":"rail","fromUnit":"afdfd","toUnit":"adsf","fromStation":null,"toStation":"das","fromAddress":null,"toAddress":null,"contactAddress":"da","dispatchDate":null,"effectiveDate":"2026-05-29","issueDate":"2026-05-30","sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","targetWarehouseId":"2056769437957435394","targetAreaId":"2056770456179257345","movementOrderStatus":1,"totalQuantity":"1.00","remark":"dafa","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057656545400147971","movementOrderId":"2057656545400147970","skuId":"2057483830236110849","quantity":"1.00","itemCode":"HUI-DYJ","itemName":"\60e0\666e\6253\5370\673a","skuName":"2024","unit":"\53f0","productIdentifier":"yy","qualityGrade":"\4f4e","unitPrice":"3","lineAmount":"3.00","remark":null,"sourceWarehouseId":"1828364459110469633","sourceAreaId":"2056770222548135937","sourceRackId":"2056771137254535169","sourceLocationId":"2056771137254535170","targetWarehouseId":"2056769437957435394","targetAreaId":"2056770456179257345","targetRackId":null,"targetLocationId":null,"inventoryDetailId":"2057643054291320834","itemInstanceId":"2057506758352789509","warehouseId":"1828364459110469633","areaId":"2056770222548135937","key":"1828364459110469633_2056770222548135937_2057483830236110849"}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 10:55:30.283252');            
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057658796751540226, U&'\5e93\5b58\76d8\70b9\5355\636e', 1, 'com.ruoyi.wms.controller.CheckOrderController.add()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderNo":"PK05227090","checkOrderStatus":0,"checkOrderTotal":"-1","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":"2026-05-22 11:04:00","checkerName":"ad","reviewerName":"ad","remark":"addd","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"1","profitAndLoss":null,"differenceQuantity":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771039778910209","locationId":"2056771039846019074","receiptTime":"2026-05-22 10:01:47","inventoryDetailId":"2057643054291320837","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"checkOrderId":null,"skuId":"2056774315278680066","quantity":"1","checkQuantity":"0","profitAndLoss":null,"differenceQuantity":null,"warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771039778910209","locationId":"2056771039846019075","receiptTime":"2026-05-22 10:01:47","inventoryDetailId":"2057643054291320836","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 11:04:21.254697'),
+(2057658959989657603, U&'\5e93\5b58\76d8\70b9\5355\636e', 2, 'com.ruoyi.wms.controller.CheckOrderController.check()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/checkOrder/check', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057658796621516801","checkOrderNo":"PK05227090","checkOrderStatus":1,"checkOrderTotal":"-1.00","warehouseId":"1828364459110469633","areaId":null,"rackId":null,"checkScopeType":"warehouse","checkDate":"2026-05-22 11:04:00","checkerName":"ad","reviewerName":"ad","remark":"addd","details":[{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057658796684431361","checkOrderId":"2057658796621516801","skuId":"2056774315278680066","quantity":"1.00","checkQuantity":"1","profitAndLoss":"0.00","differenceQuantity":"0.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771039778910209","locationId":"2056771039846019074","receiptTime":"2026-05-22 10:01:47","inventoryDetailId":"2057643054291320837","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null},{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057658796684431362","checkOrderId":"2057658796621516801","skuId":"2056774315278680066","quantity":"1.00","checkQuantity":"0","profitAndLoss":"-1.00","differenceQuantity":"-1.00","warehouseId":"1828364459110469633","areaId":"2056770222548135937","rackId":"2056771039778910209","locationId":"2056771039846019075","receiptTime":"2026-05-22 10:01:47","inventoryDetailId":"2057643054291320836","itemInstanceId":null,"boxId":null,"remark":null,"haveProfitAndLoss":null}]}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 11:05:00.182117'),
+(2057660411818627073, U&'\501f\51fa\767b\8bb0', 1, 'com.ruoyi.wms.controller.BorrowRecordController.borrow()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/borrow', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":null,"itemInstanceId":"2057483704348270594","borrowStatus":null,"borrower":"dfa","fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":"2026-05-22","overdueFlag":null,"overdueDays":null,"instanceCode":"WH1ITEM1000000003","borrowTime":null,"returnTime":null,"borrowRemark":null,"returnRemark":null,"originalBoxId":null,"returnedBoxId":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 11:10:46.318954');     
+INSERT INTO "public"."sys_oper_log" VALUES
+(2057660446056730627, U&'\5f52\8fd8\767b\8bb0', 2, 'com.ruoyi.wms.controller.BorrowRecordController.returnItem()', 'POST', 1, 'admin', U&'\7814\53d1\90e8\95e8', '/wms/borrowRecord/return', '0:0:0:0:0:0:0:1', U&'\5185\7f51IP', '{"createBy":null,"createTime":null,"updateBy":null,"updateTime":null,"id":"2057660411755712513","itemInstanceId":null,"borrowStatus":null,"borrower":null,"fromUnit":null,"toUnit":null,"fromPerson":null,"toPerson":null,"docDate":null,"borrowNo":null,"planReturnDate":null,"overdueFlag":null,"overdueDays":null,"instanceCode":null,"borrowTime":null,"returnTime":"2026-05-22 11:10:54","borrowRemark":null,"returnRemark":null,"originalBoxId":null,"returnedBoxId":null}', U&'{"code":200,"msg":"\64cd\4f5c\6210\529f","data":null}', 1, '', TIMESTAMP '2026-05-22 11:10:54.494243');  
+CREATE INDEX "public"."idx_sys_oper_log_bt3" ON "public"."sys_oper_log"("business_type" NULLS FIRST);         
+CREATE INDEX "public"."idx_sys_oper_log_s4" ON "public"."sys_oper_log"("status" NULLS FIRST); 
+CREATE INDEX "public"."idx_sys_oper_log_ot5" ON "public"."sys_oper_log"("oper_time" NULLS FIRST);             
+CREATE CACHED TABLE "public"."sys_oss"(
+    "oss_id" BIGINT COMMENT U&'\5bf9\8c61\5b58\50a8\4e3b\952e' NOT NULL,
+    "file_name" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\6587\4ef6\540d' NOT NULL,
+    "original_name" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\539f\540d' NOT NULL,
+    "file_suffix" CHARACTER VARYING(10) DEFAULT '' COMMENT U&'\6587\4ef6\540e\7f00\540d' NOT NULL,
+    "url" CHARACTER VARYING(500) COMMENT U&'URL\5730\5740' NOT NULL,
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\4e0a\4f20\4eba',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\4eba',
+    "service" CHARACTER VARYING(20) DEFAULT 'minio' COMMENT U&'\670d\52a1\5546' NOT NULL
+);              
+ALTER TABLE "public"."sys_oss" ADD CONSTRAINT "public"."pk_sys_oss" PRIMARY KEY("oss_id");    
+-- 0 +/- SELECT COUNT(*) FROM public.sys_oss; 
+CREATE CACHED TABLE "public"."sys_oss_config"(
+    "oss_config_id" BIGINT COMMENT U&'\4e3b\5efa' NOT NULL,
+    "config_key" CHARACTER VARYING(20) DEFAULT '' COMMENT U&'\914d\7f6ekey' NOT NULL,
+    "access_key" CHARACTER VARYING(255) DEFAULT '' COMMENT 'accessKey',
+    "secret_key" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\79d8\94a5',
+    "bucket_name" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\6876\540d\79f0',
+    "prefix" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\524d\7f00',
+    "endpoint" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\8bbf\95ee\7ad9\70b9',
+    "domain" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\81ea\5b9a\4e49\57df\540d',
+    "is_https" CHARACTER(1) DEFAULT 'N' COMMENT U&'\662f\5426https\ff08Y=\662f,N=\5426\ff09',
+    "region" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\57df',
+    "access_policy" CHARACTER(1) DEFAULT '1' COMMENT U&'\6876\6743\9650\7c7b\578b(0=private 1=public 2=custom)' NOT NULL,
+    "status" CHARACTER(1) DEFAULT '1' COMMENT U&'\662f\5426\9ed8\8ba4\ff080=\662f,1=\5426\ff09',
+    "ext1" CHARACTER VARYING(255) DEFAULT '' COMMENT U&'\6269\5c55\5b57\6bb5',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);
+ALTER TABLE "public"."sys_oss_config" ADD CONSTRAINT "public"."pk_sys_oss_config" PRIMARY KEY("oss_config_id");               
+-- 5 +/- SELECT COUNT(*) FROM public.sys_oss_config;          
+INSERT INTO "public"."sys_oss_config" VALUES
+(1, 'minio', 'ruoyi', 'ruoyi123', 'ruoyi', '', '127.0.0.1:9000', '', 'N', '', '1', '0', '', 'admin', TIMESTAMP '2024-06-13 16:06:38', 'admin', TIMESTAMP '2024-08-16 16:48:05', NULL),
+(2, 'qiniu', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi', '', 's3-cn-north-1.qiniucs.com', '', 'N', '', '1', '0', '', 'admin', TIMESTAMP '2024-06-13 16:06:38', 'admin', TIMESTAMP '2024-06-13 16:06:38', NULL),
+(3, 'aliyun', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi', '', 'oss-cn-beijing.aliyuncs.com', '', 'N', '', '1', '0', '', 'admin', TIMESTAMP '2024-06-13 16:06:38', 'admin', TIMESTAMP '2024-07-10 17:50:41', NULL),
+(4, 'qcloud', 'XXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXX', 'ruoyi-1250000000', '', 'cos.ap-beijing.myqcloud.com', '', 'N', 'ap-beijing', '1', '0', '', 'admin', TIMESTAMP '2024-06-13 16:06:38', 'admin', TIMESTAMP '2024-06-13 16:06:38', NULL),
+(5, 'image', 'ruoyi', 'ruoyi123', 'ruoyi', 'image', '127.0.0.1:9000', '', 'N', '', '1', '0', '', 'admin', TIMESTAMP '2024-06-13 16:06:38', 'admin', TIMESTAMP '2024-06-13 16:06:38', NULL);      
+CREATE CACHED TABLE "public"."sys_post"(
+    "post_id" BIGINT COMMENT U&'\5c97\4f4dID' NOT NULL,
+    "post_code" CHARACTER VARYING(64) COMMENT U&'\5c97\4f4d\7f16\7801' NOT NULL,
+    "post_name" CHARACTER VARYING(50) COMMENT U&'\5c97\4f4d\540d\79f0' NOT NULL,
+    "post_sort" INTEGER COMMENT U&'\663e\793a\987a\5e8f' NOT NULL,
+    "status" CHARACTER(1) COMMENT U&'\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09' NOT NULL,
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);     
+ALTER TABLE "public"."sys_post" ADD CONSTRAINT "public"."pk_sys_post" PRIMARY KEY("post_id"); 
+-- 5 +/- SELECT COUNT(*) FROM public.sys_post;
+INSERT INTO "public"."sys_post" VALUES
+(1, 'ceo', U&'\8463\4e8b\957f', 1, '1', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL, ''),
+(2, 'se', U&'\9879\76ee\7ecf\7406', 2, '1', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL, ''),
+(3, 'hr', U&'\4eba\529b\8d44\6e90', 3, '1', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL, ''),
+(4, 'user', U&'\666e\901a\5458\5de5', 4, '1', 'admin', TIMESTAMP '2024-06-13 16:06:25', '', NULL, ''),
+(1811656351757385729, 'caiwu8989', U&'\8d22\52a1', 5, '1', 'admin', TIMESTAMP '2024-07-12 22:58:28', 'admin', TIMESTAMP '2024-07-12 14:58:38', NULL);           
+CREATE CACHED TABLE "public"."sys_role"(
+    "role_id" BIGINT COMMENT U&'\89d2\8272ID' NOT NULL,
+    "role_name" CHARACTER VARYING(30) COMMENT U&'\89d2\8272\540d\79f0' NOT NULL,
+    "role_key" CHARACTER VARYING(100) COMMENT U&'\89d2\8272\6743\9650\5b57\7b26\4e32' NOT NULL,
+    "role_sort" INTEGER COMMENT U&'\663e\793a\987a\5e8f' NOT NULL,
+    "data_scope" CHARACTER(1) DEFAULT '1' COMMENT U&'\6570\636e\8303\56f4\ff081\ff1a\5168\90e8\6570\636e\6743\9650 2\ff1a\81ea\5b9a\6570\636e\6743\9650 3\ff1a\672c\90e8\95e8\6570\636e\6743\9650 4\ff1a\672c\90e8\95e8\53ca\4ee5\4e0b\6570\636e\6743\9650\ff09',
+    "menu_check_strictly" TINYINT DEFAULT 1 COMMENT U&'\83dc\5355\6811\9009\62e9\9879\662f\5426\5173\8054\663e\793a',
+    "dept_check_strictly" TINYINT DEFAULT 1 COMMENT U&'\90e8\95e8\6811\9009\62e9\9879\662f\5426\5173\8054\663e\793a',
+    "status" CHARACTER(1) COMMENT U&'\89d2\8272\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09' NOT NULL,
+    "del_flag" CHARACTER(1) DEFAULT '0' COMMENT U&'\5220\9664\6807\5fd7\ff080\4ee3\8868\5b58\5728 2\4ee3\8868\5220\9664\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);           
+ALTER TABLE "public"."sys_role" ADD CONSTRAINT "public"."pk_sys_role" PRIMARY KEY("role_id"); 
+-- 5 +/- SELECT COUNT(*) FROM public.sys_role;
+INSERT INTO "public"."sys_role" VALUES
+(1, U&'\8d85\7ea7\7ba1\7406\5458', 'admin', 1, '1', 1, 1, '1', '0', 'admin', TIMESTAMP '2024-06-13 16:06:26', '', NULL, U&'\8d85\7ea7\7ba1\7406\5458'),
+(2, U&'\666e\901a\89d2\8272', 'common', 2, '2', 1, 1, '1', '1', 'admin', TIMESTAMP '2024-06-13 16:06:26', 'admin', TIMESTAMP '2024-07-10 17:13:05', U&'\666e\901a\89d2\8272'),
+(1811607750859661314, U&'\6d4b\8bd5\89d2\82721', 'test1', 2, '1', 1, 1, '1', '1', 'admin', TIMESTAMP '2024-07-12 11:45:21', 'admin', TIMESTAMP '2024-07-12 11:45:21', NULL),
+(1811629311809396737, U&'\6d4b\8bd5\89d2\82722', 'test2', 3, '1', 1, 1, '1', '1', 'admin', TIMESTAMP '2024-07-12 13:11:01', 'admin', TIMESTAMP '2024-07-12 13:11:01', NULL),
+(1829105952432427010, U&'\8bd5\7528', 'trier', 0, '1', 1, 1, '1', '0', 'admin', TIMESTAMP '2024-08-29 18:36:57', 'admin', TIMESTAMP '2024-08-30 10:51:57', NULL);
+CREATE CACHED TABLE "public"."sys_role_dept"(
+    "role_id" BIGINT COMMENT U&'\89d2\8272ID' NOT NULL,
+    "dept_id" BIGINT COMMENT U&'\90e8\95e8ID' NOT NULL
+);            
+ALTER TABLE "public"."sys_role_dept" ADD CONSTRAINT "public"."pk_sys_role_dept" PRIMARY KEY("role_id", "dept_id");            
+-- 0 +/- SELECT COUNT(*) FROM public.sys_role_dept;           
+CREATE CACHED TABLE "public"."sys_role_menu"(
+    "role_id" BIGINT COMMENT U&'\89d2\8272ID' NOT NULL,
+    "menu_id" BIGINT COMMENT U&'\83dc\5355ID' NOT NULL
+);            
+ALTER TABLE "public"."sys_role_menu" ADD CONSTRAINT "public"."pk_sys_role_menu" PRIMARY KEY("role_id", "menu_id");            
+-- 17 +/- SELECT COUNT(*) FROM public.sys_role_menu;          
+INSERT INTO "public"."sys_role_menu" VALUES
+(1829105952432427010, 1808758090157985794),
+(1829105952432427010, 1809059968309743618),
+(1829105952432427010, 1809059968309743619),
+(1829105952432427010, 1813458070128599041),
+(1829105952432427010, 1813820131794837506),
+(1829105952432427010, 1815207165755183105),
+(1829105952432427010, 1818466281474822145),
+(1829105952432427010, 1818854933803638785),
+(1829105952432427010, 1818855673632727042),
+(1829105952432427010, 1820729144067321858),
+(1829105952432427010, 1821075355068559361),
+(1829105952432427010, 1822862323595145218),
+(1829105952432427010, 1823187248797270018),
+(1829105952432427010, 1823190638784757762),
+(1829105952432427010, 1825769009480142850),
+(1829105952432427010, 1829349433573822466),
+(1829105952432427010, 1829351081448755202);      
+CREATE CACHED TABLE "public"."sys_user"(
+    "user_id" BIGINT COMMENT U&'\7528\6237ID' NOT NULL,
+    "dept_id" BIGINT DEFAULT NULL COMMENT U&'\90e8\95e8ID',
+    "user_name" CHARACTER VARYING(30) COMMENT U&'\7528\6237\8d26\53f7' NOT NULL,
+    "nick_name" CHARACTER VARYING(30) COMMENT U&'\7528\6237\6635\79f0' NOT NULL,
+    "user_type" CHARACTER VARYING(10) DEFAULT 'sys_user' COMMENT U&'\7528\6237\7c7b\578b\ff08sys_user\7cfb\7edf\7528\6237\ff09',
+    "email" CHARACTER VARYING(50) DEFAULT '' COMMENT U&'\7528\6237\90ae\7bb1',
+    "phonenumber" CHARACTER VARYING(11) DEFAULT '' COMMENT U&'\624b\673a\53f7\7801',
+    "sex" CHARACTER(1) DEFAULT '0' COMMENT U&'\7528\6237\6027\522b\ff080\7537 1\5973 2\672a\77e5\ff09',
+    "avatar" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5934\50cf\5730\5740',
+    "password" CHARACTER VARYING(100) DEFAULT '' COMMENT U&'\5bc6\7801',
+    "status" CHARACTER(1) DEFAULT '0' COMMENT U&'\5e10\53f7\72b6\6001\ff080\6b63\5e38 1\505c\7528\ff09',
+    "del_flag" CHARACTER(1) DEFAULT '0' COMMENT U&'\5220\9664\6807\5fd7\ff080\4ee3\8868\5b58\5728 2\4ee3\8868\5220\9664\ff09',
+    "login_ip" CHARACTER VARYING(128) DEFAULT '' COMMENT U&'\6700\540e\767b\5f55IP',
+    "login_date" TIMESTAMP DEFAULT NULL COMMENT U&'\6700\540e\767b\5f55\65f6\95f4',
+    "create_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT '' COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4',
+    "remark" CHARACTER VARYING(500) DEFAULT NULL COMMENT U&'\5907\6ce8'
+);       
+ALTER TABLE "public"."sys_user" ADD CONSTRAINT "public"."pk_sys_user" PRIMARY KEY("user_id"); 
+-- 2 +/- SELECT COUNT(*) FROM public.sys_user;
+INSERT INTO "public"."sys_user" VALUES
+(1, 103, 'admin', U&'\7cfb\7edf\7ba1\7406\5458', 'sys_user', 'zccbbg@qq.com', '18888888888', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '1', '0', '0:0:0:0:0:0:0:1', TIMESTAMP '2026-05-21 21:53:02', 'admin', TIMESTAMP '2024-06-13 16:06:25', 'admin', TIMESTAMP '2026-05-21 21:53:02', U&'\7ba1\7406\5458'),
+(1829105396288688129, 105, 'kucun', 'kucun', 'sys_user', '', '', '0', '', '$2a$10$jpbgHXxmB9nszkvhixjaQuwQtXcq7XJrqFaFpev/93WvaWa/oEpGy', '1', '0', '127.0.0.1', TIMESTAMP '2024-08-30 13:54:01', 'admin', TIMESTAMP '2024-08-29 18:34:44', 'kucun', TIMESTAMP '2024-08-30 13:54:01', NULL);           
+CREATE CACHED TABLE "public"."sys_user_post"(
+    "user_id" BIGINT COMMENT U&'\7528\6237ID' NOT NULL,
+    "post_id" BIGINT COMMENT U&'\5c97\4f4dID' NOT NULL
+);            
+ALTER TABLE "public"."sys_user_post" ADD CONSTRAINT "public"."pk_sys_user_post" PRIMARY KEY("user_id", "post_id");            
+-- 1 +/- SELECT COUNT(*) FROM public.sys_user_post;           
+INSERT INTO "public"."sys_user_post" VALUES
+(1, 1);          
+CREATE CACHED TABLE "public"."sys_user_role"(
+    "user_id" BIGINT COMMENT U&'\7528\6237ID' NOT NULL,
+    "role_id" BIGINT COMMENT U&'\89d2\8272ID' NOT NULL
+);            
+ALTER TABLE "public"."sys_user_role" ADD CONSTRAINT "public"."pk_sys_user_role" PRIMARY KEY("user_id", "role_id");            
+-- 2 +/- SELECT COUNT(*) FROM public.sys_user_role;           
+INSERT INTO "public"."sys_user_role" VALUES
+(1, 1),
+(1829105396288688129, 1829105952432427010);             
+CREATE CACHED TABLE "public"."wms_area"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057630411132329987) DEFAULT ON NULL NOT NULL,
+    "area_code" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\5e93\533a\7f16\7801',
+    "area_name" CHARACTER VARYING(60) COMMENT U&'\5e93\533a\540d\79f0' NOT NULL,
+    "warehouse_id" BIGINT COMMENT U&'\6240\5c5e\4ed3\5e93ID' NOT NULL,
+    "status" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\542f\7528\72b6\6001',
+    "order_num" BIGINT DEFAULT NULL COMMENT U&'\6392\5e8f',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);              
+ALTER TABLE "public"."wms_area" ADD CONSTRAINT "public"."pk_wms_area" PRIMARY KEY("id");      
+-- 13 +/- SELECT COUNT(*) FROM public.wms_area;               
+INSERT INTO "public"."wms_area" VALUES
+(2056770222548135937, NULL, U&'\4eacA\533a', 1828364459110469633, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:13:28.665', 'admin', TIMESTAMP '2026-05-20 00:15:31.883'),
+(2056770261064429569, NULL, U&'\4eacB\533a', 1828364459110469633, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:13:37.849', 'admin', TIMESTAMP '2026-05-20 00:15:27.078'),
+(2056770367725580289, NULL, U&'\6d77A\533a', 2056769387227328513, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:03.277', 'admin', TIMESTAMP '2026-05-20 00:14:03.277'),
+(2056770392228704258, NULL, U&'\6d77B\533a', 2056769387227328513, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:09.122', 'admin', TIMESTAMP '2026-05-20 00:14:09.122'),
+(2056770428895309825, NULL, U&'\671dA\533a', 2056769437957435394, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:17.861', 'admin', TIMESTAMP '2026-05-20 00:14:17.861'),
+(2056770456179257345, NULL, U&'\671dB\533a', 2056769437957435394, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:24.373', 'admin', TIMESTAMP '2026-05-20 00:14:24.373'),
+(2056770508046020609, NULL, U&'\4e1cA\533a', 2056769466831024130, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:36.736', 'admin', TIMESTAMP '2026-05-20 00:14:36.736'),
+(2056770538748325889, NULL, U&'\4e1cB\533a', 2056769466831024130, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:44.052', 'admin', TIMESTAMP '2026-05-20 00:14:44.052'),
+(2056770584306855938, NULL, U&'\897fA\533a', 2056769490864386049, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:14:54.914', 'admin', TIMESTAMP '2026-05-20 00:14:54.914'),
+(2056770610286374914, NULL, U&'\897fB\533a', 2056769490864386049, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:15:01.11', 'admin', TIMESTAMP '2026-05-20 00:15:01.11'),
+(2056770643404599297, NULL, U&'\5927A\533a', 2056769648226283522, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:15:09.002', 'admin', TIMESTAMP '2026-05-20 00:15:09.002'),
+(2056770672827641857, NULL, U&'\5927B\533a', 2056769648226283522, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:15:16.011', 'admin', TIMESTAMP '2026-05-22 00:20:51.287'),
+(2057630411132329986, NULL, U&'\4eacC\533a', 1828364459110469633, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-22 09:11:33.604', 'admin', TIMESTAMP '2026-05-22 09:11:33.604');
+CREATE INDEX "public"."idx_wms_area_warehouse_id6" ON "public"."wms_area"("warehouse_id" NULLS FIRST);        
+CREATE INDEX "public"."idx_wms_area_status7" ON "public"."wms_area"("status" NULLS FIRST);    
+CREATE CACHED TABLE "public"."wms_borrow_record"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057660411755712514) DEFAULT ON NULL NOT NULL,
+    "item_instance_id" BIGINT COMMENT U&'\5668\6750\5b9e\4f8bID' NOT NULL,
+    "borrow_status" CHARACTER VARYING(32) COMMENT U&'\501f\8fd8\72b6\6001' NOT NULL,
+    "borrower" CHARACTER VARYING(64) COMMENT U&'\501f\7528\4eba' NOT NULL,
+    "from_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\53d1\8d27\5355\4f4d',
+    "to_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\6536\8d27\5355\4f4d',
+    "from_person" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\53d1\8d27\4eba',
+    "to_person" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\6536\8d27\4eba',
+    "doc_date" DATE DEFAULT NULL COMMENT U&'\5355\636e\65e5\671f',
+    "borrow_no" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\501f\7528\5355\53f7',
+    "plan_return_date" DATE DEFAULT NULL COMMENT U&'\8ba1\5212\5f52\8fd8\65e5\671f',
+    "overdue_flag" TINYINT DEFAULT 0 COMMENT U&'\662f\5426\903e\671f',
+    "overdue_days" INTEGER DEFAULT 0 COMMENT U&'\903e\671f\5929\6570',
+    "instance_code" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5668\6750\7f16\7801',
+    "borrow_time" TIMESTAMP(3) COMMENT U&'\501f\7528\65f6\95f4' NOT NULL,
+    "return_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\5f52\8fd8\65f6\95f4',
+    "borrow_remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\501f\7528\5907\6ce8',
+    "return_remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5f52\8fd8\5907\6ce8',
+    "original_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\501f\51fa\524d\4ed3\5e93',
+    "original_area_id" BIGINT DEFAULT NULL COMMENT U&'\501f\51fa\524d\5e93\533a',
+    "original_rack_id" BIGINT DEFAULT NULL COMMENT U&'\501f\51fa\524d\8d27\67b6',
+    "original_location_id" BIGINT DEFAULT NULL COMMENT U&'\501f\51fa\524d\8d27\4f4d',
+    "returned_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\5f52\8fd8\540e\4ed3\5e93',
+    "returned_area_id" BIGINT DEFAULT NULL COMMENT U&'\5f52\8fd8\540e\5e93\533a',
+    "returned_rack_id" BIGINT DEFAULT NULL COMMENT U&'\5f52\8fd8\540e\8d27\67b6',
+    "returned_location_id" BIGINT DEFAULT NULL COMMENT U&'\5f52\8fd8\540e\8d27\4f4d',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4',
+    "original_box_id" BIGINT,
+    "returned_box_id" BIGINT
+);               
+ALTER TABLE "public"."wms_borrow_record" ADD CONSTRAINT "public"."pk_wms_borrow_record" PRIMARY KEY("id");    
+-- 3 +/- SELECT COUNT(*) FROM public.wms_borrow_record;       
+INSERT INTO "public"."wms_borrow_record" VALUES
+(2057650187955171330, 2057483704289550339, 'returned', 'aa', 'a', 'a', 'a', 'dd', DATE '2026-05-23', 'BR2057650187871285248', DATE '2026-05-30', 0, 0, 'WH1ITEM1000000002', TIMESTAMP '2026-05-22 10:28:06', TIMESTAMP '2026-05-23 00:00:00', 'adfd', 'zz', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 'admin', TIMESTAMP '2026-05-22 10:30:08.758', 'admin', TIMESTAMP '2026-05-22 10:30:25.848', NULL, NULL),
+(2057654664724566017, 2057483704348270594, 'returned', 'adfsad', 'adsf', 'fdad', 'adsfdsf', 'dasf', DATE '2026-05-22', 'BR2057654664682622976', DATE '2026-05-21', 0, 0, 'WH1ITEM1000000003', TIMESTAMP '2026-05-22 10:47:53', TIMESTAMP '2026-05-22 10:48:18', 'dasffd', 'fdsa', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 'admin', TIMESTAMP '2026-05-22 10:47:56.104', 'admin', TIMESTAMP '2026-05-22 10:48:19.262', 2057643053771227139, 2057643053771227139),
+(2057660411755712513, 2057483704348270594, 'returned', 'dfa', NULL, NULL, NULL, NULL, NULL, 'BR2057660411776684032', DATE '2026-05-22', 0, 0, 'WH1ITEM1000000003', TIMESTAMP '2026-05-22 11:10:46.307', TIMESTAMP '2026-05-22 11:10:54', NULL, NULL, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 'admin', TIMESTAMP '2026-05-22 11:10:46.307', 'admin', TIMESTAMP '2026-05-22 11:10:54.487', 2057643053771227139, 2057643053771227139);          
+CREATE INDEX "public"."idx_wms_borrow_record_item_instance_id8" ON "public"."wms_borrow_record"("item_instance_id" NULLS FIRST);              
+CREATE INDEX "public"."idx_wms_borrow_record_status9" ON "public"."wms_borrow_record"("borrow_status" NULLS FIRST);           
+CREATE INDEX "public"."idx_wms_borrow_record_borrow_time10" ON "public"."wms_borrow_record"("borrow_time" NULLS FIRST);       
+CREATE INDEX "public"."idx_wms_borrow_record_item_status11" ON "public"."wms_borrow_record"("item_instance_id" NULLS FIRST, "borrow_status" NULLS FIRST, "borrow_time" NULLS FIRST);          
+CREATE INDEX "public"."idx_wms_borrow_record_overdue12" ON "public"."wms_borrow_record"("overdue_flag" NULLS FIRST, "borrow_status" NULLS FIRST);             
+CREATE INDEX "public"."idx_wms_borrow_record_original_box_id" ON "public"."wms_borrow_record"("original_box_id" NULLS FIRST); 
+CREATE INDEX "public"."idx_wms_borrow_record_returned_box_id" ON "public"."wms_borrow_record"("returned_box_id" NULLS FIRST); 
+CREATE CACHED TABLE "public"."wms_box"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057643053771227141) DEFAULT ON NULL NOT NULL,
+    "box_code" CHARACTER VARYING(64) COMMENT U&'\7bb1\7801' NOT NULL,
+    "box_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\7bb1\4f53\540d\79f0',
+    "box_status" CHARACTER VARYING(32) DEFAULT 'idle' COMMENT U&'\7bb1\4f53\72b6\6001',
+    "item_count" INTEGER DEFAULT NULL COMMENT U&'\7bb1\5185\5668\6750\6570\91cf',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);          
+ALTER TABLE "public"."wms_box" ADD CONSTRAINT "public"."pk_wms_box" PRIMARY KEY("id");        
+-- 3 +/- SELECT COUNT(*) FROM public.wms_box; 
+INSERT INTO "public"."wms_box" VALUES
+(2057643053771227138, 'dsfa', 'dsfa', 'packed', 2, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.839', 'admin', TIMESTAMP '2026-05-22 10:01:47.913'),
+(2057643053771227139, 'dfadsfd', 'dfadsfd', 'packed', 2, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.843', 'admin', TIMESTAMP '2026-05-22 10:01:47.939'),
+(2057643053771227140, 'dfas', 'dfas', 'packed', 1, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.845', 'admin', TIMESTAMP '2026-05-22 10:01:47.928');  
+CREATE INDEX "public"."idx_wms_box_location_id13" ON "public"."wms_box"("location_id" NULLS FIRST);           
+CREATE INDEX "public"."idx_wms_box_position14" ON "public"."wms_box"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST, "rack_id" NULLS FIRST, "location_id" NULLS FIRST);    
+CREATE INDEX "public"."idx_wms_box_status15" ON "public"."wms_box"("box_status" NULLS FIRST); 
+CREATE CACHED TABLE "public"."wms_check_order"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057658796621516802) DEFAULT ON NULL NOT NULL,
+    "check_order_no" CHARACTER VARYING(22) DEFAULT NULL COMMENT U&'\76d8\70b9\5355\53f7',
+    "check_order_status" TINYINT DEFAULT 11 COMMENT U&'\5e93\5b58\76d8\70b9\5355\72b6\6001 -1\ff1a\4f5c\5e9f 0\ff1a\672a\76d8\5e93 1\ff1a\5df2\76d8\5e93',
+    "check_order_total" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\76c8\4e8f\6570',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\8d27\67b6',
+    "check_scope_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\76d8\70b9\8303\56f4\7c7b\578b',
+    "check_date" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\76d8\70b9\65e5\671f',
+    "checker_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\76d8\70b9\4eba',
+    "reviewer_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\590d\6838\4eba',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);      
+ALTER TABLE "public"."wms_check_order" ADD CONSTRAINT "public"."pk_wms_check_order" PRIMARY KEY("id");        
+-- 1 +/- SELECT COUNT(*) FROM public.wms_check_order;         
+INSERT INTO "public"."wms_check_order" VALUES
+(2057658796621516801, 'PK05227090', 1, -1.00, 1828364459110469633, NULL, NULL, 'warehouse', TIMESTAMP '2026-05-22 11:04:00', 'ad', 'ad', 'addd', 'admin', TIMESTAMP '2026-05-22 11:04:21.237', 'admin', TIMESTAMP '2026-05-22 11:05:00.146');  
+CREATE CACHED TABLE "public"."wms_check_order_detail"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057658796684431363) DEFAULT ON NULL NOT NULL,
+    "check_order_id" BIGINT DEFAULT NULL COMMENT U&'\76d8\70b9\5355id',
+    "sku_id" BIGINT COMMENT U&'\89c4\683cid' NOT NULL,
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5e93\5b58\6570\91cf',
+    "check_quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\76d8\70b9\6570\91cf',
+    "difference_quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5dee\5f02\6570\91cf',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "item_instance_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750\5b9e\4f8bID',
+    "box_id" BIGINT DEFAULT NULL COMMENT U&'\7bb1\4f53ID',
+    "receipt_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\5165\5e93\65f6\95f4',
+    "inventory_detail_id" BIGINT DEFAULT NULL COMMENT U&'\5165\5e93\8bb0\5f55id',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);        
+ALTER TABLE "public"."wms_check_order_detail" ADD CONSTRAINT "public"."pk_wms_check_order_detail" PRIMARY KEY("id");          
+-- 2 +/- SELECT COUNT(*) FROM public.wms_check_order_detail;  
+INSERT INTO "public"."wms_check_order_detail" VALUES
+(2057658796684431361, 2057658796621516801, 2056774315278680066, 1.00, 1.00, NULL, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, TIMESTAMP '2026-05-22 10:01:47', 2057643054291320837, NULL, 'admin', TIMESTAMP '2026-05-22 11:04:21.247', 'admin', TIMESTAMP '2026-05-22 11:05:00.155'),
+(2057658796684431362, 2057658796621516801, 2056774315278680066, 1.00, 0.00, NULL, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 2057483704289550339, 2057643053771227140, TIMESTAMP '2026-05-22 10:01:47', 2057643054291320836, NULL, 'admin', TIMESTAMP '2026-05-22 11:04:21.248', 'admin', TIMESTAMP '2026-05-22 11:05:00.16');       
+CREATE CACHED TABLE "public"."wms_inventory"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057658959960297474) DEFAULT ON NULL NOT NULL,
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cID',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5e93\5b58',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);            
+ALTER TABLE "public"."wms_inventory" ADD CONSTRAINT "public"."pk_wms_inventory" PRIMARY KEY("id");            
+-- 6 +/- SELECT COUNT(*) FROM public.wms_inventory;           
+INSERT INTO "public"."wms_inventory" VALUES
+(2057643054421344258, 2057483830236110849, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 1.00, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.995', 'admin', TIMESTAMP '2026-05-22 10:20:27.29'),
+(2057643054421344259, 2056774315278680066, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 1.00, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.995', 'admin', TIMESTAMP '2026-05-22 10:20:27.293'),
+(2057643054421344260, 2056774315278680066, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 1.00, NULL, 'admin', TIMESTAMP '2026-05-22 10:01:47.995', 'admin', TIMESTAMP '2026-05-22 10:01:47.995'),
+(2057656569425121282, 2057483830236110849, 1828364459110469633, 2056770222548135937, NULL, NULL, -1.00, NULL, 'admin', TIMESTAMP '2026-05-22 10:55:30.233', 'admin', TIMESTAMP '2026-05-22 10:55:30.233'),
+(2057656569500618754, 2057483830236110849, 2056769437957435394, 2056770456179257345, NULL, NULL, 1.00, NULL, 'admin', TIMESTAMP '2026-05-22 10:55:30.238', 'admin', TIMESTAMP '2026-05-22 10:55:30.238'),
+(2057658959960297473, 2056774315278680066, 1828364459110469633, 2056770222548135937, NULL, NULL, -1.00, NULL, 'admin', TIMESTAMP '2026-05-22 11:05:00.169', 'admin', TIMESTAMP '2026-05-22 11:05:00.169');      
+CREATE INDEX "public"."idx_wms_inventory_position16" ON "public"."wms_inventory"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST, "rack_id" NULLS FIRST, "location_id" NULLS FIRST);        
+CREATE CACHED TABLE "public"."wms_inventory_detail"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057656569500618756) DEFAULT ON NULL NOT NULL,
+    "receipt_order_id" BIGINT DEFAULT NULL COMMENT U&'\5165\5e93\5355id',
+    "receipt_order_type" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\5165\5e93\5355\7c7b\578b',
+    "order_no" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5355\53f7',
+    "type" INTEGER DEFAULT NULL COMMENT U&'\7c7b\578b 1\ff1a\5165\5e93 2\ff1a\79fb\5e93 3\ff1a\76d8\5e93',
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cID',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "item_instance_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750\660e\7ec6ID',
+    "box_id" BIGINT DEFAULT NULL COMMENT U&'\7bb1\4f53ID',
+    "source_order_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\6765\6e90\5355\636e\7c7b\578b',
+    "source_order_id" BIGINT DEFAULT NULL COMMENT U&'\6765\6e90\5355\636eID',
+    "line_no" INTEGER DEFAULT NULL COMMENT U&'\6765\6e90\884c\53f7',
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5165\5e93\6570\91cf',
+    "unit_price" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5355\4ef7',
+    "line_amount" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\603b\4ef7',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "remain_quantity" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\5269\4f59\6570\91cf',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);         
+ALTER TABLE "public"."wms_inventory_detail" ADD CONSTRAINT "public"."pk_wms_inventory_detail" PRIMARY KEY("id");              
+-- 2 +/- SELECT COUNT(*) FROM public.wms_inventory_detail;    
+INSERT INTO "public"."wms_inventory_detail" VALUES
+(2057643054291320837, 2057643053632815105, NULL, NULL, 1, 2056774315278680066, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, NULL, 1.00, 6.00, 6.00, 'z', 1.00, 'admin', TIMESTAMP '2026-05-22 10:01:47.967', 'admin', TIMESTAMP '2026-05-22 10:01:47.967'),
+(2057656569500618755, 2057656545400147970, NULL, 'DB05225375', 2, 2057483830236110849, 2056769437957435394, 2056770456179257345, NULL, NULL, 2057506758352789509, NULL, U&'\8c03\62e8\5355', 2057656545400147970, NULL, 1.00, 3.00, 3.00, NULL, 1.00, 'admin', TIMESTAMP '2026-05-22 10:55:30.252', 'admin', TIMESTAMP '2026-05-22 10:55:30.252');              
+CREATE INDEX "public"."idx_wms_inventory_detail_spec_time17" ON "public"."wms_inventory_detail"("create_time" NULLS FIRST);   
+CREATE INDEX "public"."idx_wms_inventory_detail_position18" ON "public"."wms_inventory_detail"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST, "rack_id" NULLS FIRST, "location_id" NULLS FIRST);          
+CREATE INDEX "public"."idx_wms_inventory_detail_instance_id19" ON "public"."wms_inventory_detail"("item_instance_id" NULLS FIRST);            
+CREATE INDEX "public"."idx_wms_inventory_detail_box_id20" ON "public"."wms_inventory_detail"("box_id" NULLS FIRST);           
+CREATE INDEX "public"."idx_wms_inventory_detail_order_line21" ON "public"."wms_inventory_detail"("order_no" NULLS FIRST, "line_no" NULLS FIRST);              
+CREATE CACHED TABLE "public"."wms_inventory_history"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057660446056730627) DEFAULT ON NULL NOT NULL,
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "item_instance_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750\660e\7ec6ID',
+    "box_id" BIGINT DEFAULT NULL COMMENT U&'\7bb1\4f53ID',
+    "before_quantity" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\53d8\5316\524d\6570\91cf',
+    "after_quantity" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\53d8\5316\540e\6570\91cf',
+    "operation_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\4e1a\52a1\52a8\4f5c\7c7b\578b',
+    "operator_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\64cd\4f5c\4eba',
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cID',
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5e93\5b58\53d8\5316',
+    "unit_price" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5355\4ef7',
+    "line_amount" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\603b\4ef7',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "order_id" BIGINT DEFAULT NULL COMMENT U&'\64cd\4f5cid\ff08\51fa\5e93\3001\5165\5e93\3001\5e93\5b58\79fb\52a8\8868\5355id\ff09',
+    "order_no" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\64cd\4f5c\5355\53f7\ff08\5165\5e93\3001\51fa\5e93\3001\79fb\5e93\3001\76d8\5e93\5355\53f7\ff09',
+    "order_type" INTEGER DEFAULT NULL COMMENT U&'\64cd\4f5c\7c7b\578b',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4'
+);      
+ALTER TABLE "public"."wms_inventory_history" ADD CONSTRAINT "public"."pk_wms_inventory_history" PRIMARY KEY("id");            
+-- 16 +/- SELECT COUNT(*) FROM public.wms_inventory_history;  
+INSERT INTO "public"."wms_inventory_history" VALUES
+(2057643054421344261, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2057506758352789510, 2057643053771227138, NULL, NULL, NULL, NULL, 2057483830236110849, 1.00, 2.00, 2.00, 'z', 2057643053632815105, 'RK05227975', 1, TIMESTAMP '2026-05-22 10:01:48.004'),
+(2057643054421344262, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2057506758352789509, 2057643053771227138, NULL, NULL, NULL, NULL, 2057483830236110849, 1.00, 3.00, 3.00, 'z', 2057643053632815105, 'RK05227975', 1, TIMESTAMP '2026-05-22 10:01:48.006'),
+(2057643054421344263, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704289550338, 2057643053771227139, NULL, NULL, NULL, NULL, 2056774315278680066, 1.00, 4.00, 4.00, 'z', 2057643053632815105, 'RK05227975', 1, TIMESTAMP '2026-05-22 10:01:48.006'),
+(2057643054421344264, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 2057483704289550339, 2057643053771227140, NULL, NULL, NULL, NULL, 2056774315278680066, 1.00, 5.00, 5.00, 'z', 2057643053632815105, 'RK05227975', 1, TIMESTAMP '2026-05-22 10:01:48.007'),
+(2057643054421344265, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, NULL, NULL, 2056774315278680066, 1.00, 6.00, 6.00, 'z', 2057643053632815105, 'RK05227975', 1, TIMESTAMP '2026-05-22 10:01:48.008'),
+(2057647749239980033, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2057506758352789510, 2057643053771227138, NULL, NULL, NULL, NULL, 2057483830236110849, -1.00, 3.00, 3.00, NULL, 2057645653056913409, 'CK05223161', 2, TIMESTAMP '2026-05-22 10:20:27.324'),
+(2057647749248368642, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704289550338, 2057643053771227139, NULL, NULL, NULL, NULL, 2056774315278680066, -1.00, 2.00, 2.00, NULL, 2057645653056913409, 'CK05223161', 2, TIMESTAMP '2026-05-22 10:20:27.339'),
+(2057650188106166274, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 2057483704289550339, 2057643053771227140, NULL, NULL, 'borrow', 'aa', 2056774315278680066, -1.00, NULL, NULL, 'adfd', 2057650187955171330, 'BR2057650187871285248', 5, TIMESTAMP '2026-05-22 10:28:06'),
+(2057650259644215297, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, 2057483704289550339, NULL, NULL, NULL, 'return', 'aa', 2056774315278680066, 1.00, NULL, NULL, 'zz', 2057650187955171330, 'BR2057650187871285248', 6, TIMESTAMP '2026-05-23 00:00:00'),
+(2057654664825229313, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, 'borrow', 'adfsad', 2056774315278680066, -1.00, NULL, NULL, 'dasffd', 2057654664724566017, 'BR2057654664682622976', 5, TIMESTAMP '2026-05-22 10:47:53'),
+(2057654761873035266, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, 'return', 'adfsad', 2056774315278680066, 1.00, NULL, NULL, 'fdsa', 2057654664724566017, 'BR2057654664682622976', 6, TIMESTAMP '2026-05-22 10:48:18'),
+(2057656569584504834, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2057506758352789509, NULL, NULL, NULL, NULL, NULL, 2057483830236110849, -1.00, 3.00, 3.00, NULL, 2057656545400147970, 'DB05225375', 3, TIMESTAMP '2026-05-22 10:55:30.257'),
+(2057656569584504835, 2056769437957435394, 2056770456179257345, NULL, NULL, 2057506758352789509, NULL, NULL, NULL, NULL, NULL, 2057483830236110849, 1.00, 3.00, 3.00, NULL, 2057656545400147970, 'DB05225375', 3, TIMESTAMP '2026-05-22 10:55:30.258'),
+(2057658959989657602, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, NULL, NULL, NULL, NULL, NULL, NULL, 2056774315278680066, -1.00, NULL, NULL, NULL, 2057658796621516801, 'PK05227090', 4, TIMESTAMP '2026-05-22 11:05:00.177');   
+INSERT INTO "public"."wms_inventory_history" VALUES
+(2057660411755712514, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, 'borrow', 'dfa', 2056774315278680066, -1.00, NULL, NULL, U&'\501f\51fa\767b\8bb0', 2057660411755712513, 'BR2057660411776684032', 5, TIMESTAMP '2026-05-22 11:10:46.307'),
+(2057660446056730626, 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, 2057483704348270594, 2057643053771227139, NULL, NULL, 'return', 'dfa', 2056774315278680066, 1.00, NULL, NULL, U&'\5f52\8fd8\767b\8bb0', 2057660411755712513, 'BR2057660411776684032', 6, TIMESTAMP '2026-05-22 11:10:54');          
+CREATE INDEX "public"."idx_wms_inventory_history_time22" ON "public"."wms_inventory_history"("create_time" NULLS FIRST, "order_type" NULLS FIRST);            
+CREATE INDEX "public"."idx_wms_inventory_history_position23" ON "public"."wms_inventory_history"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST, "rack_id" NULLS FIRST, "location_id" NULLS FIRST);        
+CREATE INDEX "public"."idx_wms_inventory_history_instance_id24" ON "public"."wms_inventory_history"("item_instance_id" NULLS FIRST);          
+CREATE INDEX "public"."idx_wms_inventory_history_box_id25" ON "public"."wms_inventory_history"("box_id" NULLS FIRST);         
+CREATE INDEX "public"."idx_wms_inventory_history_order_no26" ON "public"."wms_inventory_history"("order_no" NULLS FIRST);     
+CREATE CACHED TABLE "public"."wms_item"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2056774315211571202) DEFAULT ON NULL NOT NULL,
+    "item_code" CHARACTER VARYING(20) COMMENT U&'\5668\6750\7f16\7801' NOT NULL,
+    "item_name" CHARACTER VARYING(60) COMMENT U&'\5668\6750\540d\79f0' NOT NULL,
+    "item_category" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\5206\7c7b',
+    "unit" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\8ba1\91cf\5355\4f4d',
+    "equipment_name" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\88c5\5907\540d\79f0',
+    "equipment_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\5668\6750\7c7b\578b\ff1a\901a\88c5/\4e13\88c5',
+    "status" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\542f\7528\72b6\6001',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);     
+ALTER TABLE "public"."wms_item" ADD CONSTRAINT "public"."pk_wms_item" PRIMARY KEY("id");      
+-- 2 +/- SELECT COUNT(*) FROM public.wms_item;
+INSERT INTO "public"."wms_item" VALUES
+(2056768878227566594, 'box', U&'\5668\6750\7bb1', '2054732521107996674', U&'\4e2a', NULL, NULL, '1', NULL, 'admin', TIMESTAMP '2026-05-20 00:08:08.145', 'admin', TIMESTAMP '2026-05-20 00:08:08.145'),
+(2056774315211571201, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '1828365014901886978', U&'\53f0', NULL, NULL, '1', NULL, 'admin', TIMESTAMP '2026-05-20 00:29:44.432', 'admin', TIMESTAMP '2026-05-21 23:29:05.972');        
+CREATE INDEX "public"."idx_wms_item_equipment_type27" ON "public"."wms_item"("equipment_type" NULLS FIRST);   
+CREATE INDEX "public"."idx_wms_item_status28" ON "public"."wms_item"("status" NULLS FIRST);   
+CREATE CACHED TABLE "public"."wms_item_category"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2054732521107996675) DEFAULT ON NULL COMMENT U&'\5668\6750\7c7b\578bid' NOT NULL,
+    "parent_id" BIGINT DEFAULT 0 COMMENT U&'\7236\5668\6750\7c7b\578bid',
+    "category_name" CHARACTER VARYING(30) DEFAULT '' COMMENT U&'\5668\6750\7c7b\578b\540d\79f0',
+    "order_num" INTEGER DEFAULT 0 COMMENT U&'\663e\793a\987a\5e8f',
+    "status" CHARACTER(1) DEFAULT '1' COMMENT U&'\5668\6750\7c7b\578b\72b6\6001\ff080\505c\7528 1\6b63\5e38\ff09',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\8005',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\66f4\65b0\8005',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\66f4\65b0\65f6\95f4'
+);      
+ALTER TABLE "public"."wms_item_category" ADD CONSTRAINT "public"."pk_wms_item_category" PRIMARY KEY("id");    
+-- 5 +/- SELECT COUNT(*) FROM public.wms_item_category;       
+INSERT INTO "public"."wms_item_category" VALUES
+(1828365014901886978, 0, U&'\6253\5370\673a', 1, '1', 'admin', TIMESTAMP '2024-08-27 17:32:43.598', 'admin', TIMESTAMP '2024-08-27 20:14:12.447'),
+(1828365043024695297, 0, U&'\7535\8111', 3, '1', 'admin', TIMESTAMP '2024-08-27 17:32:50.301', 'admin', TIMESTAMP '2024-08-27 20:14:12.704'),
+(1828405743737016322, 0, U&'\5bb6\7535', 4, '1', 'admin', TIMESTAMP '2024-08-27 20:14:34.104', 'admin', TIMESTAMP '2024-08-27 20:14:34.104'),
+(1828408600515219457, 0, U&'\5065\8eab\5668\6750', 5, '1', 'admin', TIMESTAMP '2024-08-27 20:25:55.213', 'admin', TIMESTAMP '2026-05-08 14:23:49.56'),
+(2054732521107996674, 0, U&'\5668\6750\7bb1', 6, '1', 'admin', TIMESTAMP '2026-05-14 09:16:22.782', 'admin', TIMESTAMP '2026-05-14 09:16:22.782'); 
+CREATE CACHED TABLE "public"."wms_item_instance"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057506758352789511) DEFAULT ON NULL NOT NULL,
+    "instance_code" CHARACTER VARYING(64) COMMENT U&'\5668\6750\5b9e\4f8b\7f16\7801' NOT NULL,
+    "item_id" BIGINT COMMENT U&'\5668\6750ID' NOT NULL,
+    "sku_id" BIGINT COMMENT U&'\89c4\683cID' NOT NULL,
+    "instance_status" CHARACTER VARYING(32) DEFAULT U&'\5f85\5165\5e93' COMMENT U&'\5668\6750\5b9e\4f8b\72b6\6001',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d',
+    "source_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\6765\6e90\7c7b\578b',
+    "source_order_id" BIGINT DEFAULT NULL COMMENT U&'\6765\6e90\5355\636eID',
+    "source_order_no" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\6765\6e90\5355\636e\53f7',
+    "receipt_order_detail_id" BIGINT DEFAULT NULL COMMENT U&'\6765\6e90\5165\5e93\5355\660e\7ec6ID',
+    "shipment_order_detail_id" BIGINT DEFAULT NULL COMMENT U&'\6765\6e90\51fa\5e93\5355\660e\7ec6ID',
+    "source_order_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\6765\6e90\5355\636e\7c7b\578b',
+    "box_id" BIGINT DEFAULT NULL COMMENT U&'\5f53\524d\6240\5728\7bb1\4f53ID',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);     
+ALTER TABLE "public"."wms_item_instance" ADD CONSTRAINT "public"."pk_wms_item_instance" PRIMARY KEY("id");    
+-- 15 +/- SELECT COUNT(*) FROM public.wms_item_instance;      
+INSERT INTO "public"."wms_item_instance" VALUES
+(2057483704289550338, 'WH1ITEM1000000001', 2056774315211571201, 2056774315278680066, U&'\51fa\5e93', NULL, NULL, NULL, NULL, U&'\5165\5e93\5355', 2057643053632815105, 'RK05227975', 2057643053632815108, 2057645653056913411, U&'\5165\5e93\5355', NULL, 'z', 'admin', TIMESTAMP '2026-05-21 23:28:35.961', 'admin', TIMESTAMP '2026-05-22 10:20:27.256'),
+(2057483704289550339, 'WH1ITEM1000000002', 2056774315211571201, 2056774315278680066, U&'\5728\5e93', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075, U&'\5165\5e93\5355', 2057643053632815105, 'RK05227975', 2057643053632815109, NULL, U&'\5165\5e93\5355', NULL, 'z', 'admin', TIMESTAMP '2026-05-21 23:28:35.964', 'admin', TIMESTAMP '2026-05-22 10:01:47.877'),
+(2057483704348270594, 'WH1ITEM1000000003', 2056774315211571201, 2056774315278680066, U&'\5728\5e93', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074, U&'\5165\5e93\5355', 2057643053632815105, 'RK05227975', 2057643053699923970, NULL, U&'\5165\5e93\5355', 2057643053771227139, 'z', 'admin', TIMESTAMP '2026-05-21 23:28:35.986', 'admin', TIMESTAMP '2026-05-22 10:01:47.878'),
+(2057483704348270595, 'WH1ITEM1000000004', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:35.987', 'admin', TIMESTAMP '2026-05-21 23:28:35.987'),
+(2057483704411185153, 'WH1ITEM1000000005', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:35.989', 'admin', TIMESTAMP '2026-05-21 23:28:35.989'),
+(2057483704411185154, 'WH1ITEM1000000006', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:35.993', 'admin', TIMESTAMP '2026-05-21 23:28:35.993'),
+(2057483704411185155, 'WH1ITEM1000000007', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:35.995', 'admin', TIMESTAMP '2026-05-21 23:28:35.995'),
+(2057483704411185156, 'WH1ITEM1000000008', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:35.999', 'admin', TIMESTAMP '2026-05-21 23:28:35.999'),
+(2057483704411185157, 'WH1ITEM1000000009', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:36.002', 'admin', TIMESTAMP '2026-05-21 23:28:36.002'),
+(2057483704411185158, 'WH1ITEM1000000010', 2056774315211571201, 2056774315278680066, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-21 23:28:36.004', 'admin', TIMESTAMP '2026-05-21 23:28:36.004'),
+(2057506758352789506, 'WH1ITEM1000000011', 2056774315211571201, 2057483830236110849, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-22 01:00:12.48', 'admin', TIMESTAMP '2026-05-22 01:00:12.48'),
+(2057506758352789507, 'WH1ITEM1000000012', 2056774315211571201, 2057483830236110849, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-22 01:00:12.483', 'admin', TIMESTAMP '2026-05-22 01:00:12.483'),
+(2057506758352789508, 'WH1ITEM1000000013', 2056774315211571201, 2057483830236110849, U&'\5f85\5165\5e93', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-22 01:00:12.485', 'admin', TIMESTAMP '2026-05-22 01:00:12.485'),
+(2057506758352789509, 'WH1ITEM1000000014', 2056774315211571201, 2057483830236110849, U&'\5728\5e93', 2056769437957435394, 2056770456179257345, NULL, NULL, U&'\8c03\62e8\5355', 2057656545400147970, 'DB05225375', NULL, NULL, U&'\8c03\62e8\5355', NULL, 'z', 'admin', TIMESTAMP '2026-05-22 01:00:12.486', 'admin', TIMESTAMP '2026-05-22 10:01:47.869');    
+INSERT INTO "public"."wms_item_instance" VALUES
+(2057506758352789510, 'WH1ITEM1000000015', 2056774315211571201, 2057483830236110849, U&'\51fa\5e93', NULL, NULL, NULL, NULL, U&'\5165\5e93\5355', 2057643053632815105, 'RK05227975', 2057643053632815106, 2057645653056913410, U&'\5165\5e93\5355', NULL, 'z', 'admin', TIMESTAMP '2026-05-22 01:00:12.487', 'admin', TIMESTAMP '2026-05-22 10:20:27.254');  
+CREATE INDEX "public"."idx_wms_item_instance_item_id29" ON "public"."wms_item_instance"("item_id" NULLS FIRST);               
+CREATE INDEX "public"."idx_wms_item_instance_sku_id30" ON "public"."wms_item_instance"("sku_id" NULLS FIRST); 
+CREATE INDEX "public"."idx_wms_item_instance_source_order_id31" ON "public"."wms_item_instance"("source_order_id" NULLS FIRST);               
+CREATE INDEX "public"."idx_wms_item_instance_receipt_detail_id32" ON "public"."wms_item_instance"("receipt_order_detail_id" NULLS FIRST);     
+CREATE INDEX "public"."idx_wms_item_instance_location_id33" ON "public"."wms_item_instance"("location_id" NULLS FIRST);       
+CREATE INDEX "public"."idx_wms_item_instance_item_sku34" ON "public"."wms_item_instance"("item_id" NULLS FIRST, "sku_id" NULLS FIRST);        
+CREATE INDEX "public"."idx_wms_item_instance_location35" ON "public"."wms_item_instance"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST, "rack_id" NULLS FIRST, "location_id" NULLS FIRST);
+CREATE INDEX "public"."idx_wms_item_instance_box_id36" ON "public"."wms_item_instance"("box_id" NULLS FIRST); 
+CREATE INDEX "public"."idx_wms_item_instance_source_order37" ON "public"."wms_item_instance"("source_order_type" NULLS FIRST, "source_order_id" NULLS FIRST); 
+CREATE INDEX "public"."idx_wms_item_instance_shipment_detail38" ON "public"."wms_item_instance"("shipment_order_detail_id" NULLS FIRST);      
+CREATE CACHED TABLE "public"."wms_item_qr_code_serial"(
+    "item_key" CHARACTER VARYING(255) COMMENT U&'\5668\6750\540d\79f0+\89c4\683c\540d\79f0\552f\4e00\952e' NOT NULL,
+    "current_value" BIGINT DEFAULT 1000000001 COMMENT U&'\5f53\524d\53ef\5206\914d\7684\552f\4e00\503c\ff0c\9ed8\8ba4\4ece1000000001\5f00\59cb' NOT NULL
+);   
+ALTER TABLE "public"."wms_item_qr_code_serial" ADD CONSTRAINT "public"."pk_wms_item_qr_code_serial" PRIMARY KEY("item_key");  
+-- 2 +/- SELECT COUNT(*) FROM public.wms_item_qr_code_serial; 
+INSERT INTO "public"."wms_item_qr_code_serial" VALUES
+('WH1ITEM', 1000000016),
+('WH1RACK', 1000000002);     
+CREATE CACHED TABLE "public"."wms_item_sku"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057483830236110850) DEFAULT ON NULL NOT NULL,
+    "sku_name" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\89c4\683c\540d\79f0',
+    "product_identifier" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\4ea7\54c1\6807\8bc6',
+    "quality_grade" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d28\91cf\7b49\7ea7',
+    "item_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750id',
+    "status" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\542f\7528\72b6\6001',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);    
+ALTER TABLE "public"."wms_item_sku" ADD CONSTRAINT "public"."pk_wms_item_sku" PRIMARY KEY("id");              
+-- 4 +/- SELECT COUNT(*) FROM public.wms_item_sku;            
+INSERT INTO "public"."wms_item_sku" VALUES
+(2056768878252732418, U&'\5927', '', '', 2056768878227566594, '1', 'admin', TIMESTAMP '2026-05-20 00:08:08.164', 'admin', TIMESTAMP '2026-05-20 00:08:08.164'),
+(2056768878315646977, U&'\5c0f', '', '', 2056768878227566594, '1', 'admin', TIMESTAMP '2026-05-20 00:08:08.166', 'admin', TIMESTAMP '2026-05-20 00:08:08.166'),
+(2056774315278680066, '2023', 'xx', U&'\9ad8', 2056774315211571201, '1', 'admin', TIMESTAMP '2026-05-20 00:29:44.447', 'admin', TIMESTAMP '2026-05-21 23:29:05.988'),
+(2057483830236110849, '2024', 'yy', U&'\4f4e', 2056774315211571201, '1', 'admin', TIMESTAMP '2026-05-21 23:29:05.992', 'admin', TIMESTAMP '2026-05-21 23:29:05.992');    
+CREATE INDEX "public"."idx_wms_item_sku_item_id39" ON "public"."wms_item_sku"("item_id" NULLS FIRST);         
+CREATE INDEX "public"."idx_wms_item_sku_status40" ON "public"."wms_item_sku"("status" NULLS FIRST);           
+CREATE CACHED TABLE "public"."wms_location"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057630568078991367) DEFAULT ON NULL NOT NULL,
+    "location_code" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d27\4f4d\7f16\7801',
+    "location_name" CHARACTER VARYING(60) COMMENT U&'\8d27\4f4d\540d\79f0' NOT NULL,
+    "warehouse_id" BIGINT COMMENT U&'\6240\5c5e\4ed3\5e93' NOT NULL,
+    "area_id" BIGINT COMMENT U&'\6240\5c5e\5e93\533a' NOT NULL,
+    "rack_id" BIGINT COMMENT U&'\6240\5c5e\8d27\67b6' NOT NULL,
+    "location_status" CHARACTER VARYING(32) DEFAULT 'enabled' COMMENT U&'\8d27\4f4d\72b6\6001',
+    "row_no" INTEGER DEFAULT NULL COMMENT U&'\884c\53f7',
+    "column_no" INTEGER DEFAULT NULL COMMENT U&'\5217\53f7',
+    "length" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\957f',
+    "width" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5bbd',
+    "height" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\9ad8',
+    "occupied_flag" TINYINT DEFAULT 0 COMMENT U&'\662f\5426\5360\7528',
+    "sort_no" BIGINT DEFAULT NULL COMMENT U&'\6392\5e8f',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);              
+ALTER TABLE "public"."wms_location" ADD CONSTRAINT "public"."pk_wms_location" PRIMARY KEY("id");              
+-- 38 +/- SELECT COUNT(*) FROM public.wms_location;           
+INSERT INTO "public"."wms_location" VALUES
+(2056771039846019074, 'WH1RACK1000000001-R1-C1', U&'\4eacA\8d271-1-1', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 1, 1, 200.00, 600.00, 300.00, 1, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.518', 'admin', TIMESTAMP '2026-05-20 00:16:43.518'),
+(2056771039846019075, 'WH1RACK1000000001-R1-C2', U&'\4eacA\8d271-1-2', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 1, 2, 200.00, 600.00, 300.00, 1, 1002, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.522', 'admin', TIMESTAMP '2026-05-20 00:16:43.522'),
+(2056771039846019076, 'WH1RACK1000000001-R1-C3', U&'\4eacA\8d271-1-3', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 1, 3, 200.00, 600.00, 300.00, 0, 1003, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.525', 'admin', TIMESTAMP '2026-05-20 00:16:43.525'),
+(2056771039846019077, 'WH1RACK1000000001-R2-C1', U&'\4eacA\8d271-2-1', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 2, 1, 200.00, 600.00, 300.00, 0, 2001, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.527', 'admin', TIMESTAMP '2026-05-20 00:16:43.527'),
+(2056771039846019078, 'WH1RACK1000000001-R2-C2', U&'\4eacA\8d271-2-2', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 2, 2, 200.00, 600.00, 300.00, 0, 2002, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.531', 'admin', TIMESTAMP '2026-05-20 00:16:43.531'),
+(2056771039913127937, 'WH1RACK1000000001-R2-C3', U&'\4eacA\8d271-2-3', 1828364459110469633, 2056770222548135937, 2056771039778910209, 'enabled', 2, 3, 200.00, 600.00, 300.00, 0, 2003, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.538', 'admin', TIMESTAMP '2026-05-20 00:16:43.538'),
+(2056771137254535170, 'WH1RACK1000000002-R1-C1', U&'\4eacA\8d272-1-1', 1828364459110469633, 2056770222548135937, 2056771137254535169, 'enabled', 1, 1, 200.00, 200.00, 200.00, 1, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:06.742', 'admin', TIMESTAMP '2026-05-22 00:21:26.313'),
+(2056771221887201283, 'WH1RACK1000000003-R1-C1', U&'\4eacB\8d271-1-1', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 1, 1, 300.00, 900.00, 300.00, 0, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.922', 'admin', TIMESTAMP '2026-05-22 00:21:23.723'),
+(2056771221887201284, 'WH1RACK1000000003-R1-C2', U&'\4eacB\8d271-1-2', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 1, 2, 300.00, 900.00, 300.00, 0, 1002, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.925', 'admin', TIMESTAMP '2026-05-20 00:17:26.925'),
+(2056771221887201285, 'WH1RACK1000000003-R1-C3', U&'\4eacB\8d271-1-3', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 1, 3, 300.00, 900.00, 300.00, 0, 1003, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.928', 'admin', TIMESTAMP '2026-05-20 00:17:26.928'),
+(2056771221937532930, 'WH1RACK1000000003-R2-C1', U&'\4eacB\8d271-2-1', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 2, 1, 300.00, 900.00, 300.00, 0, 2001, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.931', 'admin', TIMESTAMP '2026-05-20 00:17:26.931'),
+(2056771221937532931, 'WH1RACK1000000003-R2-C2', U&'\4eacB\8d271-2-2', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 2, 2, 300.00, 900.00, 300.00, 0, 2002, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.936', 'admin', TIMESTAMP '2026-05-20 00:17:26.936'),
+(2056771221937532932, 'WH1RACK1000000003-R2-C3', U&'\4eacB\8d271-2-3', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 2, 3, 300.00, 900.00, 300.00, 0, 2003, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.939', 'admin', TIMESTAMP '2026-05-20 00:17:26.939'),
+(2056771221937532933, 'WH1RACK1000000003-R3-C1', U&'\4eacB\8d271-3-1', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 3, 1, 300.00, 900.00, 300.00, 1, 3001, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.942', 'admin', TIMESTAMP '2026-05-20 00:17:26.942'),
+(2056771221937532934, 'WH1RACK1000000003-R3-C2', U&'\4eacB\8d271-3-2', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 3, 2, 300.00, 900.00, 300.00, 1, 3002, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.945', 'admin', TIMESTAMP '2026-05-20 00:17:26.945');
+INSERT INTO "public"."wms_location" VALUES
+(2056771222004641794, 'WH1RACK1000000003-R3-C3', U&'\4eacB\8d271-3-3', 1828364459110469633, 2056770261064429569, 2056771221887201282, 'enabled', 3, 3, 300.00, 900.00, 300.00, 0, 3003, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.947', 'admin', TIMESTAMP '2026-05-20 00:17:26.947'),
+(2056771350060937219, 'WH1RACK1000000004-R1-C1', U&'\6d77A\8d271-1-1', 2056769387227328513, 2056770367725580289, 2056771350060937218, 'enabled', 1, 1, 50.00, 50.00, 50.00, 0, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:57.482', 'admin', TIMESTAMP '2026-05-20 00:17:57.482'),
+(2056772480702689283, 'WH1RACK1000000005-R1-C1', U&'\6d77B\8d271-1-1', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 1, 1, 200.00, 600.00, 300.00, 0, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.059', 'admin', TIMESTAMP '2026-05-20 00:22:27.059'),
+(2056772480702689284, 'WH1RACK1000000005-R1-C2', U&'\6d77B\8d271-1-2', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 1, 2, 200.00, 600.00, 300.00, 0, 1002, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.063', 'admin', TIMESTAMP '2026-05-20 00:22:27.063'),
+(2056772480702689285, 'WH1RACK1000000005-R1-C3', U&'\6d77B\8d271-1-3', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 1, 3, 200.00, 600.00, 300.00, 0, 1003, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.066', 'admin', TIMESTAMP '2026-05-20 00:22:27.066'),
+(2056772480702689286, 'WH1RACK1000000005-R2-C1', U&'\6d77B\8d271-2-1', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 2, 1, 200.00, 600.00, 300.00, 0, 2001, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.068', 'admin', TIMESTAMP '2026-05-20 00:22:27.068'),
+(2056772480702689287, 'WH1RACK1000000005-R2-C2', U&'\6d77B\8d271-2-2', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 2, 2, 200.00, 600.00, 300.00, 0, 2002, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.072', 'admin', TIMESTAMP '2026-05-20 00:22:27.072'),
+(2056772480702689288, 'WH1RACK1000000005-R2-C3', U&'\6d77B\8d271-2-3', 2056769387227328513, 2056770392228704258, 2056772480702689282, 'enabled', 2, 3, 200.00, 600.00, 300.00, 1, 2003, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.074', 'admin', TIMESTAMP '2026-05-20 00:22:27.074'),
+(2056772972304482306, 'WH1RACK1000000006-R1-C1', U&'\6d77B\8d272-1-1', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 1, 1, 200.00, 600.00, 300.00, 0, 1001, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.259', 'admin', TIMESTAMP '2026-05-22 00:21:19.301'),
+(2056772972304482307, 'WH1RACK1000000006-R1-C2', U&'\6d77B\8d272-1-2', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 1, 2, 200.00, 600.00, 300.00, 0, 1002, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.263', 'admin', TIMESTAMP '2026-05-22 00:21:01.332'),
+(2056772972367396865, 'WH1RACK1000000006-R1-C3', U&'\6d77B\8d272-1-3', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 1, 3, 200.00, 600.00, 300.00, 0, 1003, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.266', 'admin', TIMESTAMP '2026-05-22 00:21:01.333'),
+(2056772972367396866, 'WH1RACK1000000006-R2-C1', U&'\6d77B\8d272-2-1', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 2, 1, 200.00, 600.00, 300.00, 0, 2001, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.269', 'admin', TIMESTAMP '2026-05-22 00:21:01.335'),
+(2056772972367396867, 'WH1RACK1000000006-R2-C2', U&'\6d77B\8d272-2-2', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 2, 2, 200.00, 600.00, 300.00, 1, 2002, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.274', 'admin', TIMESTAMP '2026-05-22 00:21:01.336'),
+(2056772972438700034, 'WH1RACK1000000006-R2-C3', U&'\6d77B\8d272-2-3', 2056769387227328513, 2056770392228704258, 2056772972287705090, 'enabled', 2, 3, 200.00, 600.00, 300.00, 0, 2003, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.281', 'admin', TIMESTAMP '2026-05-22 00:21:01.338'),
+(2057630568016076801, 'WH1RACK1000000001-R1-C1', U&'\4eacC\8d271-1-1', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 1, 1, 300.00, 900.00, 300.00, 0, 1001, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.001', 'admin', TIMESTAMP '2026-05-22 09:12:11.001');   
+INSERT INTO "public"."wms_location" VALUES
+(2057630568016076802, 'WH1RACK1000000001-R1-C2', U&'\4eacC\8d271-1-2', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 1, 2, 300.00, 900.00, 300.00, 0, 1002, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.003', 'admin', TIMESTAMP '2026-05-22 09:12:11.003'),
+(2057630568016076803, 'WH1RACK1000000001-R1-C3', U&'\4eacC\8d271-1-3', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 1, 3, 300.00, 900.00, 300.00, 0, 1003, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.014', 'admin', TIMESTAMP '2026-05-22 09:12:11.014'),
+(2057630568078991361, 'WH1RACK1000000001-R2-C1', U&'\4eacC\8d271-2-1', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 2, 1, 300.00, 900.00, 300.00, 0, 2001, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.017', 'admin', TIMESTAMP '2026-05-22 09:12:11.017'),
+(2057630568078991362, 'WH1RACK1000000001-R2-C2', U&'\4eacC\8d271-2-2', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 2, 2, 300.00, 900.00, 300.00, 0, 2002, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.018', 'admin', TIMESTAMP '2026-05-22 09:12:11.018'),
+(2057630568078991363, 'WH1RACK1000000001-R2-C3', U&'\4eacC\8d271-2-3', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 2, 3, 300.00, 900.00, 300.00, 0, 2003, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.019', 'admin', TIMESTAMP '2026-05-22 09:12:11.019'),
+(2057630568078991364, 'WH1RACK1000000001-R3-C1', U&'\4eacC\8d271-3-1', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 3, 1, 300.00, 900.00, 300.00, 0, 3001, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.02', 'admin', TIMESTAMP '2026-05-22 09:12:11.02'),
+(2057630568078991365, 'WH1RACK1000000001-R3-C2', U&'\4eacC\8d271-3-2', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 3, 2, 300.00, 900.00, 300.00, 0, 3002, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.02', 'admin', TIMESTAMP '2026-05-22 09:12:11.02'),
+(2057630568078991366, 'WH1RACK1000000001-R3-C3', U&'\4eacC\8d271-3-3', 1828364459110469633, 2057630411132329986, 2057630567948967938, 'enabled', 3, 3, 300.00, 900.00, 300.00, 0, 3003, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:11.021', 'admin', TIMESTAMP '2026-05-22 09:12:11.021');        
+CREATE INDEX "public"."idx_wms_location_warehouse_id41" ON "public"."wms_location"("warehouse_id" NULLS FIRST);               
+CREATE INDEX "public"."idx_wms_location_area_id42" ON "public"."wms_location"("area_id" NULLS FIRST);         
+CREATE INDEX "public"."idx_wms_location_rack_id43" ON "public"."wms_location"("rack_id" NULLS FIRST);         
+CREATE INDEX "public"."idx_wms_location_status44" ON "public"."wms_location"("location_status" NULLS FIRST);  
+CREATE INDEX "public"."idx_wms_location_occupied45" ON "public"."wms_location"("occupied_flag" NULLS FIRST);  
+CREATE CACHED TABLE "public"."wms_merchant"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057630878373601282) DEFAULT ON NULL NOT NULL,
+    "merchant_code" CHARACTER VARYING(20) COMMENT U&'\5355\4f4d\7f16\53f7' NOT NULL,
+    "merchant_name" CHARACTER VARYING(60) COMMENT U&'\5355\4f4d\540d\79f0' NOT NULL,
+    "address" CHARACTER VARYING(200) DEFAULT NULL COMMENT U&'\5730\5740',
+    "mobile" CHARACTER VARYING(13) DEFAULT NULL COMMENT U&'\624b\673a\53f7',
+    "tel" CHARACTER VARYING(13) DEFAULT NULL COMMENT U&'\5ea7\673a\53f7',
+    "contact_person" CHARACTER VARYING(30) DEFAULT NULL COMMENT U&'\8054\7cfb\4eba',
+    "email" CHARACTER VARYING(50) DEFAULT NULL COMMENT 'Email',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);   
+ALTER TABLE "public"."wms_merchant" ADD CONSTRAINT "public"."pk_wms_merchant" PRIMARY KEY("id");              
+-- 1 +/- SELECT COUNT(*) FROM public.wms_merchant;            
+INSERT INTO "public"."wms_merchant" VALUES
+(2057630878373601281, 'aa', 'aa', 'a', 'a', 'a', 'a', 'a', 'a', 'admin', TIMESTAMP '2026-05-22 09:13:25.008', 'admin', TIMESTAMP '2026-05-22 09:13:25.008');      
+CREATE CACHED TABLE "public"."wms_movement_order"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057656545400147971) DEFAULT ON NULL NOT NULL,
+    "movement_order_no" CHARACTER VARYING(30) DEFAULT NULL COMMENT U&'\7f16\53f7',
+    "movement_type" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8c03\62e8\7c7b\578b',
+    "dispatch_basis" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\8c03\62e8\4f9d\636e',
+    "dispatch_purpose" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\8c03\62e8\76ee\7684',
+    "dispatch_mode" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8c03\62e8\65b9\5f0f',
+    "from_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\53d1\8d27\5355\4f4d',
+    "to_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\6536\8d27\5355\4f4d',
+    "from_station" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\53d1\7ad9',
+    "to_station" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\5230\7ad9',
+    "from_address" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\53d1\8d27\5730\5740',
+    "to_address" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\6536\8d27\5730\5740',
+    "contact_address" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\901a\4fe1\5730\5740',
+    "dispatch_date" DATE DEFAULT NULL COMMENT U&'\8c03\62e8\65e5\671f',
+    "effective_date" DATE DEFAULT NULL COMMENT U&'\6709\6548\65e5\671f',
+    "issue_date" DATE DEFAULT NULL COMMENT U&'\53d1\51fa\65e5\671f',
+    "source_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\4ed3\5e93',
+    "source_area_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\5e93\533a',
+    "target_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\4ed3\5e93',
+    "target_area_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\5e93\533a',
+    "movement_order_status" TINYINT DEFAULT NULL COMMENT U&'\72b6\6001',
+    "total_quantity" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\603b\6570\91cf',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);       
+ALTER TABLE "public"."wms_movement_order" ADD CONSTRAINT "public"."pk_wms_movement_order" PRIMARY KEY("id");  
+-- 2 +/- SELECT COUNT(*) FROM public.wms_movement_order;      
+INSERT INTO "public"."wms_movement_order" VALUES
+(2057656233872412673, 'DB05226389', U&'\901a\88c5', 'fdsafd', 'fa', 'road', 'fdsa', 'fads', NULL, 'sdf', NULL, NULL, 'dsfdsa', NULL, DATE '2026-05-23', DATE '2026-05-23', 1828364459110469633, 2056770222548135937, 2056769648226283522, 2056770672827641857, -1, 1.00, 'fadsfd', 'admin', TIMESTAMP '2026-05-22 10:54:10.217', 'admin', TIMESTAMP '2026-05-22 10:54:31.967'),
+(2057656545400147970, 'DB05225375', U&'\901a\88c5', 'dsfad', 'sfdas', 'rail', 'afdfd', 'adsf', NULL, 'das', NULL, NULL, 'da', NULL, DATE '2026-05-29', DATE '2026-05-30', 1828364459110469633, 2056770222548135937, 2056769437957435394, 2056770456179257345, 1, 1.00, 'dafa', 'admin', TIMESTAMP '2026-05-22 10:55:24.491', 'admin', TIMESTAMP '2026-05-22 10:55:30.208');
+CREATE CACHED TABLE "public"."wms_movement_order_detail"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057656545400147972) DEFAULT ON NULL NOT NULL,
+    "movement_order_id" BIGINT DEFAULT NULL COMMENT U&'\8c03\62e8\5355Id',
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cid',
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\6570\91cf',
+    "item_code" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5668\6750\7f16\7801',
+    "item_name" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\5668\6750\540d\79f0',
+    "sku_name" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\89c4\683c\578b\53f7',
+    "unit" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8ba1\91cf\5355\4f4d',
+    "product_identifier" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\4ea7\54c1\6807\8bc6',
+    "quality_grade" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d28\91cf\7b49\7ea7',
+    "unit_price" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5355\4ef7',
+    "line_amount" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\884c\91d1\989d',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "source_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\4ed3\5e93',
+    "source_area_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\5e93\533a',
+    "source_rack_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\8d27\67b6ID',
+    "source_location_id" BIGINT DEFAULT NULL COMMENT U&'\6e90\8d27\4f4dID',
+    "target_warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\4ed3\5e93',
+    "target_area_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\5e93\533a',
+    "target_rack_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\8d27\67b6ID',
+    "target_location_id" BIGINT DEFAULT NULL COMMENT U&'\76ee\6807\8d27\4f4dID',
+    "inventory_detail_id" BIGINT DEFAULT NULL COMMENT U&'\5165\5e93\8bb0\5f55id',
+    "item_instance_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750\5b9e\4f8bID',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);        
+ALTER TABLE "public"."wms_movement_order_detail" ADD CONSTRAINT "public"."pk_wms_movement_order_detail" PRIMARY KEY("id");    
+-- 2 +/- SELECT COUNT(*) FROM public.wms_movement_order_detail;               
+INSERT INTO "public"."wms_movement_order_detail" VALUES
+(2057656233939521537, 2057656233872412673, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2056769648226283522, 2056770672827641857, NULL, NULL, 2057643054291320834, 2057506758352789509, 'admin', TIMESTAMP '2026-05-22 10:54:10.246', 'admin', TIMESTAMP '2026-05-22 10:54:31.984'),
+(2057656545400147971, 2057656545400147970, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, NULL, 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, 2056769437957435394, 2056770456179257345, NULL, NULL, 2057643054291320834, 2057506758352789509, 'admin', TIMESTAMP '2026-05-22 10:55:24.494', 'admin', TIMESTAMP '2026-05-22 10:55:30.211');       
+CREATE INDEX "public"."idx_wms_movement_order_detail_item_instance_id46" ON "public"."wms_movement_order_detail"("item_instance_id" NULLS FIRST);             
+CREATE CACHED TABLE "public"."wms_rack"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057630567948967939) DEFAULT ON NULL NOT NULL,
+    "rack_code" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d27\67b6\7f16\7801',
+    "rack_name" CHARACTER VARYING(60) COMMENT U&'\8d27\67b6\540d\79f0' NOT NULL,
+    "warehouse_id" BIGINT COMMENT U&'\6240\5c5e\4ed3\5e93' NOT NULL,
+    "area_id" BIGINT COMMENT U&'\6240\5c5e\5e93\533a' NOT NULL,
+    "rack_status" CHARACTER VARYING(32) DEFAULT 'enabled' COMMENT U&'\8d27\67b6\72b6\6001',
+    "row_count" INTEGER DEFAULT NULL COMMENT U&'\884c\6570',
+    "column_count" INTEGER DEFAULT NULL COMMENT U&'\5217\6570',
+    "length" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\957f',
+    "width" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5bbd',
+    "height" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\9ad8',
+    "order_num" BIGINT DEFAULT NULL COMMENT U&'\6392\5e8f',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);
+ALTER TABLE "public"."wms_rack" ADD CONSTRAINT "public"."pk_wms_rack" PRIMARY KEY("id");      
+-- 7 +/- SELECT COUNT(*) FROM public.wms_rack;
+INSERT INTO "public"."wms_rack" VALUES
+(2056771039778910209, 'WH1RACK1000000001', U&'\4eacA\8d271', 1828364459110469633, 2056770222548135937, 'enabled', 2, 3, 600.00, 600.00, 600.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:16:43.507', 'admin', TIMESTAMP '2026-05-20 00:16:43.507'),
+(2056771137254535169, 'WH1RACK1000000002', U&'\4eacA\8d272', 1828364459110469633, 2056770222548135937, 'enabled', 1, 1, 200.00, 200.00, 200.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:06.738', 'admin', TIMESTAMP '2026-05-20 00:17:06.738'),
+(2056771221887201282, 'WH1RACK1000000003', U&'\4eacB\8d271', 1828364459110469633, 2056770261064429569, 'enabled', 3, 3, 900.00, 900.00, 900.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:26.919', 'admin', TIMESTAMP '2026-05-20 00:17:26.919'),
+(2056771350060937218, 'WH1RACK1000000004', U&'\6d77A\8d271', 2056769387227328513, 2056770367725580289, 'enabled', 1, 1, 50.00, 50.00, 50.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:17:57.48', 'admin', TIMESTAMP '2026-05-20 00:17:57.48'),
+(2056772480702689282, 'WH1RACK1000000005', U&'\6d77B\8d271', 2056769387227328513, 2056770392228704258, 'enabled', 2, 3, 600.00, 600.00, 600.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:22:27.057', 'admin', TIMESTAMP '2026-05-20 00:22:27.057'),
+(2056772972287705090, 'WH1RACK1000000006', U&'\6d77B\8d272', 2056769387227328513, 2056770392228704258, 'enabled', 2, 3, 600.00, 600.00, 600.00, 0, NULL, 'admin', TIMESTAMP '2026-05-20 00:24:24.246', 'admin', TIMESTAMP '2026-05-22 00:21:01.307'),
+(2057630567948967938, 'WH1RACK1000000001', U&'\4eacC\8d271', 1828364459110469633, 2057630411132329986, 'enabled', 3, 3, 900.00, 900.00, 900.00, 0, NULL, 'admin', TIMESTAMP '2026-05-22 09:12:10.991', 'admin', TIMESTAMP '2026-05-22 09:12:10.991');            
+CREATE INDEX "public"."idx_wms_rack_warehouse_id47" ON "public"."wms_rack"("warehouse_id" NULLS FIRST);       
+CREATE INDEX "public"."idx_wms_rack_area_id48" ON "public"."wms_rack"("area_id" NULLS FIRST); 
+CREATE INDEX "public"."idx_wms_rack_position49" ON "public"."wms_rack"("warehouse_id" NULLS FIRST, "area_id" NULLS FIRST);    
+CREATE CACHED TABLE "public"."wms_receipt_order"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057643053632815106) DEFAULT ON NULL NOT NULL,
+    "receipt_order_no" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\5165\5e93\5355\53f7',
+    "receipt_order_type" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\5165\5e93\7c7b\578b',
+    "basis_no" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\8c03\62e8\6839\636e',
+    "dispatch_mode" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8c03\62e8\65b9\5f0f',
+    "notice_org" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\901a\77e5\673a\5173',
+    "receive_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\6536\7269\5355\4f4d',
+    "purchase_date" DATE DEFAULT NULL COMMENT U&'\91c7\8d2d\65e5\671f',
+    "receipt_date" DATE DEFAULT NULL COMMENT U&'\5165\5e93\65e5\671f',
+    "total_quantity" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\5668\6750\603b\6570',
+    "payable_amount" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\8ba2\5355\91d1\989d',
+    "receipt_order_status" TINYINT DEFAULT NULL COMMENT U&'\5165\5e93\72b6\6001',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\4ed3\5e93id',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\5e93\533aid',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);             
+ALTER TABLE "public"."wms_receipt_order" ADD CONSTRAINT "public"."pk_wms_receipt_order" PRIMARY KEY("id");    
+-- 1 +/- SELECT COUNT(*) FROM public.wms_receipt_order;       
+INSERT INTO "public"."wms_receipt_order" VALUES
+(2057643053632815105, 'RK05227975', U&'\91c7\8d2d\5165\5e93', 'aa', 'air', 'aa', 'a', DATE '2026-05-20', DATE '2026-05-22', 5.00, 20.00, 1, 1828364459110469633, 2056770222548135937, 'a', 'admin', TIMESTAMP '2026-05-22 10:01:47.809', 'admin', TIMESTAMP '2026-05-22 10:01:47.809');      
+CREATE CACHED TABLE "public"."wms_receipt_order_detail"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057643053699923971) DEFAULT ON NULL NOT NULL,
+    "receipt_order_id" BIGINT DEFAULT NULL COMMENT U&'\5165\5e93\5355\53f7',
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cid',
+    "quantity" DECIMAL(20, 2) DEFAULT NULL COMMENT U&'\5165\5e93\6570\91cf',
+    "item_code" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5668\6750\7f16\7801',
+    "item_name" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\5668\6750\540d\79f0',
+    "sku_name" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\89c4\683c\578b\53f7',
+    "unit" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8ba1\91cf\5355\4f4d',
+    "product_identifier" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\4ea7\54c1\6807\8bc6',
+    "quality_grade" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d28\91cf\7b49\7ea7',
+    "unit_price" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5355\4ef7',
+    "line_amount" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\603b\4ef7',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "rack_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\67b6',
+    "location_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\8d27\4f4d'
+);              
+ALTER TABLE "public"."wms_receipt_order_detail" ADD CONSTRAINT "public"."pk_wms_receipt_order_detail" PRIMARY KEY("id");      
+-- 10 +/- SELECT COUNT(*) FROM public.wms_receipt_order_detail;               
+INSERT INTO "public"."wms_receipt_order_detail" VALUES
+(2057642793598550017, 2057642793514663938, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:00:45.817', 'admin', TIMESTAMP '2026-05-22 10:00:45.817', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170),
+(2057642793598550018, 2057642793514663938, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 2.00, 2.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:00:45.822', 'admin', TIMESTAMP '2026-05-22 10:00:45.822', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170),
+(2057642793598550019, 2057642793514663938, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 4.00, 4.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:00:45.824', 'admin', TIMESTAMP '2026-05-22 10:00:45.824', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074),
+(2057642793598550020, 2057642793514663938, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 3.00, 3.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:00:45.826', 'admin', TIMESTAMP '2026-05-22 10:00:45.826', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075),
+(2057642793686630402, 2057642793514663938, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 4.00, 4.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:00:45.83', 'admin', TIMESTAMP '2026-05-22 10:00:45.83', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074),
+(2057643053632815106, 2057643053632815105, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 2.00, 2.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:01:47.816', 'admin', TIMESTAMP '2026-05-22 10:01:47.863', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170),
+(2057643053632815107, 2057643053632815105, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:01:47.817', 'admin', TIMESTAMP '2026-05-22 10:01:47.865', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170),
+(2057643053632815108, 2057643053632815105, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 4.00, 4.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:01:47.818', 'admin', TIMESTAMP '2026-05-22 10:01:47.865', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074),
+(2057643053632815109, 2057643053632815105, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 5.00, 5.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:01:47.818', 'admin', TIMESTAMP '2026-05-22 10:01:47.867', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019075),
+(2057643053699923970, 2057643053632815105, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 6.00, 6.00, 'z', 'admin', TIMESTAMP '2026-05-22 10:01:47.819', 'admin', TIMESTAMP '2026-05-22 10:01:47.867', 1828364459110469633, 2056770222548135937, 2056771039778910209, 2056771039846019074);    
+CREATE CACHED TABLE "public"."wms_shipment_order"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057645653056913410) DEFAULT ON NULL NOT NULL,
+    "shipment_order_no" CHARACTER VARYING(22) DEFAULT NULL COMMENT U&'\51fa\5e93\5355\53f7\ff0c\7cfb\7edf\81ea\52a8\751f\6210',
+    "shipment_order_type" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\51fa\5e93\7c7b\578b',
+    "basis_no" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\8c03\62e8\6839\636e',
+    "dispatch_mode" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8c03\62e8\65b9\5f0f',
+    "notice_org" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\901a\77e5\673a\5173',
+    "receive_unit" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\6536\7269\5355\4f4d',
+    "purchase_date" DATE DEFAULT NULL COMMENT U&'\91c7\8d2d\65e5\671f',
+    "shipment_date" DATE DEFAULT NULL COMMENT U&'\51fa\5e93\65e5\671f',
+    "receivable_amount" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\8ba2\5355\91d1\989d',
+    "total_quantity" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\51fa\5e93\6570\91cf',
+    "shipment_order_status" TINYINT DEFAULT NULL COMMENT U&'\51fa\5e93\5355\72b6\6001',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\4ed3\5e93id',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\5e93\533aid',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);             
+ALTER TABLE "public"."wms_shipment_order" ADD CONSTRAINT "public"."pk_wms_shipment_order" PRIMARY KEY("id");  
+-- 1 +/- SELECT COUNT(*) FROM public.wms_shipment_order;      
+INSERT INTO "public"."wms_shipment_order" VALUES
+(2057645653056913409, 'CK05223161', U&'\501f\7528\51fa\5e93', 'a', 'road', 'adfd', 'sd', DATE '2026-05-20', DATE '2026-05-22', 5.00, 2.00, 1, 1828364459110469633, 2056770222548135937, 'dfa', 'admin', TIMESTAMP '2026-05-22 10:12:07.565', 'admin', TIMESTAMP '2026-05-22 10:20:27.139'); 
+CREATE CACHED TABLE "public"."wms_shipment_order_detail"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2057645653056913412) DEFAULT ON NULL NOT NULL,
+    "shipment_order_id" BIGINT DEFAULT NULL COMMENT U&'\51fa\5e93\5355',
+    "sku_id" BIGINT DEFAULT NULL COMMENT U&'\89c4\683cid',
+    "quantity" DECIMAL(10, 2) DEFAULT NULL COMMENT U&'\6570\91cf',
+    "item_code" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\5668\6750\7f16\7801',
+    "item_name" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\5668\6750\540d\79f0',
+    "sku_name" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\89c4\683c\578b\53f7',
+    "unit" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8ba1\91cf\5355\4f4d',
+    "product_identifier" CHARACTER VARYING(128) DEFAULT NULL COMMENT U&'\4ea7\54c1\6807\8bc6',
+    "quality_grade" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d28\91cf\7b49\7ea7',
+    "unit_price" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\5355\4ef7',
+    "line_amount" DECIMAL(18, 2) DEFAULT NULL COMMENT U&'\603b\4ef7',
+    "warehouse_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\4ed3\5e93',
+    "area_id" BIGINT DEFAULT NULL COMMENT U&'\6240\5c5e\5e93\533a',
+    "inventory_detail_id" BIGINT DEFAULT NULL COMMENT U&'\5165\5e93\8bb0\5f55id',
+    "item_instance_id" BIGINT DEFAULT NULL COMMENT U&'\5668\6750\5b9e\4f8bID',
+    "box_id" BIGINT DEFAULT NULL COMMENT U&'\7bb1\4f53ID',
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);          
+ALTER TABLE "public"."wms_shipment_order_detail" ADD CONSTRAINT "public"."pk_wms_shipment_order_detail" PRIMARY KEY("id");    
+-- 4 +/- SELECT COUNT(*) FROM public.wms_shipment_order_detail;               
+INSERT INTO "public"."wms_shipment_order_detail" VALUES
+(2057645541043830787, 2057645541043830786, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, 1828364459110469633, 2056770222548135937, 2057643054291320833, 2057506758352789510, NULL, 'x', 'admin', TIMESTAMP '2026-05-22 10:11:40.862', 'admin', TIMESTAMP '2026-05-22 10:11:40.862'),
+(2057645541106745346, 2057645541043830786, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 4.00, 4.00, 1828364459110469633, 2056770222548135937, 2057643054291320835, 2057483704289550338, NULL, 'x', 'admin', TIMESTAMP '2026-05-22 10:11:40.863', 'admin', TIMESTAMP '2026-05-22 10:11:40.863'),
+(2057645653056913410, 2057645653056913409, 2057483830236110849, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2024', U&'\53f0', 'yy', U&'\4f4e', 3.00, 3.00, 1828364459110469633, 2056770222548135937, 2057643054291320833, 2057506758352789510, NULL, 'z', 'admin', TIMESTAMP '2026-05-22 10:12:07.566', 'admin', TIMESTAMP '2026-05-22 10:20:27.201'),
+(2057645653056913411, 2057645653056913409, 2056774315278680066, 1.00, 'HUI-DYJ', U&'\60e0\666e\6253\5370\673a', '2023', U&'\53f0', 'xx', U&'\9ad8', 2.00, 2.00, 1828364459110469633, 2056770222548135937, 2057643054291320835, 2057483704289550338, NULL, 'z', 'admin', TIMESTAMP '2026-05-22 10:12:07.568', 'admin', TIMESTAMP '2026-05-22 10:20:27.227');   
+CREATE INDEX "public"."idx_wms_shipment_detail_item_instance_id50" ON "public"."wms_shipment_order_detail"("item_instance_id" NULLS FIRST);   
+CREATE INDEX "public"."idx_wms_shipment_detail_box_id51" ON "public"."wms_shipment_order_detail"("box_id" NULLS FIRST);       
+CREATE CACHED TABLE "public"."wms_warehouse"(
+    "id" BIGINT GENERATED BY DEFAULT AS IDENTITY(START WITH 1 RESTART WITH 2056769648226283523) DEFAULT ON NULL NOT NULL,
+    "warehouse_code" CHARACTER VARYING(20) DEFAULT NULL COMMENT U&'\4ed3\5e93\7f16\7801',
+    "warehouse_name" CHARACTER VARYING(50) COMMENT U&'\4ed3\5e93\540d\79f0' NOT NULL,
+    "remark" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5907\6ce8',
+    "order_num" BIGINT DEFAULT 0 COMMENT U&'\6392\5e8f',
+    "status" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\542f\7528\72b6\6001',
+    "address" CHARACTER VARYING(255) DEFAULT NULL COMMENT U&'\5730\5740',
+    "manager_name" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\8d1f\8d23\4eba',
+    "manager_phone" CHARACTER VARYING(32) DEFAULT NULL COMMENT U&'\8d1f\8d23\4eba\7535\8bdd',
+    "create_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\521b\5efa\4eba',
+    "create_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\521b\5efa\65f6\95f4',
+    "update_by" CHARACTER VARYING(64) DEFAULT NULL COMMENT U&'\4fee\6539\4eba',
+    "update_time" TIMESTAMP(3) DEFAULT NULL COMMENT U&'\4fee\6539\65f6\95f4'
+);            
+ALTER TABLE "public"."wms_warehouse" ADD CONSTRAINT "public"."pk_wms_warehouse" PRIMARY KEY("id");            
+-- 6 +/- SELECT COUNT(*) FROM public.wms_warehouse;           
+INSERT INTO "public"."wms_warehouse" VALUES
+(1828364459110469633, 'WH1', U&'\5317\4eac\4ed3', NULL, 0, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2024-08-27 17:30:31.084', 'admin', TIMESTAMP '2026-05-20 00:09:53.409'),
+(2056769387227328513, 'WH2', U&'\6d77\6dc0\4ed3', NULL, 4, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:10:09.514', 'admin', TIMESTAMP '2026-05-20 00:10:09.514'),
+(2056769437957435394, 'WH3', U&'\671d\9633\4ed3', NULL, 5, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:10:21.609', 'admin', TIMESTAMP '2026-05-20 00:10:21.609'),
+(2056769466831024130, 'WH4', U&'\4e1c\57ce\4ed3', NULL, 6, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:10:28.487', 'admin', TIMESTAMP '2026-05-20 00:10:28.487'),
+(2056769490864386049, 'WH5', U&'\897f\57ce\4ed3', NULL, 7, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:10:34.217', 'admin', TIMESTAMP '2026-05-20 00:10:34.217'),
+(2056769648226283522, 'WH6', U&'\5927\5174\4ed3', NULL, 8, NULL, NULL, NULL, NULL, 'admin', TIMESTAMP '2026-05-20 00:11:11.735', 'admin', TIMESTAMP '2026-05-20 00:11:11.735');             
+CREATE INDEX "public"."idx_wms_warehouse_status52" ON "public"."wms_warehouse"("status" NULLS FIRST);         
+ALTER TABLE "public"."wms_rack" ADD CONSTRAINT "public"."uk_wms_rack_pos_code" UNIQUE("warehouse_id", "area_id", "rack_code");
+ALTER TABLE "public"."wms_inventory" ADD CONSTRAINT "public"."uk_wms_inventory_position_sku" UNIQUE("warehouse_id", "area_id", "rack_id", "location_id", "sku_id");           
+ALTER TABLE "public"."sys_dict_type" ADD CONSTRAINT "public"."uk_sys_dict_type_dict_type" UNIQUE("dict_type");
+ALTER TABLE "public"."wms_borrow_record" ADD CONSTRAINT "public"."uk_wms_borrow_record_no" UNIQUE("borrow_no");               
+ALTER TABLE "public"."wms_location" ADD CONSTRAINT "public"."uk_wms_location_grid" UNIQUE("rack_id", "row_no", "column_no");  
+ALTER TABLE "public"."wms_item_instance" ADD CONSTRAINT "public"."uk_wms_item_instance_code" UNIQUE("instance_code");         
+ALTER TABLE "public"."wms_item" ADD CONSTRAINT "public"."uk_wms_item_code" UNIQUE("item_code");               
+ALTER TABLE "public"."wms_box" ADD CONSTRAINT "public"."uk_wms_box_code" UNIQUE("box_code");  
+ALTER TABLE "public"."wms_location" ADD CONSTRAINT "public"."uk_wms_location_pos_code" UNIQUE("warehouse_id", "area_id", "rack_id", "location_code");         
+ALTER TABLE "public"."wms_area" ADD CONSTRAINT "public"."uk_wms_area_code" UNIQUE("warehouse_id", "area_code");               
+ALTER TABLE "public"."wms_warehouse" ADD CONSTRAINT "public"."uk_wms_warehouse_code" UNIQUE("warehouse_code");
