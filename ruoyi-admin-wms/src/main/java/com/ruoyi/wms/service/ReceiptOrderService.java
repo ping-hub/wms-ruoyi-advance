@@ -359,7 +359,17 @@ public class ReceiptOrderService {
         Map<Long, List<ItemInstanceVo>> itemMapByDetailId = itemInstanceService.queryVoMapByReceiptDetailIds(detailIds);
         receiptOrderVo.getDetails().forEach(detail -> {
             List<ItemInstanceVo> itemInstanceVos = itemMapByDetailId.getOrDefault(detail.getId(), List.of());
-            detail.setReceiptItemInstances(itemInstanceVos.stream().map(this::toReceiptItemInstanceVo).toList());
+            List<ReceiptItemInstanceVo> receiptItemInstances = itemInstanceVos.stream()
+                .map(this::toReceiptItemInstanceVo)
+                .collect(Collectors.toList());
+            if (CollUtil.isNotEmpty(receiptItemInstances) && StringUtils.isNotBlank(detail.getBoxCode())) {
+                receiptItemInstances.forEach(item -> {
+                    if (StringUtils.isBlank(item.getBoxCode())) {
+                        item.setBoxCode(detail.getBoxCode());
+                    }
+                });
+            }
+            detail.setReceiptItemInstances(receiptItemInstances);
         });
     }
 
@@ -479,6 +489,10 @@ public class ReceiptOrderService {
             ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
             Assert.notNull(itemSku, "规格不存在");
             fillReceiptSnapshot(detail, itemSku);
+            if (StringUtils.isBlank(detail.getBoxCode())
+                && CollUtil.isNotEmpty(detail.getReceiptItemInstances())) {
+                detail.setBoxCode(StrUtil.trim(detail.getReceiptItemInstances().get(0).getBoxCode()));
+            }
             if (detail.getQuantity() == null) {
                 detail.setQuantity(BigDecimal.ONE);
             }

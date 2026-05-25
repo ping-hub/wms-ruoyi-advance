@@ -87,6 +87,12 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 箱码
+     */
+    private String boxCode;
+
     /**
      * 所属仓库
      */
