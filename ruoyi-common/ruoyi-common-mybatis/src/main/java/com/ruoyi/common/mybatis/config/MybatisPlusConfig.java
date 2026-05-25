@@ -1,6 +1,7 @@
 package com.ruoyi.common.mybatis.config;
 
 import cn.hutool.core.net.NetUtil;
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
@@ -51,6 +52,8 @@ public class MybatisPlusConfig {
      */
     public PaginationInnerInterceptor paginationInnerInterceptor() {
         PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor();
+        // 设置数据库类型为 POSTGRE_SQL (Vastbase 基于 PostgreSQL)
+        paginationInnerInterceptor.setDbType(DbType.POSTGRE_SQL);
         // 分页合理化
         paginationInnerInterceptor.setOverflow(true);
         return paginationInnerInterceptor;

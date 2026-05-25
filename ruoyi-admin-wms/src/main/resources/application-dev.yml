@@ -14,12 +14,12 @@ spring:
         # 主库数据源
         master:
           type: ${spring.datasource.type}
-          driverClassName: com.mysql.cj.jdbc.Driver
+          driverClassName: cn.com.vastbase.Driver
           # jdbc 所有参数配置参考 https://lionli.blog.csdn.net/article/details/122018562
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
-          url: jdbc:mysql://localhost:3306/wms_advence_master?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
-          username: root
-          password: 123456
+          url: jdbc:vastbase://47.113.216.139:5432/wmsdb?currentSchema=wms_advence_master
+          username: app_user
+          password: Test@123
         # 从库数据源
 #        slave:
 #          lazy: false
@@ -40,7 +40,7 @@ spring:
         # 空闲连接存活最大时间，默认10分钟
         idleTimeout: 600000
         # 此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认30分钟
-        maxLifetime: 1800000
+        maxLifetime: 300000
         # 多久检查一次连接的活性
         keepaliveTime: 30000
 

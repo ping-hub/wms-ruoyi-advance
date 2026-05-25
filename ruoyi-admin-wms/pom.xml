@@ -62,6 +62,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- vastbaseG100 -jdbc driver-->
+        <dependency>
+            <groupId>cn.com.vastbase</groupId>
+            <artifactId>Vastbase-G100-2.14_vb</artifactId>
+            <version>2026011411</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/lib/Vastbase-G100-2.14_vb_2026011411.jar</systemPath>
+        </dependency>
+
         <!-- skywalking 整合 logback -->
 <!--        <dependency>-->
 <!--            <groupId>org.apache.skywalking</groupId>-->
