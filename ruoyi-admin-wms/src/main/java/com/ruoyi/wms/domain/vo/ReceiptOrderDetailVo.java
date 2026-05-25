@@ -105,6 +105,12 @@ public class ReceiptOrderDetailVo implements Serializable {
     private String remark;
 
     /**
+     * 箱码
+     */
+    @ExcelProperty(value = "箱码")
+    private String boxCode;
+
+    /**
      * 所属仓库
      */
     @ExcelProperty(value = "所属仓库")
