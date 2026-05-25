@@ -11,7 +11,7 @@
  Target Server Version : 80200
  File Encoding         : 65001
 
- Date: 22/05/2026 14:34:54
+ Date: 26/05/2026 00:14:45
 */
 
 SET NAMES utf8mb4;
@@ -168,7 +168,7 @@ CREATE TABLE `sys_dict_data`  (
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`dict_code`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1900000000000010933 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典数据表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1900000000000010932 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典数据表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_dict_data
@@ -1057,7 +1057,7 @@ CREATE TABLE `wms_area`  (
   UNIQUE INDEX `uk_wms_area_code`(`warehouse_id`, `area_code`) USING BTREE,
   INDEX `idx_wms_area_warehouse_id`(`warehouse_id`) USING BTREE,
   INDEX `idx_wms_area_status`(`status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056770672827641858 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库区' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2056770672827641857 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库区' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_area
@@ -1121,7 +1121,7 @@ CREATE TABLE `wms_borrow_record`  (
   INDEX `idx_wms_borrow_record_overdue`(`overdue_flag`, `borrow_status`) USING BTREE,
   INDEX `idx_wms_borrow_record_original_box_id`(`original_box_id`) USING BTREE,
   INDEX `idx_wms_borrow_record_returned_box_id`(`returned_box_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057116912845168643 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '借还记录' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057116912845168642 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '借还记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_borrow_record
@@ -1153,7 +1153,7 @@ CREATE TABLE `wms_box`  (
   INDEX `idx_wms_box_location_id`(`location_id`) USING BTREE,
   INDEX `idx_wms_box_position`(`warehouse_id`, `area_id`, `rack_id`, `location_id`) USING BTREE,
   INDEX `idx_wms_box_status`(`box_status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057404460452622338 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '箱体' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057460272415944705 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '箱体' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_box
@@ -1174,7 +1174,7 @@ INSERT INTO `wms_box` VALUES (2057460272415944705, 'xxzxcx', 'xxzxcx', 'packed',
 DROP TABLE IF EXISTS `wms_check_order`;
 CREATE TABLE `wms_check_order`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `check_order_no` varchar(22) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '盘点单号',
+  `check_order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '盘点单号',
   `check_order_status` tinyint NULL DEFAULT 11 COMMENT '库存盘点单状态 -1：作废 0：未盘库 1：已盘库',
   `check_order_total` decimal(20, 2) NULL DEFAULT NULL COMMENT '盈亏数',
   `warehouse_id` bigint NULL DEFAULT NULL COMMENT '所属仓库',
@@ -1190,7 +1190,7 @@ CREATE TABLE `wms_check_order`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057301175179710466 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存盘点单据' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057301175179710465 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存盘点单据' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_check_order
@@ -1223,7 +1223,7 @@ CREATE TABLE `wms_check_order_detail`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057301175477506051 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存盘点单据详情' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057301175477506050 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存盘点单据详情' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_check_order_detail
@@ -1255,7 +1255,7 @@ CREATE TABLE `wms_inventory`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_wms_inventory_position_sku`(`warehouse_id`, `area_id`, `rack_id`, `location_id`, `sku_id`) USING BTREE,
   INDEX `idx_wms_inventory_position`(`warehouse_id`, `area_id`, `rack_id`, `location_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057385076782870530 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057460272671797251 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_inventory
@@ -1308,7 +1308,7 @@ CREATE TABLE `wms_inventory_detail`  (
   INDEX `idx_wms_inventory_detail_instance_id`(`item_instance_id`) USING BTREE,
   INDEX `idx_wms_inventory_detail_box_id`(`box_id`) USING BTREE,
   INDEX `idx_wms_inventory_detail_order_line`(`order_no`, `line_no`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057353886025703426 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '库存详情' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057463794712752130 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '库存详情' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_inventory_detail
@@ -1351,7 +1351,7 @@ CREATE TABLE `wms_inventory_history`  (
   INDEX `idx_wms_inventory_history_instance_id`(`item_instance_id`) USING BTREE,
   INDEX `idx_wms_inventory_history_box_id`(`box_id`) USING BTREE,
   INDEX `idx_wms_inventory_history_order_no`(`order_no`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057385076849979396 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存记录' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057463794712752132 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_inventory_history
@@ -1403,7 +1403,7 @@ CREATE TABLE `wms_item`  (
   UNIQUE INDEX `uk_wms_item_code`(`item_code`) USING BTREE,
   INDEX `idx_wms_item_equipment_type`(`equipment_type`) USING BTREE,
   INDEX `idx_wms_item_status`(`status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056774315211571202 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2056774315211571201 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_item
@@ -1426,7 +1426,7 @@ CREATE TABLE `wms_item_category`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '更新者',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2054732521107996675 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材类型表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2054732521107996674 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材类型表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_item_category
@@ -1475,7 +1475,7 @@ CREATE TABLE `wms_item_instance`  (
   INDEX `idx_wms_item_instance_box_id`(`box_id`) USING BTREE,
   INDEX `idx_wms_item_instance_source_order`(`source_order_type`, `source_order_id`) USING BTREE,
   INDEX `idx_wms_item_instance_shipment_detail`(`shipment_order_detail_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056774828187533318 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '器材实例' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057493372898492417 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '器材实例' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_item_instance
@@ -1540,7 +1540,7 @@ CREATE TABLE `wms_item_sku`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_wms_item_sku_item_id`(`item_id`) USING BTREE,
   INDEX `idx_wms_item_sku_status`(`status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056774315278680067 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材规格信息' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057493158586335233 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '器材规格信息' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_item_sku
@@ -1582,7 +1582,7 @@ CREATE TABLE `wms_location`  (
   INDEX `idx_wms_location_rack_id`(`rack_id`) USING BTREE,
   INDEX `idx_wms_location_status`(`location_status`) USING BTREE,
   INDEX `idx_wms_location_occupied`(`occupied_flag`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056772972438700035 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '货位' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2056772972438700034 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '货位' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_location
@@ -1636,7 +1636,7 @@ CREATE TABLE `wms_merchant`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '往来单位' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '往来单位' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_merchant
@@ -1648,7 +1648,7 @@ CREATE TABLE `wms_merchant`  (
 DROP TABLE IF EXISTS `wms_movement_order`;
 CREATE TABLE `wms_movement_order`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `movement_order_no` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '编号',
+  `movement_order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '编号',
   `movement_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '调拨类型',
   `dispatch_basis` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '调拨依据',
   `dispatch_purpose` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '调拨目的',
@@ -1675,7 +1675,7 @@ CREATE TABLE `wms_movement_order`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057385076648652803 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '调拨单' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057463794524008450 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '调拨单' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_movement_order
@@ -1719,7 +1719,7 @@ CREATE TABLE `wms_movement_order_detail`  (
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_wms_movement_order_detail_item_instance_id`(`item_instance_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057385076719955970 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '调拨单详情' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057463794586923010 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '调拨单详情' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_movement_order_detail
@@ -1757,7 +1757,7 @@ CREATE TABLE `wms_rack`  (
   INDEX `idx_wms_rack_warehouse_id`(`warehouse_id`) USING BTREE,
   INDEX `idx_wms_rack_area_id`(`area_id`) USING BTREE,
   INDEX `idx_wms_rack_position`(`warehouse_id`, `area_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056772972287705091 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '货架' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2056772972287705090 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '货架' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_rack
@@ -1794,7 +1794,7 @@ CREATE TABLE `wms_receipt_order`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057404460297433091 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '入库单' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057460272143314946 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '入库单' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_receipt_order
@@ -1832,22 +1832,23 @@ CREATE TABLE `wms_receipt_order_detail`  (
   `area_id` bigint NULL DEFAULT NULL COMMENT '所属库区',
   `rack_id` bigint NULL DEFAULT NULL COMMENT '所属货架',
   `location_id` bigint NULL DEFAULT NULL COMMENT '所属货位',
+  `box_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057404460297433093 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '入库单详情' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057460272206229506 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '入库单详情' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_receipt_order_detail
 -- ----------------------------
-INSERT INTO `wms_receipt_order_detail` VALUES (2056999507401707521, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.427', 'admin', '2026-05-20 22:04:13.203', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail` VALUES (2056999507401707522, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.434', 'admin', '2026-05-20 22:04:13.205', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057002888392413186, 2057002888316915714, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 6.00, 6.00, NULL, 'admin', '2026-05-20 15:38:00.517', 'admin', '2026-05-20 15:38:00.575', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057020275804147714, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 16:47:06.009', 'admin', '2026-05-20 16:47:06.061', 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972304482306);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057020275804147715, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 400.00, 400.00, NULL, 'admin', '2026-05-20 16:47:06.010', 'admin', '2026-05-20 16:47:06.063', 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057020275892228098, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 300.00, 300.00, NULL, 'admin', '2026-05-20 16:47:06.023', 'admin', '2026-05-20 16:47:06.069', 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972367396867);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057384612792184833, 2057384612725075970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 4444.00, 4444.00, NULL, 'admin', '2026-05-21 16:54:50.716', 'admin', '2026-05-21 16:54:50.771', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532933);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057404460297433091, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.730', 'admin', '2026-05-21 18:13:42.766', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057404460297433092, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.732', 'admin', '2026-05-21 18:13:42.769', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170);
-INSERT INTO `wms_receipt_order_detail` VALUES (2057460272206229506, 2057460272143314946, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 901.00, 901.00, NULL, 'admin', '2026-05-21 21:55:29.335', 'admin', '2026-05-21 21:55:29.386', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532934);
+INSERT INTO `wms_receipt_order_detail` VALUES (2056999507401707521, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.427', 'admin', '2026-05-20 22:04:13.203', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2056999507401707522, 2056999507242323970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 15:24:34.434', 'admin', '2026-05-20 22:04:13.205', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057002888392413186, 2057002888316915714, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 6.00, 6.00, NULL, 'admin', '2026-05-20 15:38:00.517', 'admin', '2026-05-20 15:38:00.575', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221887201283, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057020275804147714, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 50.00, 50.00, NULL, 'admin', '2026-05-20 16:47:06.009', 'admin', '2026-05-20 16:47:06.061', 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972304482306, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057020275804147715, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 400.00, 400.00, NULL, 'admin', '2026-05-20 16:47:06.010', 'admin', '2026-05-20 16:47:06.063', 2056769387227328513, 2056770392228704258, 2056772480702689282, 2056772480702689288, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057020275892228098, 2057020275804147713, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 300.00, 300.00, NULL, 'admin', '2026-05-20 16:47:06.023', 'admin', '2026-05-20 16:47:06.069', 2056769387227328513, 2056770392228704258, 2056772972287705090, 2056772972367396867, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057384612792184833, 2057384612725075970, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 4444.00, 4444.00, NULL, 'admin', '2026-05-21 16:54:50.716', 'admin', '2026-05-21 16:54:50.771', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532933, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057404460297433091, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.730', 'admin', '2026-05-21 18:13:42.766', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057404460297433092, 2057404460297433090, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 1.00, 1.00, NULL, 'admin', '2026-05-21 18:13:42.732', 'admin', '2026-05-21 18:13:42.769', 1828364459110469633, 2056770222548135937, 2056771137254535169, 2056771137254535170, NULL);
+INSERT INTO `wms_receipt_order_detail` VALUES (2057460272206229506, 2057460272143314946, 2056774315278680066, 1.00, 'HUI-DYJ', '惠普打印机', '2023', '台', 'xx', '高', 901.00, 901.00, NULL, 'admin', '2026-05-21 21:55:29.335', 'admin', '2026-05-21 21:55:29.386', 1828364459110469633, 2056770261064429569, 2056771221887201282, 2056771221937532934, NULL);
 
 -- ----------------------------
 -- Table structure for wms_shipment_order
@@ -1855,7 +1856,7 @@ INSERT INTO `wms_receipt_order_detail` VALUES (2057460272206229506, 205746027214
 DROP TABLE IF EXISTS `wms_shipment_order`;
 CREATE TABLE `wms_shipment_order`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `shipment_order_no` varchar(22) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出库单号，系统自动生成',
+  `shipment_order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出库单号，系统自动生成',
   `shipment_order_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出库类型',
   `basis_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '调拨根据',
   `dispatch_mode` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '调拨方式',
@@ -1874,7 +1875,7 @@ CREATE TABLE `wms_shipment_order`  (
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
   `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057028353064783875 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '出库单' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057028353064783874 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '出库单' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_shipment_order
@@ -1913,7 +1914,7 @@ CREATE TABLE `wms_shipment_order_detail`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_wms_shipment_detail_item_instance_id`(`item_instance_id`) USING BTREE,
   INDEX `idx_wms_shipment_detail_box_id`(`box_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2057356420182237186 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '出库单详情' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2057356420182237185 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '出库单详情' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_shipment_order_detail
@@ -1943,7 +1944,7 @@ CREATE TABLE `wms_warehouse`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_wms_warehouse_code`(`warehouse_code`) USING BTREE,
   INDEX `idx_wms_warehouse_status`(`status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2056769648226283523 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '仓库' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2056769648226283522 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '仓库' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of wms_warehouse
