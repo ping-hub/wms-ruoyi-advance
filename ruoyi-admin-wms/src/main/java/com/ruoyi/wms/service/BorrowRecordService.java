@@ -146,6 +146,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     public void returnItem(BorrowRecordBo bo) {
         BorrowRecord borrowRecord = resolveActiveRecord(bo);
         validateOriginalLocationStillAvailable(borrowRecord);
+        LocalDateTime effectiveReturnTime = bo.getReturnTime() == null ? LocalDateTime.now() : bo.getReturnTime();
+        Assert.isFalse(effectiveReturnTime.isAfter(LocalDateTime.now()), "归还时间不能晚于当前时间");
         itemInstanceService.restoreFromBorrow(
             borrowRecord.getItemInstanceId(),
             borrowRecord.getOriginalWarehouseId(),
@@ -157,20 +159,20 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         BorrowRecord update = new BorrowRecord();
         update.setId(borrowRecord.getId());
         update.setBorrowStatus(ServiceConstants.BorrowStatus.RETURNED);
-        update.setReturnTime(bo.getReturnTime() == null ? LocalDateTime.now() : bo.getReturnTime());
+        update.setReturnTime(effectiveReturnTime);
         update.setReturnRemark(bo.getReturnRemark());
         update.setReturnedWarehouseId(borrowRecord.getOriginalWarehouseId());
         update.setReturnedAreaId(borrowRecord.getOriginalAreaId());
         update.setReturnedRackId(borrowRecord.getOriginalRackId());
         update.setReturnedLocationId(borrowRecord.getOriginalLocationId());
         update.setReturnedBoxId(borrowRecord.getOriginalBoxId());
-        fillOverdueFields(update, borrowRecord.getBorrowTime(), update.getReturnTime() == null ? LocalDateTime.now() : update.getReturnTime());
+        fillOverdueFields(update, borrowRecord.getBorrowTime(), effectiveReturnTime);
         borrowRecordMapper.updateById(update);
         borrowRecord.setReturnTime(update.getReturnTime());
         borrowRecord.setReturnRemark(update.getReturnRemark());
         ItemInstance itemInstance = itemInstanceService.getById(borrowRecord.getItemInstanceId());
         if (itemInstance != null) {
-            createReturnHistory(borrowRecord, itemInstance, update.getReturnTime());
+            createReturnHistory(borrowRecord, itemInstance);
         }
     }
 
@@ -415,7 +417,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         inventoryHistoryService.save(history);
     }
 
-    private void createReturnHistory(BorrowRecord borrowRecord, ItemInstance itemInstance, LocalDateTime returnTime) {
+    private void createReturnHistory(BorrowRecord borrowRecord, ItemInstance itemInstance) {
         InventoryHistory history = new InventoryHistory();
         history.setOrderId(borrowRecord.getId());
         history.setOrderNo(StrUtil.blankToDefault(borrowRecord.getBorrowNo(), String.valueOf(borrowRecord.getId())));
@@ -431,7 +433,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setOperationType("return");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getUpdateBy()));
         history.setRemark(StrUtil.blankToDefault(borrowRecord.getReturnRemark(), "归还登记"));
-        history.setCreateTime(returnTime);
+        history.setCreateTime(LocalDateTime.now());
         inventoryHistoryService.save(history);
     }
 

@@ -100,6 +100,11 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     private String remark;
 
     /**
+     * 箱码
+     */
+    private String boxCode;
+
+    /**
      * 所属仓库
      */
     @NotNull(message = "所属仓库不能为空", groups = { AddGroup.class, EditGroup.class })
