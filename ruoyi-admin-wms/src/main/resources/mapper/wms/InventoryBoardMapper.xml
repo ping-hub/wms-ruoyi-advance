@@ -80,6 +80,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 and sku.sku_name like concat('%', #{bo.skuName}, '%')
             </if>
         </where>
-        order by inventory.update_time desc, inventory.id desc
+        order by inventory.quantity desc, inventory.update_time desc, inventory.id desc
     </select>
 </mapper>
