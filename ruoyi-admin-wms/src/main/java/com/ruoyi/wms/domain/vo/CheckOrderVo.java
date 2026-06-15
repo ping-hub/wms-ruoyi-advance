@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 库存盘点单据视图对象 wms_check_order
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @Data
@@ -103,4 +103,6 @@ public class CheckOrderVo extends BaseVo {
     private String remark;
 
     private List<CheckOrderDetailVo> details;
+
+    private List<CheckOrderInstanceVo> instances;
 }

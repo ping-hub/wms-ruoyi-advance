@@ -11,7 +11,7 @@ import java.io.Serial;
 /**
  * 往来单位对象 wms_merchant
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-16
  */
 @Data

@@ -67,9 +67,9 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return vo;
     }
 
-    public BorrowRecordVo queryCurrentByItemInstanceId(Long itemInstanceId) {
+    public BorrowRecordVo queryCurrentByInstanceCode(String instanceCode) {
         LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BorrowRecord::getItemInstanceId, itemInstanceId);
+        lqw.eq(BorrowRecord::getInstanceCode, instanceCode);
         lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
         lqw.orderByDesc(BorrowRecord::getBorrowTime);
         lqw.last("limit 1");
@@ -115,10 +115,10 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
 
     @Transactional
     public void borrow(BorrowRecordBo bo) {
-        ItemInstance itemInstance = requireBorrowableItem(bo.getItemInstanceId());
-        Assert.isNull(findActiveRecordEntity(bo.getItemInstanceId()), "该单品实例已处于借出状态");
+        ItemInstance itemInstance = requireBorrowableItem(bo.getInstanceCode());
+        Assert.isNull(findActiveRecordEntity(bo.getInstanceCode()), "该单品实例已处于借出状态");
         BorrowRecord add = new BorrowRecord();
-        add.setItemInstanceId(itemInstance.getId());
+        add.setInstanceCode(itemInstance.getInstanceCode());
         add.setBorrowStatus(ServiceConstants.BorrowStatus.BORROWED);
         add.setBorrower(bo.getBorrower());
         add.setFromUnit(bo.getFromUnit());
@@ -138,7 +138,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         add.setOriginalBoxId(itemInstance.getBoxId());
         fillOverdueFields(add, add.getBorrowTime(), null);
         borrowRecordMapper.insert(add);
-        itemInstanceService.markBorrowed(itemInstance.getId());
+        itemInstanceService.markBorrowed(itemInstance);
         createBorrowHistory(add, itemInstance);
     }
 
@@ -148,13 +148,15 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         validateOriginalLocationStillAvailable(borrowRecord);
         LocalDateTime effectiveReturnTime = bo.getReturnTime() == null ? LocalDateTime.now() : bo.getReturnTime();
         Assert.isFalse(effectiveReturnTime.isAfter(LocalDateTime.now()), "归还时间不能晚于当前时间");
+        ItemInstance returnInst = itemInstanceService.getEntityByInstanceCode(borrowRecord.getInstanceCode());
         itemInstanceService.restoreFromBorrow(
-            borrowRecord.getItemInstanceId(),
+            returnInst.getId(),
             borrowRecord.getOriginalWarehouseId(),
             borrowRecord.getOriginalAreaId(),
             borrowRecord.getOriginalRackId(),
             borrowRecord.getOriginalLocationId(),
-            borrowRecord.getOriginalBoxId()
+            borrowRecord.getOriginalBoxId(),
+            returnInst.getSkuId()
         );
         BorrowRecord update = new BorrowRecord();
         update.setId(borrowRecord.getId());
@@ -170,7 +172,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         borrowRecordMapper.updateById(update);
         borrowRecord.setReturnTime(update.getReturnTime());
         borrowRecord.setReturnRemark(update.getReturnRemark());
-        ItemInstance itemInstance = itemInstanceService.getById(borrowRecord.getItemInstanceId());
+        ItemInstance itemInstance = itemInstanceService.getEntityByInstanceCode(borrowRecord.getInstanceCode());
         if (itemInstance != null) {
             createReturnHistory(borrowRecord, itemInstance);
         }
@@ -178,7 +180,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
 
     private LambdaQueryWrapper<BorrowRecord> buildQueryWrapper(BorrowRecordBo bo) {
         LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
-        lqw.eq(bo.getItemInstanceId() != null, BorrowRecord::getItemInstanceId, bo.getItemInstanceId());
+        lqw.eq(bo.getInstanceCode() != null, BorrowRecord::getInstanceCode, bo.getInstanceCode());
         lqw.eq(StrUtil.isNotBlank(bo.getBorrowStatus()), BorrowRecord::getBorrowStatus, bo.getBorrowStatus());
         lqw.eq(StrUtil.isNotBlank(bo.getBorrowNo()), BorrowRecord::getBorrowNo, bo.getBorrowNo());
         lqw.eq(StrUtil.isNotBlank(bo.getInstanceCode()), BorrowRecord::getInstanceCode, bo.getInstanceCode());
@@ -210,8 +212,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         return lqw;
     }
 
-    private ItemInstance requireBorrowableItem(Long itemInstanceId) {
-        ItemInstance itemInstance = itemInstanceService.getById(itemInstanceId);
+    private ItemInstance requireBorrowableItem(String instanceCode) {
+        ItemInstance itemInstance = itemInstanceService.getEntityByInstanceCode(instanceCode);
         Assert.notNull(itemInstance, "单品实例不存在");
         Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "单品实例已借出");
         Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
@@ -225,15 +227,15 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
             Assert.isTrue(ServiceConstants.BorrowStatus.BORROWED.equals(borrowRecord.getBorrowStatus()), "该借还记录已归还");
             return borrowRecord;
         }
-        Assert.notNull(bo.getItemInstanceId(), "归还时借还记录ID或单品实例ID至少传一个");
-        BorrowRecord borrowRecord = findActiveRecordEntity(bo.getItemInstanceId());
+        Assert.notNull(bo.getInstanceCode(), "归还时借还记录ID或单品实例ID至少传一个");
+        BorrowRecord borrowRecord = findActiveRecordEntity(bo.getInstanceCode());
         Assert.notNull(borrowRecord, "当前单品不存在未归还借用记录");
         return borrowRecord;
     }
 
-    private BorrowRecord findActiveRecordEntity(Long itemInstanceId) {
+    private BorrowRecord findActiveRecordEntity(String instanceCode) {
         LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
-        lqw.eq(BorrowRecord::getItemInstanceId, itemInstanceId);
+        lqw.eq(BorrowRecord::getInstanceCode, instanceCode);
         lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
         lqw.orderByDesc(BorrowRecord::getBorrowTime);
         lqw.last("limit 1");
@@ -258,7 +260,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         if (CollUtil.isEmpty(validList)) {
             return;
         }
-        Set<Long> itemInstanceIds = validList.stream().map(BorrowRecordVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<String> itemInstanceCodes = validList.stream().map(BorrowRecordVo::getInstanceCode).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> originalWarehouseIds = validList.stream().map(BorrowRecordVo::getOriginalWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> originalAreaIds = validList.stream().map(BorrowRecordVo::getOriginalAreaId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> originalRackIds = validList.stream().map(BorrowRecordVo::getOriginalRackId).filter(Objects::nonNull).collect(Collectors.toSet());
@@ -269,15 +271,15 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         Set<Long> returnedRackIds = validList.stream().map(BorrowRecordVo::getReturnedRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedLocationIds = validList.stream().map(BorrowRecordVo::getReturnedLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> returnedBoxIds = validList.stream().map(BorrowRecordVo::getReturnedBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemInstanceVo> itemMap = itemInstanceService.queryVosByIds(itemInstanceIds).stream()
-            .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
+        Map<String, ItemInstanceVo> itemMap = itemInstanceService.queryVosByInstanceCodes(itemInstanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstanceVo::getInstanceCode, Function.identity()));
         Map<Long, Warehouse> warehouseMap = mergeWarehouseMap(originalWarehouseIds, returnedWarehouseIds);
         Map<Long, Area> areaMap = mergeAreaMap(originalAreaIds, returnedAreaIds);
         Map<Long, Rack> rackMap = mergeRackMap(originalRackIds, returnedRackIds);
         Map<Long, Location> locationMap = mergeLocationMap(originalLocationIds, returnedLocationIds);
         Map<Long, Box> boxMap = mergeBoxMap(originalBoxIds, returnedBoxIds);
         validList.forEach(vo -> {
-            ItemInstanceVo item = itemMap.get(vo.getItemInstanceId());
+            ItemInstanceVo item = itemMap.get(vo.getInstanceCode());
             if (item != null) {
                 vo.setInstanceCode(item.getInstanceCode());
                 vo.setItemName(item.getItemName());
@@ -408,7 +410,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setAreaId(borrowRecord.getOriginalAreaId());
         history.setRackId(borrowRecord.getOriginalRackId());
         history.setLocationId(borrowRecord.getOriginalLocationId());
-        history.setItemInstanceId(borrowRecord.getItemInstanceId());
+        history.setInstanceCode(borrowRecord.getInstanceCode());
         history.setBoxId(itemInstance.getBoxId());
         history.setOperationType("borrow");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getCreateBy()));
@@ -428,7 +430,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         history.setAreaId(borrowRecord.getOriginalAreaId());
         history.setRackId(borrowRecord.getOriginalRackId());
         history.setLocationId(borrowRecord.getOriginalLocationId());
-        history.setItemInstanceId(borrowRecord.getItemInstanceId());
+        history.setInstanceCode(borrowRecord.getInstanceCode());
         history.setBoxId(itemInstance.getBoxId());
         history.setOperationType("return");
         history.setOperatorName(StrUtil.blankToDefault(borrowRecord.getBorrower(), borrowRecord.getUpdateBy()));

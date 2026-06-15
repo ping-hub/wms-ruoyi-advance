@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 /**
  * 库存记录业务对象 wms_inventory_history
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 
@@ -30,6 +30,10 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
      */
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 操作id（出库、入库、库存移动表单id）
@@ -102,7 +106,6 @@ public class InventoryHistoryBo extends BaseHistoryEntity {
     /**
      * 物品明细ID
      */
-    private Long itemInstanceId;
 
     /**
      * 箱体ID

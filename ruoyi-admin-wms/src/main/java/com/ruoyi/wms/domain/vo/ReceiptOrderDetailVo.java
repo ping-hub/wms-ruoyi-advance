@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 入库单详情视图对象 wms_receipt_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @Data
@@ -31,6 +31,10 @@ public class ReceiptOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 入库单号
@@ -108,6 +112,10 @@ public class ReceiptOrderDetailVo implements Serializable {
      * 箱码
      */
     @ExcelProperty(value = "箱码")
+    /**
+     * 器材实例编码
+     */
+
     private String boxCode;
 
     /**

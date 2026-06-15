@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 /**
  * 入库单Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @RequiredArgsConstructor
@@ -448,7 +448,7 @@ public class ReceiptOrderService {
         inventoryDetail.setLocationId(detail.getLocationId());
         inventoryDetail.setQuantity(itemInstance == null ? detail.getQuantity() : java.math.BigDecimal.ONE);
         inventoryDetail.setRemainQuantity(itemInstance == null ? detail.getQuantity() : java.math.BigDecimal.ONE);
-        inventoryDetail.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
+        inventoryDetail.setInstanceCode(itemInstance == null ? null : itemInstance.getInstanceCode());
         inventoryDetail.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
         inventoryDetail.setUnitPrice(detail.getUnitPrice());
         inventoryDetail.setLineAmount(detail.getLineAmount());
@@ -467,7 +467,7 @@ public class ReceiptOrderService {
         inventoryHistory.setAreaId(detail.getAreaId());
         inventoryHistory.setRackId(detail.getRackId());
         inventoryHistory.setLocationId(detail.getLocationId());
-        inventoryHistory.setItemInstanceId(itemInstance == null ? null : itemInstance.getId());
+        inventoryHistory.setInstanceCode(itemInstance == null ? null : itemInstance.getInstanceCode());
         inventoryHistory.setBoxId(itemInstance == null ? null : itemInstance.getBoxId());
         inventoryHistory.setUnitPrice(detail.getUnitPrice());
         inventoryHistory.setLineAmount(detail.getLineAmount());

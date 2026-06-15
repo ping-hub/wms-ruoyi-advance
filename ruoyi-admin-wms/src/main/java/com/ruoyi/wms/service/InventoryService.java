@@ -23,7 +23,7 @@ import java.util.*;
 /**
  * 库存Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @RequiredArgsConstructor
@@ -59,15 +59,7 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
     }
 
     /**
-     * 新增库存
-     */
-    public void insertByBo(InventoryBo bo) {
-        Inventory add = MapstructUtils.convert(bo, Inventory.class);
-        inventoryMapper.insert(add);
-    }
-
-    /**
-     * 修改库存
+     * 修改库存（仅限管理后台手动维护）
      */
     public void updateByBo(InventoryBo bo) {
         Inventory update = MapstructUtils.convert(bo, Inventory.class);
@@ -82,49 +74,53 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
     }
 
     /**
-     * 更新库存
-     * @param list
+     * 批量更新库存数量（原子SQL，支持多实例部署并发安全）
+     * 逻辑：已有记录 → quantity += delta；无记录 → 插入新记录；结果归零 → 删除
+     * @param list 库存变动列表（quantity 正=入库/归还，负=出库/借出）
      */
     @Transactional
-    public synchronized void updateInventoryQuantity(List<InventoryBo> list) {
+    public void updateInventoryQuantity(List<InventoryBo> list) {
         list.forEach(inventoryBo -> {
             ValidatorUtils.validate(inventoryBo, AddGroup.class);
         });
-
-        List<Inventory> addList = new LinkedList<>();
-        List<Inventory> updateList = new LinkedList<>();
-        list.forEach(inventoryBo -> {
-            LambdaQueryWrapper<Inventory> wrapper = Wrappers.lambdaQuery();
-            wrapper.eq(Inventory::getWarehouseId, inventoryBo.getWarehouseId());
-            wrapper.eq(Inventory::getAreaId, inventoryBo.getAreaId());
-            applyEqOrIsNull(wrapper, Inventory::getRackId, inventoryBo.getRackId());
-            applyEqOrIsNull(wrapper, Inventory::getLocationId, inventoryBo.getLocationId());
-            wrapper.eq(Inventory::getSkuId, inventoryBo.getSkuId());
-            Inventory result = inventoryMapper.selectOne(wrapper);
-            if(result!=null){
-                result.setQuantity(result.getQuantity().add(inventoryBo.getQuantity()));
-                updateList.add(result);
-            }else {
-                Inventory inventory = MapstructUtils.convert(inventoryBo, Inventory.class);
-                addList.add(inventory);
+        list.forEach(bo -> {
+            int rows = inventoryMapper.atomicIncrement(
+                bo.getWarehouseId(), bo.getAreaId(),
+                bo.getRackId(), bo.getLocationId(),
+                bo.getSkuId(), bo.getQuantity());
+            if (rows == 0 && bo.getQuantity().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                // 记录不存在且增量为正：插入新记录
+                Inventory inventory = MapstructUtils.convert(bo, Inventory.class);
+                inventoryMapper.insert(inventory);
             }
+            // 归零或负数：删除该记录（明细与流水保留）
+            inventoryMapper.deleteZeroQuantity(
+                bo.getWarehouseId(), bo.getAreaId(),
+                bo.getRackId(), bo.getLocationId(),
+                bo.getSkuId());
         });
-        if (addList.size() > 0) {
-            saveBatch(addList);
-        }
-        if (updateList.size() > 0) {
-            updateBatchById(updateList);
-        }
     }
 
-    private <T> void applyEqOrIsNull(LambdaQueryWrapper<Inventory> wrapper,
-                                     com.baomidou.mybatisplus.core.toolkit.support.SFunction<Inventory, T> column,
-                                     T value) {
-        if (value == null) {
-            wrapper.isNull(column);
-        } else {
-            wrapper.eq(column, value);
+    /**
+     * 单条库存增减（供借出/归还等业务调用，原子操作，并发安全）
+     * @param delta 正=增加（归还），负=减少（借出）
+     */
+    @Transactional
+    public void adjustQuantityBySkuAndPlace(Long warehouseId, Long areaId, Long rackId,
+                                            Long locationId, Long skuId, java.math.BigDecimal delta) {
+        if (delta == null || delta.compareTo(java.math.BigDecimal.ZERO) == 0) return;
+        int rows = inventoryMapper.atomicIncrement(warehouseId, areaId, rackId, locationId, skuId, delta);
+        if (rows == 0 && delta.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            Inventory inventory = new Inventory();
+            inventory.setWarehouseId(warehouseId);
+            inventory.setAreaId(areaId);
+            inventory.setRackId(rackId);
+            inventory.setLocationId(locationId);
+            inventory.setSkuId(skuId);
+            inventory.setQuantity(delta);
+            inventoryMapper.insert(inventory);
         }
+        inventoryMapper.deleteZeroQuantity(warehouseId, areaId, rackId, locationId, skuId);
     }
 
     /**

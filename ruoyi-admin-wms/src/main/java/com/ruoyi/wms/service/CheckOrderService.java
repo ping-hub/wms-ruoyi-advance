@@ -15,33 +15,28 @@ import com.ruoyi.common.core.utils.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.ruoyi.common.satoken.utils.LoginHelper;
 import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
-import com.ruoyi.wms.domain.bo.InventoryBo;
-import com.ruoyi.wms.domain.bo.InventoryDetailBo;
-import com.ruoyi.wms.domain.entity.CheckOrderDetail;
-import com.ruoyi.wms.domain.entity.InventoryDetail;
-import com.ruoyi.wms.domain.entity.InventoryHistory;
-import com.ruoyi.wms.domain.entity.ItemInstance;
-import com.ruoyi.wms.mapper.InventoryDetailMapper;
+import com.ruoyi.wms.domain.entity.*;
+import com.ruoyi.wms.domain.vo.*;
+import com.ruoyi.wms.mapper.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.CheckOrderBo;
-import com.ruoyi.wms.domain.vo.CheckOrderVo;
 import com.ruoyi.wms.domain.entity.CheckOrder;
 import com.ruoyi.wms.mapper.CheckOrderMapper;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * 库存盘点单据Service业务层处理
+ * 库存盘点单据Service业务层处理（两级流程：申请 → 执行）
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @RequiredArgsConstructor
@@ -53,21 +48,21 @@ public class CheckOrderService {
 
     private final CheckOrderMapper checkOrderMapper;
     private final CheckOrderDetailService checkOrderDetailService;
-    private final InventoryDetailService inventoryDetailService;
-    private final InventoryDetailMapper inventoryDetailMapper;
-    private final InventoryService inventoryService;
-    private final InventoryHistoryService inventoryHistoryService;
-    private final ItemInstanceService itemInstanceService;
+    private final CheckOrderInstanceService checkOrderInstanceService;
+    private final InventoryMapper inventoryMapper;
+    private final ItemInstanceMapper itemInstanceMapper;
+    private final ItemSkuService itemSkuService;
 
     /**
-     * 查询库存盘点单据
+     * 查询库存盘点单据（含明细 + 实例差异）
      */
-    public CheckOrderVo queryById(Long id){
+    public CheckOrderVo queryById(Long id) {
         CheckOrderVo checkOrderVo = checkOrderMapper.selectVoById(id);
         if (checkOrderVo == null) {
             throw new BaseException("盘库单不存在");
         }
         checkOrderVo.setDetails(checkOrderDetailService.queryByCheckOrderId(id));
+        checkOrderVo.setInstances(checkOrderInstanceService.queryByCheckOrderId(id));
         return checkOrderVo;
     }
 
@@ -89,7 +84,6 @@ public class CheckOrderService {
     }
 
     private LambdaQueryWrapper<CheckOrder> buildQueryWrapper(CheckOrderBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<CheckOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getCheckOrderNo()), CheckOrder::getCheckOrderNo, bo.getCheckOrderNo());
         lqw.eq(bo.getCheckOrderStatus() != null, CheckOrder::getCheckOrderStatus, bo.getCheckOrderStatus());
@@ -103,20 +97,15 @@ public class CheckOrderService {
     }
 
     /**
-     * 新增库存盘点单据
+     * 新增库存盘点单据（申请阶段，不保存明细）
      */
     @Transactional
     public void insertByBo(CheckOrderBo bo) {
         bo.setCheckOrderNo(StrUtil.blankToDefault(bo.getCheckOrderNo(), generateCheckOrderNo()));
-        // 校验盘库单号唯一性
         validateCheckOrderNo(bo.getCheckOrderNo());
-        // 创建盘库单
         CheckOrder add = MapstructUtils.convert(bo, CheckOrder.class);
         checkOrderMapper.insert(add);
-        // 创建盘库单明细
-        List<CheckOrderDetail> addDetailList = MapstructUtils.convert(bo.getDetails(), CheckOrderDetail.class);
-        addDetailList.forEach(it -> it.setCheckOrderId(add.getId()));
-        checkOrderDetailService.saveDetails(addDetailList);
+        // 申请阶段不保存明细
     }
 
     private void validateCheckOrderNo(String checkOrderNo) {
@@ -136,18 +125,217 @@ public class CheckOrderService {
      */
     @Transactional
     public void updateByBo(CheckOrderBo bo) {
-        // 更新盘库单
         CheckOrder update = MapstructUtils.convert(bo, CheckOrder.class);
         checkOrderMapper.updateById(update);
-        // 保存盘库单明细
-        List<CheckOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), CheckOrderDetail.class);
-        detailList.forEach(it -> it.setCheckOrderId(bo.getId()));
-        checkOrderDetailService.saveDetails(detailList);
+        // 如果有明细则保存（盘点完成阶段）
+        if (CollUtil.isNotEmpty(bo.getDetails())) {
+            List<CheckOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), CheckOrderDetail.class);
+            detailList.forEach(it -> it.setCheckOrderId(bo.getId()));
+            checkOrderDetailService.saveDetails(detailList);
+        }
+    }
+
+    /**
+     * 开始盘点：从 wms_inventory 按 sku_id 汇总加载账面库存
+     */
+    @Transactional
+    public CheckOrderVo startCheck(Long id) {
+        CheckOrder checkOrder = checkOrderMapper.selectById(id);
+        Assert.notNull(checkOrder, "盘点单不存在");
+        Assert.isTrue(ServiceConstants.CheckOrderStatus.PENDING.equals(checkOrder.getCheckOrderStatus()),
+            "仅待盘点状态可以开始盘点");
+
+        // 根据盘点范围查询库存
+        LambdaQueryWrapper<Inventory> invLqw = Wrappers.lambdaQuery();
+        if (checkOrder.getWarehouseId() != null) {
+            invLqw.eq(Inventory::getWarehouseId, checkOrder.getWarehouseId());
+        }
+        if (checkOrder.getAreaId() != null) {
+            invLqw.eq(Inventory::getAreaId, checkOrder.getAreaId());
+        }
+        if (checkOrder.getRackId() != null) {
+            invLqw.eq(Inventory::getRackId, checkOrder.getRackId());
+        }
+        List<Inventory> inventories = inventoryMapper.selectList(invLqw);
+
+        // 按 skuId 汇总 quantity
+        Map<Long, BigDecimal> skuQuantityMap = inventories.stream()
+            .filter(inv -> inv.getSkuId() != null && inv.getQuantity() != null)
+            .collect(Collectors.groupingBy(
+                Inventory::getSkuId,
+                Collectors.reducing(BigDecimal.ZERO, Inventory::getQuantity, BigDecimal::add)
+            ));
+
+        // 删除旧明细（如果有）
+        checkOrderDetailService.deleteByCheckOrderIds(Collections.singletonList(id));
+
+        // 生成 SKU 级明细
+        List<CheckOrderDetail> details = new ArrayList<>();
+        skuQuantityMap.forEach((skuId, quantity) -> {
+            CheckOrderDetail detail = new CheckOrderDetail();
+            detail.setCheckOrderId(id);
+            detail.setSkuId(skuId);
+            detail.setQuantity(quantity);
+            details.add(detail);
+        });
+        checkOrderDetailService.saveDetails(details);
+
+        return queryById(id);
+    }
+
+    /**
+     * 懒加载指定SKU的在库实例列表
+     */
+    public List<ItemInstanceVo> getInstancesBySku(Long checkOrderId, Long skuId) {
+        CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
+        Assert.notNull(checkOrder, "盘点单不存在");
+
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.eq(ItemInstance::getSkuId, skuId);
+        if (checkOrder.getWarehouseId() != null) {
+            lqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+        }
+        if (checkOrder.getAreaId() != null) {
+            lqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+        }
+        if (checkOrder.getRackId() != null) {
+            lqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+        }
+        List<ItemInstance> instances = itemInstanceMapper.selectList(lqw);
+
+        // 轻量转换（只填充展示字段）
+        Set<Long> skuIds = instances.stream().map(ItemInstance::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ItemSkuVo> skuMap = skuIds.isEmpty() ? Collections.emptyMap() :
+            itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+
+        return instances.stream().map(inst -> {
+            ItemInstanceVo vo = new ItemInstanceVo();
+            vo.setId(inst.getId());
+            vo.setInstanceCode(inst.getInstanceCode());
+            vo.setSkuId(inst.getSkuId());
+            vo.setItemId(inst.getItemId());
+            vo.setInstanceStatus(inst.getInstanceStatus());
+            ItemSkuVo skuVo = skuMap.get(inst.getSkuId());
+            if (skuVo != null) {
+                vo.setSkuName(skuVo.getSkuName());
+                vo.setItemName(skuVo.getItem() != null ? skuVo.getItem().getItemName() : null);
+            }
+            return vo;
+        }).toList();
+    }
+
+    /**
+     * 完成盘点（保存差异+实例明细，不调整库存）
+     */
+    @Transactional
+    public void check(CheckOrderBo bo) {
+        List<CheckOrderDetailBo> details = bo.getDetails();
+        Assert.notEmpty(details, "盘点明细不能为空");
+
+        // 保存盘点单
+        if (Objects.isNull(bo.getId())) {
+            insertByBo(bo);
+        } else {
+            updateByBo(bo);
+        }
+
+        // 计算盈亏数
+        BigDecimal totalProfitAndLoss = BigDecimal.ZERO;
+        for (CheckOrderDetailBo detail : details) {
+            BigDecimal checkQty = detail.getCheckQuantity() != null ? detail.getCheckQuantity() : BigDecimal.ZERO;
+            BigDecimal bookQty = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
+            BigDecimal diff = checkQty.subtract(bookQty);
+            detail.setDifferenceQuantity(diff);
+            detail.setProfitAndLoss(diff);
+            totalProfitAndLoss = totalProfitAndLoss.add(diff);
+        }
+
+        // 更新盘点单盈亏总数
+        CheckOrder updateOrder = new CheckOrder();
+        updateOrder.setId(bo.getId());
+        updateOrder.setCheckOrderTotal(totalProfitAndLoss);
+        updateOrder.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
+        checkOrderMapper.updateById(updateOrder);
+
+        // 保存实例差异明细
+        saveInstanceDifferences(bo.getId(), details);
+    }
+
+    /**
+     * 保存实例差异明细：集合运算找出盘亏/盘盈实例
+     */
+    private void saveInstanceDifferences(Long checkOrderId, List<CheckOrderDetailBo> details) {
+        // 先删除旧实例差异
+        checkOrderInstanceService.deleteByCheckOrderIds(Collections.singletonList(checkOrderId));
+
+        CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
+        List<CheckOrderInstance> allInstances = new ArrayList<>();
+
+        for (CheckOrderDetailBo detail : details) {
+            if (detail.getProfitAndLoss() == null || detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            // 查询该SKU在盘点范围内的账面实例编码
+            LambdaQueryWrapper<ItemInstance> bookLqw = Wrappers.lambdaQuery();
+            bookLqw.eq(ItemInstance::getSkuId, detail.getSkuId());
+            if (checkOrder.getWarehouseId() != null) {
+                bookLqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+            }
+            if (checkOrder.getAreaId() != null) {
+                bookLqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+            }
+            if (checkOrder.getRackId() != null) {
+                bookLqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+            }
+            List<ItemInstance> bookInstances = itemInstanceMapper.selectList(bookLqw);
+            Map<String, ItemInstance> bookCodeMap = bookInstances.stream()
+                .filter(i -> i.getInstanceCode() != null)
+                .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity(), (a, b) -> a));
+
+            // 前端提交的已扫描编码
+            Set<String> scannedCodes = CollUtil.isNotEmpty(detail.getScannedInstanceCodes())
+                ? new HashSet<>(detail.getScannedInstanceCodes()) : Collections.emptySet();
+            Set<String> bookCodes = bookCodeMap.keySet();
+
+            // 盘亏：账面有 - 已扫描
+            Set<String> lossCodes = new HashSet<>(bookCodes);
+            lossCodes.removeAll(scannedCodes);
+            for (String code : lossCodes) {
+                ItemInstance inst = bookCodeMap.get(code);
+                CheckOrderInstance ci = new CheckOrderInstance();
+                ci.setCheckOrderId(checkOrderId);
+                ci.setCheckOrderDetailId(detail.getId());
+                ci.setSkuId(detail.getSkuId());
+                ci.setInstanceCode(inst != null ? inst.getInstanceCode() : null);
+                ci.setInstanceCode(code);
+                ci.setInstanceItemName(inst != null ? inst.getInstanceCode() : null);
+                ci.setResultType("loss");
+                allInstances.add(ci);
+            }
+
+            // 盘盈：已扫描 - 账面有
+            Set<String> gainCodes = new HashSet<>(scannedCodes);
+            gainCodes.removeAll(bookCodes);
+            for (String code : gainCodes) {
+                CheckOrderInstance ci = new CheckOrderInstance();
+                ci.setCheckOrderId(checkOrderId);
+                ci.setCheckOrderDetailId(detail.getId());
+                ci.setSkuId(detail.getSkuId());
+                ci.setInstanceCode(null);
+                ci.setInstanceCode(code);
+                ci.setResultType("gain");
+                allInstances.add(ci);
+            }
+        }
+
+        checkOrderInstanceService.saveInstances(allInstances);
     }
 
     @Transactional
     public void deleteById(Long id) {
         validateIdBeforeDelete(id);
+        checkOrderInstanceService.deleteByCheckOrderIds(Collections.singletonList(id));
         checkOrderDetailService.deleteByCheckOrderIds(Collections.singletonList(id));
         checkOrderMapper.deleteById(id);
     }
@@ -161,7 +349,7 @@ public class CheckOrderService {
             throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已作废，无法删除！", HttpStatus.CONFLICT.value());
         }
         if (ServiceConstants.CheckOrderStatus.FINISH.equals(checkOrderVo.getCheckOrderStatus())) {
-            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已盘库完成，无法删除！", HttpStatus.CONFLICT.value());
+            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已盘点完成，无法删除！", HttpStatus.CONFLICT.value());
         }
     }
 
@@ -174,125 +362,8 @@ public class CheckOrderService {
             return;
         }
         ids.forEach(this::validateIdBeforeDelete);
+        checkOrderInstanceService.deleteByCheckOrderIds(ids);
         checkOrderDetailService.deleteByCheckOrderIds(ids);
         checkOrderMapper.deleteBatchIds(ids);
-    }
-
-    /**
-     * 盘库结束
-     * 拆分出盘盈入库和盘亏出库的
-     * 有出库的话要校验
-     * 分别对入库与出库根据仓库库区规格进行合并——用于更新库存
-     * 更新入库记录剩余数
-     * 更新库存
-     * 记流水
-     * @param bo
-     */
-    @Transactional
-    public void check(CheckOrderBo bo) {
-        List<CheckOrderDetailBo> details = bo.getDetails();
-        // 保存盘库单
-        if (Objects.isNull(bo.getId())) {
-            insertByBo(bo);
-        } else {
-            updateByBo(bo);
-        }
-        // 计算盈亏数
-        calcProfitAndLoss(details);
-        Assert.isFalse(details.stream().anyMatch(detail -> detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) > 0),
-            "盘点仅支持盘亏，实盘数量不能大于账面数量");
-        // 盘点前同步单品实例状态
-        syncItemInstancesBeforeCheck(details);
-        // 拆分盘亏出库数据
-        List<InventoryDetailBo> shipmentList = splitOutShipmentData(details);
-        // 有盘亏出库
-        if (CollUtil.isNotEmpty(shipmentList)) {
-            // 校验入库记录剩余数
-            inventoryDetailService.validateRemainQuantity(shipmentList);
-            // 扣减入库记录剩余数
-            inventoryDetailMapper.deductInventoryDetailQuantity(shipmentList, LoginHelper.getUsername(), LocalDateTime.now());
-            // 合并
-            List<InventoryBo> mergedDeductInventoryBoList = mergeInventoryDetailByPlaceAndItem(shipmentList);
-            // 扣减库存
-            inventoryService.updateInventoryQuantity(mergedDeductInventoryBoList);
-            // 创建库存记录流水
-            createInventoryHistory(shipmentList, bo.getId(), bo.getCheckOrderNo());
-        }
-    }
-
-    private void calcProfitAndLoss(List<CheckOrderDetailBo> details) {
-        details.forEach(detail -> {
-            BigDecimal differenceQuantity = detail.getCheckQuantity().subtract(detail.getQuantity());
-            detail.setProfitAndLoss(differenceQuantity);
-            detail.setDifferenceQuantity(differenceQuantity);
-        });
-    }
-
-    public List<InventoryDetailBo> splitOutShipmentData(List<CheckOrderDetailBo> details) {
-        return details.stream()
-            .filter(detail -> detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) < 0)
-            .map(filteredDetail -> {
-                InventoryDetailBo inventoryDetailBo = new InventoryDetailBo();
-                inventoryDetailBo.setId(filteredDetail.getInventoryDetailId());
-                inventoryDetailBo.setSkuId(filteredDetail.getSkuId());
-                inventoryDetailBo.setWarehouseId(filteredDetail.getWarehouseId());
-                inventoryDetailBo.setAreaId(filteredDetail.getAreaId());
-                inventoryDetailBo.setRackId(filteredDetail.getRackId());
-                inventoryDetailBo.setLocationId(filteredDetail.getLocationId());
-                inventoryDetailBo.setItemInstanceId(filteredDetail.getItemInstanceId());
-                inventoryDetailBo.setBoxId(filteredDetail.getBoxId());
-                inventoryDetailBo.setQuantity(filteredDetail.getProfitAndLoss());
-                inventoryDetailBo.setShipmentQuantity(filteredDetail.getProfitAndLoss().abs());
-                return inventoryDetailBo;
-            }).toList();
-    }
-
-    private List<InventoryBo> mergeInventoryDetailByPlaceAndItem(List<InventoryDetailBo> details) {
-        Map<String, InventoryBo> mergedMap = new HashMap<>();
-        details.forEach(detail -> {
-            String mergedKey = detail.getKey();
-            if (mergedMap.containsKey(mergedKey)) {
-                InventoryBo mergedInventoryBo = mergedMap.get(mergedKey);
-                mergedInventoryBo.setQuantity(mergedInventoryBo.getQuantity().add(detail.getQuantity()));
-            } else {
-                InventoryBo mergedInventoryBo = new InventoryBo();
-                mergedInventoryBo.setWarehouseId(detail.getWarehouseId());
-                mergedInventoryBo.setAreaId(detail.getAreaId());
-                mergedInventoryBo.setSkuId(detail.getSkuId());
-                mergedInventoryBo.setQuantity(detail.getQuantity());
-                mergedMap.put(mergedKey, mergedInventoryBo);
-            }
-        });
-        return new ArrayList<>(mergedMap.values());
-    }
-
-    @Transactional
-    public void createInventoryHistory(List<InventoryDetailBo> inventoryDetailBoList, Long checkOrderId, String checkOrderNo) {
-        List<InventoryHistory> addInventoryHistoryList = inventoryDetailBoList.stream().map(bo -> {
-            InventoryHistory addInventoryHistory = MapstructUtils.convert(bo, InventoryHistory.class);
-            addInventoryHistory.setId(null);
-            addInventoryHistory.setOrderId(checkOrderId);
-            addInventoryHistory.setOrderNo(checkOrderNo);
-            addInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.CHECK);
-            return addInventoryHistory;
-        }).toList();
-        inventoryHistoryService.saveBatch(addInventoryHistoryList);
-    }
-
-    private void syncItemInstancesBeforeCheck(List<CheckOrderDetailBo> details) {
-        if (CollUtil.isEmpty(details)) {
-            return;
-        }
-        for (CheckOrderDetailBo detail : details) {
-            if (detail.getProfitAndLoss() == null) {
-                continue;
-            }
-            if (detail.getItemInstanceId() == null) {
-                continue;
-            }
-            if (detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) < 0) {
-                itemInstanceService.markLoss(detail.getItemInstanceId());
-            }
-        }
     }
 }

@@ -1,6 +1,5 @@
 package com.ruoyi.wms.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * 入库单详情对象 wms_receipt_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @Data
@@ -30,6 +29,10 @@ public class ReceiptOrderDetail extends BaseEntity {
      */
     @TableId(value = "id")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
     /**
      * 入库单号
      */

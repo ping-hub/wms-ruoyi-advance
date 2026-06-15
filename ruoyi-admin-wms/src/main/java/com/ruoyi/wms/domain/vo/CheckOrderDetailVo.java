@@ -1,22 +1,20 @@
 package com.ruoyi.wms.domain.vo;
 
-import java.math.BigDecimal;
-import com.ruoyi.wms.domain.entity.CheckOrderDetail;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.ruoyi.common.excel.annotation.ExcelDictFormat;
-import com.ruoyi.common.excel.convert.ExcelDictConvert;
-import lombok.Data;
+import com.ruoyi.wms.domain.entity.CheckOrderDetail;
 import io.github.linpeilie.annotations.AutoMapper;
+import lombok.Data;
 
-import java.io.Serializable;
 import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * 库存盘点单据详情视图对象 wms_check_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @Data
@@ -98,12 +96,6 @@ public class CheckOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "入库记录id")
     private Long inventoryDetailId;
-
-    /**
-     * 物品明细ID
-     */
-    @ExcelProperty(value = "物品明细ID")
-    private Long itemInstanceId;
 
     /**
      * 器材实例编码

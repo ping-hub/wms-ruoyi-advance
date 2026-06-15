@@ -25,7 +25,6 @@ public class BorrowRecordBo extends BaseEntity {
      * 单品实例ID
      */
     @NotNull(message = "单品实例不能为空", groups = {AddGroup.class})
-    private Long itemInstanceId;
 
     /**
      * 借还状态

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 /**
  * 库存详情对象 wms_inventory_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 @Data
@@ -33,6 +33,10 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
      */
     @TableId(value = "id")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
     /**
      * 入库单id
      */
@@ -75,7 +79,6 @@ public class InventoryDetail extends BaseEntity implements PlaceAndItem {
     /**
      * 物品明细ID
      */
-    private Long itemInstanceId;
 
     /**
      * 箱体ID

@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 /**
  * 调拨单明细业务对象 wms_movement_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 
@@ -29,6 +29,10 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
      */
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 调拨单Id
@@ -146,7 +150,6 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     /**
      * 器材实例ID
      */
-    private Long itemInstanceId;
 
     @Override
     public Long getWarehouseId() {

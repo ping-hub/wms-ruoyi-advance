@@ -55,4 +55,38 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectVoListByBo"/>
         order by inventory.warehouse_id,inventory.area_id,inventory.rack_id,inventory.location_id,sku.item_id,sku.id
     </select>
+
+    <!-- 原子增减库存数量（行锁保障并发安全） -->
+    <update id="atomicIncrement">
+        UPDATE wms_inventory
+        SET quantity = quantity + #{delta}
+        WHERE warehouse_id = #{warehouseId}
+          AND area_id = #{areaId}
+          AND sku_id = #{skuId}
+          <choose>
+              <when test="rackId != null">AND rack_id = #{rackId}</when>
+              <otherwise>AND rack_id IS NULL</otherwise>
+          </choose>
+          <choose>
+              <when test="locationId != null">AND location_id = #{locationId}</when>
+              <otherwise>AND location_id IS NULL</otherwise>
+          </choose>
+    </update>
+
+    <!-- 删除数量为0的库存记录 -->
+    <delete id="deleteZeroQuantity">
+        DELETE FROM wms_inventory
+        WHERE quantity &lt;= 0
+          AND warehouse_id = #{warehouseId}
+          AND area_id = #{areaId}
+          AND sku_id = #{skuId}
+          <choose>
+              <when test="rackId != null">AND rack_id = #{rackId}</when>
+              <otherwise>AND rack_id IS NULL</otherwise>
+          </choose>
+          <choose>
+              <when test="locationId != null">AND location_id = #{locationId}</when>
+              <otherwise>AND location_id IS NULL</otherwise>
+          </choose>
+    </delete>
 </mapper>

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * 库存盘点单据详情对象 wms_check_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @Data
@@ -29,6 +29,10 @@ public class CheckOrderDetail extends BaseEntity {
      */
     @TableId(value = "id")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
     /**
      * 盘点单id
      */
@@ -49,6 +53,10 @@ public class CheckOrderDetail extends BaseEntity {
      * 差异数量
      */
     private BigDecimal differenceQuantity;
+    /**
+     * 盈亏数（正=盘盈，负=盘亏）
+     */
+    private BigDecimal profitAndLoss;
     /**
      * 入库时间
      */
@@ -76,7 +84,6 @@ public class CheckOrderDetail extends BaseEntity {
     /**
      * 物品明细ID
      */
-    private Long itemInstanceId;
     /**
      * 箱体ID
      */

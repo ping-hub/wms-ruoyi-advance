@@ -23,11 +23,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
+import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
 
 /**
  * 调拨单
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 @Validated
@@ -106,7 +108,8 @@ public class MovementOrderController extends BaseController {
     public R<Void> move(@Validated(AddGroup.class) @RequestBody MovementOrderBo bo) {
         bo.setMovementOrderStatus(ServiceConstants.MovementOrderStatus.FINISH);
         movementOrderService.move(bo);
-        inventoryDetailService.clearDataWithZeroRemainQuantity();
+        List<Long> affectedIds = bo.getDetails().stream().map(MovementOrderDetailBo::getInventoryDetailId).filter(Objects::nonNull).toList();
+        inventoryDetailService.clearByIdsWithZeroRemainQuantity(affectedIds);
         return R.ok();
     }
 

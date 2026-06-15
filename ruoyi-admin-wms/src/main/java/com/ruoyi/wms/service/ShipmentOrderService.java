@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 /**
  * 出库单Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 @RequiredArgsConstructor
@@ -300,8 +300,8 @@ public class ShipmentOrderService {
             inventoryHistory.setAreaId(inventoryDetail != null ? inventoryDetail.getAreaId() : detail.getAreaId());
             inventoryHistory.setRackId(inventoryDetail != null ? inventoryDetail.getRackId() : null);
             inventoryHistory.setLocationId(inventoryDetail != null ? inventoryDetail.getLocationId() : null);
-            inventoryHistory.setItemInstanceId(detail.getItemInstanceId() != null ? detail.getItemInstanceId() :
-                (inventoryDetail != null ? inventoryDetail.getItemInstanceId() : null));
+            inventoryHistory.setInstanceCode(detail.getInstanceCode() != null ? detail.getInstanceCode() :
+                (inventoryDetail != null ? inventoryDetail.getInstanceCode() : null));
             inventoryHistory.setBoxId(detail.getBoxId() != null ? detail.getBoxId() :
                 (inventoryDetail != null ? inventoryDetail.getBoxId() : null));
             inventoryHistory.setUnitPrice(detail.getUnitPrice());
@@ -336,20 +336,20 @@ public class ShipmentOrderService {
     }
 
     private void validateTrackedShipmentDetails(List<ShipmentOrderDetailBo> details) {
-        Set<Long> itemInstanceIds = details.stream()
-            .map(ShipmentOrderDetailBo::getItemInstanceId)
+        Set<String> instanceCodes = details.stream()
+            .map(ShipmentOrderDetailBo::getInstanceCode)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
-        if (CollUtil.isEmpty(itemInstanceIds)) {
+        if (CollUtil.isEmpty(instanceCodes)) {
             return;
         }
-        Map<Long, ItemInstance> itemMap = itemInstanceService.queryByIds(itemInstanceIds).stream()
-            .collect(Collectors.toMap(ItemInstance::getId, java.util.function.Function.identity()));
+        Map<String, ItemInstance> itemMap = itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, java.util.function.Function.identity()));
         for (ShipmentOrderDetailBo detail : details) {
-            if (detail.getItemInstanceId() == null) {
+            if (detail.getInstanceCode() == null) {
                 continue;
             }
-            ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
+            ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
             Assert.notNull(itemInstance, "存在不存在的单品实例");
             Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
             Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
@@ -359,23 +359,23 @@ public class ShipmentOrderService {
     }
 
     private void syncShipmentObjects(List<ShipmentOrderDetailBo> details, String shipmentOrderType) {
-        Set<Long> itemInstanceIds = details.stream()
-            .map(ShipmentOrderDetailBo::getItemInstanceId)
+        Set<String> instanceCodes = details.stream()
+            .map(ShipmentOrderDetailBo::getInstanceCode)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
-        if (CollUtil.isEmpty(itemInstanceIds)) {
+        if (CollUtil.isEmpty(instanceCodes)) {
             return;
         }
         String targetStatus = ServiceConstants.ShipmentOrderType.SCRAP.equals(shipmentOrderType)
             ? ServiceConstants.ItemInstanceStatus.SCRAPPED
             : ServiceConstants.ItemInstanceStatus.OUTBOUND;
-        Map<Long, ItemInstance> itemMap = itemInstanceService.queryByIds(itemInstanceIds).stream()
-            .collect(Collectors.toMap(ItemInstance::getId, java.util.function.Function.identity()));
+        Map<String, ItemInstance> itemMap = itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, java.util.function.Function.identity()));
         for (ShipmentOrderDetailBo detail : details) {
-            if (detail.getItemInstanceId() == null) {
+            if (detail.getInstanceCode() == null) {
                 continue;
             }
-            ItemInstance itemInstance = itemMap.get(detail.getItemInstanceId());
+            ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
             Assert.notNull(itemInstance, "单品实例不存在");
             itemInstanceService.markOutbound(itemInstance.getId(), targetStatus);
         }

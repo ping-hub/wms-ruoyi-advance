@@ -13,7 +13,7 @@ import java.io.Serial;
 /**
  * 调拨单明细对象 wms_movement_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 @Data
@@ -29,6 +29,10 @@ public class MovementOrderDetail extends BaseEntity {
      */
     @TableId(value = "id")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
     /**
      * 调拨单Id
      */
@@ -126,6 +130,5 @@ public class MovementOrderDetail extends BaseEntity {
     /**
      * 器材实例ID
      */
-    private Long itemInstanceId;
 
 }

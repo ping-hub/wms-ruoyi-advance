@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 库存记录Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 @RequiredArgsConstructor
@@ -62,9 +62,9 @@ public class InventoryHistoryService extends ServiceImpl<InventoryHistoryMapper,
         return list;
     }
 
-    public List<InventoryHistoryVo> queryByItemInstanceId(Long itemInstanceId) {
+    public List<InventoryHistoryVo> queryByInstanceCode(String instanceCode) {
         InventoryHistoryBo bo = new InventoryHistoryBo();
-        bo.setItemInstanceId(itemInstanceId);
+        bo.setInstanceCode(instanceCode);
         return queryList(bo);
     }
 

@@ -10,9 +10,7 @@ import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
-import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
-import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.InventoryDetailBo;
@@ -33,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * 库存详情Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 @RequiredArgsConstructor
@@ -42,7 +40,6 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
 
     private final InventoryDetailMapper inventoryDetailMapper;
     private final ItemSkuService itemSkuService;
-    private final ItemInstanceMapper itemInstanceMapper;
     private final RackMapper rackMapper;
     private final LocationMapper locationMapper;
 
@@ -85,13 +82,9 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
             return;
         }
         Set<Long> skuIds = vos.stream().map(InventoryDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> itemInstanceIds = vos.stream().map(InventoryDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> rackIds = vos.stream().map(InventoryDetailVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = vos.stream().map(InventoryDetailVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        Map<Long, String> instanceCodeMap = itemInstanceIds.isEmpty()
-            ? Collections.emptyMap()
-            : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, ItemInstance::getInstanceCode));
         Map<Long, String> rackNameMap = rackIds.isEmpty()
             ? Collections.emptyMap()
             : rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Rack::getRackName));
@@ -101,7 +94,7 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
         vos.forEach(it -> {
             ItemSkuVo itemSku = itemSkuMap.get(it.getSkuId());
             it.setItemSku(itemSku);
-            it.setInstanceCode(instanceCodeMap.get(it.getItemInstanceId()));
+            it.setInstanceCode(it.getInstanceCode());
             if (StringUtils.isBlank(it.getRackName())) {
                 it.setRackName(rackNameMap.get(it.getRackId()));
             }
@@ -186,6 +179,20 @@ public class InventoryDetailService extends ServiceImpl<InventoryDetailMapper, I
     public void clearDataWithZeroRemainQuantity() {
         LambdaQueryWrapper<InventoryDetail> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(InventoryDetail::getRemainQuantity, 0);
+        inventoryDetailMapper.delete(wrapper);
+    }
+
+    /**
+     * 按指定ID范围清理remain_quantity为0的库存明细
+     * @param ids 本次操作涉及的库存明细ID
+     */
+    public void clearByIdsWithZeroRemainQuantity(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+        LambdaQueryWrapper<InventoryDetail> wrapper = Wrappers.lambdaQuery();
+        wrapper.in(InventoryDetail::getId, ids)
+            .eq(InventoryDetail::getRemainQuantity, 0);
         inventoryDetailMapper.delete(wrapper);
     }
 }

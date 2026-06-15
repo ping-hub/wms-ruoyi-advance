@@ -163,14 +163,14 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
         return list;
     }
 
-    public Map<Long, Long> queryItemBoxMap(Set<Long> itemInstanceIds) {
-        if (CollUtil.isEmpty(itemInstanceIds)) {
+    public Map<String, Long> queryItemBoxMap(Set<String> instanceCodes) {
+        if (CollUtil.isEmpty(instanceCodes)) {
             return java.util.Collections.emptyMap();
         }
-        List<ItemInstanceVo> list = itemInstanceService.queryVosByIds(itemInstanceIds);
+        List<ItemInstanceVo> list = itemInstanceService.queryVosByInstanceCodes(instanceCodes);
         return list.stream()
             .filter(item -> item.getBoxId() != null)
-            .collect(Collectors.toMap(ItemInstanceVo::getId, ItemInstanceVo::getBoxId, (a, b) -> a));
+            .collect(Collectors.toMap(ItemInstanceVo::getInstanceCode, ItemInstanceVo::getBoxId, (a, b) -> a));
     }
 
     public Set<Long> queryItemIdsByBoxId(Long boxId) {
@@ -181,8 +181,8 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
             .collect(Collectors.toSet());
     }
 
-    public BoxVo queryByItemInstanceId(Long itemInstanceId) {
-        ItemInstanceVo item = itemInstanceService.queryById(itemInstanceId);
+    public BoxVo queryByInstanceCode(String instanceCode) {
+        ItemInstanceVo item = itemInstanceService.queryByCode(instanceCode);
         if (item == null || item.getBoxId() == null) {
             return null;
         }

@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * 库存
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @Validated
@@ -77,7 +77,7 @@ public class InventoryController extends BaseController {
     @RepeatSubmit()
     @PostMapping()
     public R<Void> add(@Validated(AddGroup.class) @RequestBody InventoryBo bo) {
-        inventoryService.insertByBo(bo);
+        inventoryService.updateInventoryQuantity(List.of(bo));
         return R.ok();
     }
 

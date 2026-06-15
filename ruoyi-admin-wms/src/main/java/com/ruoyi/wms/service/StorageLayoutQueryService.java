@@ -1,92 +1,106 @@
 package com.ruoyi.wms.service;
 
 import cn.hutool.core.collection.CollUtil;
-import com.ruoyi.wms.domain.bo.AreaBo;
-import com.ruoyi.wms.domain.bo.LocationBo;
-import com.ruoyi.wms.domain.bo.RackBo;
-import com.ruoyi.wms.domain.bo.WarehouseBo;
-import com.ruoyi.wms.domain.vo.AreaVo;
-import com.ruoyi.wms.domain.vo.LocationVo;
+import com.ruoyi.wms.domain.entity.Area;
+import com.ruoyi.wms.domain.entity.Location;
+import com.ruoyi.wms.domain.entity.Rack;
+import com.ruoyi.wms.domain.entity.Warehouse;
 import com.ruoyi.wms.domain.vo.StorageLayoutNodeVo;
-import com.ruoyi.wms.domain.vo.RackVo;
-import com.ruoyi.wms.domain.vo.WarehouseVo;
+import com.ruoyi.wms.mapper.AreaMapper;
+import com.ruoyi.wms.mapper.LocationMapper;
+import com.ruoyi.wms.mapper.RackMapper;
+import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StorageLayoutQueryService {
 
-    private final WarehouseService warehouseService;
-    private final AreaService areaService;
-    private final RackService rackService;
-    private final LocationService locationService;
+    private final WarehouseMapper warehouseMapper;
+    private final AreaMapper areaMapper;
+    private final RackMapper rackMapper;
+    private final LocationMapper locationMapper;
 
+    /**
+     * 批量查询仓储布局树（4次查询代替 N+1）
+     */
     public List<StorageLayoutNodeVo> queryLayoutTree(Long warehouseId, Long areaId, Long rackId) {
-        WarehouseBo warehouseBo = new WarehouseBo();
-        warehouseBo.setId(warehouseId);
-        List<WarehouseVo> warehouses = warehouseService.queryList(warehouseBo);
+        // 1. 批量查所有仓库
+        List<Warehouse> allWarehouses = warehouseMapper.selectList(null);
+        if (CollUtil.isEmpty(allWarehouses)) {
+            return List.of();
+        }
+        // 按过滤条件筛选仓库
+        if (warehouseId != null) {
+            allWarehouses = allWarehouses.stream().filter(w -> w.getId().equals(warehouseId)).toList();
+        }
+        if (CollUtil.isEmpty(allWarehouses)) {
+            return List.of();
+        }
+        Set<Long> warehouseIds = allWarehouses.stream().map(Warehouse::getId).collect(Collectors.toSet());
+
+        // 2. 批量查所有相关库区（1次查询）
+        List<Area> allAreas = areaMapper.selectList(null);
+        Map<Long, List<Area>> areasByWarehouse = allAreas.stream()
+            .filter(a -> warehouseIds.contains(a.getWarehouseId()))
+            .filter(a -> areaId == null || a.getId().equals(areaId))
+            .collect(Collectors.groupingBy(Area::getWarehouseId));
+
+        Set<Long> areaIds = areasByWarehouse.values().stream()
+            .flatMap(Collection::stream).map(Area::getId).collect(Collectors.toSet());
+
+        // 3. 批量查所有相关货架（1次查询）
+        List<Rack> allRacks = rackMapper.selectList(null);
+        Map<Long, List<Rack>> racksByArea = allRacks.stream()
+            .filter(r -> areaIds.contains(r.getAreaId()))
+            .filter(r -> rackId == null || r.getId().equals(rackId))
+            .collect(Collectors.groupingBy(Rack::getAreaId));
+
+        Set<Long> rackIds = racksByArea.values().stream()
+            .flatMap(Collection::stream).map(Rack::getId).collect(Collectors.toSet());
+
+        // 4. 批量查所有相关货位（1次查询）
+        List<Location> allLocations = rackIds.isEmpty() ? List.of() : locationMapper.selectList(null);
+        Map<Long, List<Location>> locationsByRack = allLocations.stream()
+            .filter(l -> rackIds.contains(l.getRackId()))
+            .collect(Collectors.groupingBy(Location::getRackId));
+
+        // 5. 内存中组装树
         List<StorageLayoutNodeVo> result = new ArrayList<>();
-        for (WarehouseVo warehouse : warehouses) {
+        for (Warehouse warehouse : allWarehouses) {
             StorageLayoutNodeVo warehouseNode = toWarehouseNode(warehouse);
-            warehouseNode.setChildren(queryAreaNodes(warehouse.getId(), areaId, rackId));
+            List<Area> areas = areasByWarehouse.getOrDefault(warehouse.getId(), List.of());
+            List<StorageLayoutNodeVo> areaNodes = new ArrayList<>();
+            for (Area area : areas) {
+                StorageLayoutNodeVo areaNode = toAreaNode(area);
+                List<Rack> racks = racksByArea.getOrDefault(area.getId(), List.of());
+                List<StorageLayoutNodeVo> rackNodes = new ArrayList<>();
+                for (Rack rack : racks) {
+                    StorageLayoutNodeVo rackNode = toRackNode(rack);
+                    List<Location> locations = locationsByRack.getOrDefault(rack.getId(), List.of());
+                    rackNode.setChildren(locations.stream()
+                        .sorted(Comparator.comparing(Location::getRowNo, Comparator.nullsLast(Integer::compareTo))
+                            .thenComparing(Location::getColumnNo, Comparator.nullsLast(Integer::compareTo))
+                            .thenComparing(l -> l.getSortNo() != null ? l.getSortNo() : 0L))
+                        .map(this::toLocationNode)
+                        .toList());
+                    rackNodes.add(rackNode);
+                }
+                areaNode.setChildren(rackNodes);
+                areaNodes.add(areaNode);
+            }
+            warehouseNode.setChildren(areaNodes);
             result.add(warehouseNode);
         }
         return result;
     }
 
-    public List<StorageLayoutNodeVo> queryAreaNodes(Long warehouseId, Long areaId, Long rackId) {
-        AreaBo areaBo = new AreaBo();
-        areaBo.setWarehouseId(warehouseId);
-        areaBo.setId(areaId);
-        List<AreaVo> areas = areaService.queryList(areaBo);
-        List<StorageLayoutNodeVo> result = new ArrayList<>();
-        for (AreaVo area : areas) {
-            StorageLayoutNodeVo areaNode = toAreaNode(area);
-            areaNode.setChildren(queryRackNodes(area.getWarehouseId(), area.getId(), rackId));
-            result.add(areaNode);
-        }
-        return result;
-    }
-
-    public List<StorageLayoutNodeVo> queryRackNodes(Long warehouseId, Long areaId, Long rackId) {
-        RackBo rackBo = new RackBo();
-        rackBo.setWarehouseId(warehouseId);
-        rackBo.setAreaId(areaId);
-        rackBo.setId(rackId);
-        List<RackVo> racks = rackService.queryList(rackBo);
-        List<StorageLayoutNodeVo> result = new ArrayList<>();
-        for (RackVo rack : racks) {
-            StorageLayoutNodeVo rackNode = toRackNode(rack);
-            rackNode.setChildren(queryLocationNodes(rack.getWarehouseId(), rack.getAreaId(), rack.getId()));
-            result.add(rackNode);
-        }
-        return result;
-    }
-
-    public List<StorageLayoutNodeVo> queryLocationNodes(Long warehouseId, Long areaId, Long rackId) {
-        LocationBo locationBo = new LocationBo();
-        locationBo.setWarehouseId(warehouseId);
-        locationBo.setAreaId(areaId);
-        locationBo.setRackId(rackId);
-        List<LocationVo> locations = locationService.queryList(locationBo);
-        if (CollUtil.isEmpty(locations)) {
-            return List.of();
-        }
-        return locations.stream()
-            .sorted(Comparator.comparing(LocationVo::getRowNo, Comparator.nullsLast(Integer::compareTo))
-                .thenComparing(LocationVo::getColumnNo, Comparator.nullsLast(Integer::compareTo))
-                .thenComparing(LocationVo::getSortNo, Comparator.nullsLast(Long::compareTo))
-                .thenComparing(LocationVo::getId))
-            .map(this::toLocationNode)
-            .toList();
-    }
-
-    private StorageLayoutNodeVo toWarehouseNode(WarehouseVo warehouse) {
+    private StorageLayoutNodeVo toWarehouseNode(Warehouse warehouse) {
         StorageLayoutNodeVo node = new StorageLayoutNodeVo();
         node.setNodeType("warehouse");
         node.setId(warehouse.getId());
@@ -98,7 +112,7 @@ public class StorageLayoutQueryService {
         return node;
     }
 
-    private StorageLayoutNodeVo toAreaNode(AreaVo area) {
+    private StorageLayoutNodeVo toAreaNode(Area area) {
         StorageLayoutNodeVo node = new StorageLayoutNodeVo();
         node.setNodeType("area");
         node.setId(area.getId());
@@ -110,7 +124,7 @@ public class StorageLayoutQueryService {
         return node;
     }
 
-    private StorageLayoutNodeVo toRackNode(RackVo rack) {
+    private StorageLayoutNodeVo toRackNode(Rack rack) {
         StorageLayoutNodeVo node = new StorageLayoutNodeVo();
         node.setNodeType("rack");
         node.setId(rack.getId());
@@ -122,7 +136,7 @@ public class StorageLayoutQueryService {
         return node;
     }
 
-    private StorageLayoutNodeVo toLocationNode(LocationVo location) {
+    private StorageLayoutNodeVo toLocationNode(Location location) {
         StorageLayoutNodeVo node = new StorageLayoutNodeVo();
         node.setNodeType("location");
         node.setId(location.getId());

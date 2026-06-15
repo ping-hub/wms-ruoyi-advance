@@ -14,8 +14,8 @@ import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.CheckOrderBo;
 import com.ruoyi.wms.domain.vo.CheckOrderVo;
+import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.service.CheckOrderService;
-import com.ruoyi.wms.service.InventoryDetailService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * 库存盘点单据
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @Validated
@@ -37,7 +37,6 @@ import java.util.List;
 public class CheckOrderController extends BaseController {
 
     private final CheckOrderService checkOrderService;
-    private final InventoryDetailService inventoryDetailService;
 
     /**
      * 查询库存盘点单据列表
@@ -72,7 +71,7 @@ public class CheckOrderController extends BaseController {
     }
 
     /**
-     * 新增库存盘点单据
+     * 新增库存盘点单据（申请阶段，无明细）
      */
     @SaCheckPermission("wms:check:all")
     @Log(title = "库存盘点单据", businessType = BusinessType.INSERT)
@@ -97,16 +96,36 @@ public class CheckOrderController extends BaseController {
     }
 
     /**
-     * 盘库结束
+     * 开始盘点（加载SKU级账面库存明细）
+     */
+    @SaCheckPermission("wms:check:all")
+    @Log(title = "库存盘点单据", businessType = BusinessType.UPDATE)
+    @PostMapping("/startCheck/{id}")
+    public R<CheckOrderVo> startCheck(@NotNull(message = "主键不能为空") @PathVariable Long id) {
+        return R.ok(checkOrderService.startCheck(id));
+    }
+
+    /**
+     * 懒加载指定SKU的在库实例列表
+     */
+    @SaCheckPermission("wms:check:all")
+    @GetMapping("/instances/{checkOrderId}")
+    public R<List<ItemInstanceVo>> getInstances(
+            @PathVariable Long checkOrderId,
+            @RequestParam Long skuId) {
+        return R.ok(checkOrderService.getInstancesBySku(checkOrderId, skuId));
+    }
+
+    /**
+     * 完成盘点（保存差异+实例明细，不调整库存）
      */
     @SaCheckPermission("wms:check:all")
     @Log(title = "库存盘点单据", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PostMapping("/check")
-    public R<Void> check(@Validated(AddGroup.class) @RequestBody CheckOrderBo bo) {
+    public R<Void> check(@RequestBody CheckOrderBo bo) {
         bo.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
         checkOrderService.check(bo);
-        inventoryDetailService.clearDataWithZeroRemainQuantity();
         return R.ok();
     }
 

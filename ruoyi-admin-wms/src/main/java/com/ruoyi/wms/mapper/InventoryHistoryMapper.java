@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 库存记录Mapper接口
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 public interface InventoryHistoryMapper extends BaseMapperPlus<InventoryHistory, InventoryHistoryVo> {

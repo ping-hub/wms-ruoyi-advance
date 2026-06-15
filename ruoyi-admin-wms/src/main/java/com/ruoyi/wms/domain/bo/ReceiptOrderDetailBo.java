@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 入库单详情业务对象 wms_receipt_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 
@@ -35,6 +35,10 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 入库单号
@@ -102,6 +106,10 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     /**
      * 箱码
      */
+    /**
+     * 器材实例编码
+     */
+
     private String boxCode;
 
     /**

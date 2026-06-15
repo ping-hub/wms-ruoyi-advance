@@ -23,11 +23,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
+import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
 
 /**
  * 出库单
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 @Validated
@@ -105,7 +107,8 @@ public class ShipmentOrderController extends BaseController {
     public R<Void> shipment(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
         bo.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.FINISH);
         shipmentOrderService.shipment(bo);
-        inventoryDetailService.clearDataWithZeroRemainQuantity();
+        List<Long> affectedIds = bo.getDetails().stream().map(ShipmentOrderDetailBo::getInventoryDetailId).filter(Objects::nonNull).toList();
+        inventoryDetailService.clearByIdsWithZeroRemainQuantity(affectedIds);
         return R.ok();
     }
 

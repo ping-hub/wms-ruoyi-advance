@@ -1,19 +1,19 @@
 package com.ruoyi.wms.domain.vo;
 
-import java.math.BigDecimal;
-import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import lombok.Data;
+import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import io.github.linpeilie.annotations.AutoMapper;
+import lombok.Data;
 
-import java.io.Serializable;
 import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * 调拨单明细视图对象 wms_movement_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 @Data
@@ -155,12 +155,6 @@ public class MovementOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "入库记录id")
     private Long inventoryDetailId;
-
-    /**
-     * 器材实例ID
-     */
-    @ExcelProperty(value = "器材实例ID")
-    private Long itemInstanceId;
 
     /**
      * 器材实例编码

@@ -80,6 +80,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final ShipmentOrderDetailMapper shipmentOrderDetailMapper;
     private final ItemMapper itemMapper;
     private final ItemCategoryMapper itemCategoryMapper;
+    private final InventoryService inventoryService;
 
     public ItemInstanceVo queryById(Long id) {
         ItemInstanceVo vo = itemInstanceMapper.selectVoById(id);
@@ -310,9 +311,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
-    public void markBorrowed(Long id) {
+    public void markBorrowed(ItemInstance inst) {
+        // 先递减库存（使用旧位置信息，此时尚未清除）
+        inventoryService.adjustQuantityBySkuAndPlace(
+            inst.getWarehouseId(), inst.getAreaId(), inst.getRackId(),
+            inst.getLocationId(), inst.getSkuId(), java.math.BigDecimal.ONE.negate());
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
-        wrapper.eq(ItemInstance::getId, id);
+        wrapper.eq(ItemInstance::getId, inst.getId());
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.BORROWED);
         wrapper.set(ItemInstance::getBoxId, null);
         wrapper.set(ItemInstance::getWarehouseId, null);
@@ -322,11 +327,11 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         itemInstanceMapper.update(null, wrapper);
     }
 
-    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId) {
-        restoreFromBorrow(id, warehouseId, areaId, rackId, locationId, null);
+    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId, Long skuId) {
+        restoreFromBorrow(id, warehouseId, areaId, rackId, locationId, null, skuId);
     }
 
-    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId, Long boxId) {
+    public void restoreFromBorrow(Long id, Long warehouseId, Long areaId, Long rackId, Long locationId, Long boxId, Long skuId) {
         LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(ItemInstance::getId, id);
         wrapper.set(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.IN_STOCK);
@@ -336,6 +341,9 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         wrapper.set(ItemInstance::getRackId, rackId);
         wrapper.set(ItemInstance::getLocationId, locationId);
         itemInstanceMapper.update(null, wrapper);
+        // 归还后递增库存
+        inventoryService.adjustQuantityBySkuAndPlace(
+            warehouseId, areaId, rackId, locationId, skuId, java.math.BigDecimal.ONE);
     }
 
     public void markOutbound(Long id, String targetStatus) {
@@ -366,6 +374,33 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         enrich(list);
         return list;
     }
+
+    public ItemInstance getEntityByInstanceCode(String instanceCode) {
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.eq(ItemInstance::getInstanceCode, instanceCode);
+        return itemInstanceMapper.selectOne(lqw);
+    }
+
+    public List<ItemInstance> queryByInstanceCodes(Set<String> instanceCodes) {
+        if (CollUtil.isEmpty(instanceCodes)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.in(ItemInstance::getInstanceCode, instanceCodes);
+        return itemInstanceMapper.selectList(lqw);
+    }
+
+    public List<ItemInstanceVo> queryVosByInstanceCodes(Set<String> instanceCodes) {
+        if (CollUtil.isEmpty(instanceCodes)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.in(ItemInstance::getInstanceCode, instanceCodes);
+        List<ItemInstanceVo> list = itemInstanceMapper.selectVoList(lqw);
+        enrich(list);
+        return list;
+    }
+
 
     public Map<Long, List<ItemInstanceVo>> queryVoMapByReceiptDetailIds(Set<Long> receiptOrderDetailIds) {
         if (CollUtil.isEmpty(receiptOrderDetailIds)) {
@@ -576,21 +611,21 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         if (CollUtil.isEmpty(detailList)) {
             return;
         }
-        Set<Long> instanceIds = detailList.stream()
-            .map(ShipmentOrderDetailBo::getItemInstanceId)
+        Set<String> instanceCodes = detailList.stream()
+            .map(ShipmentOrderDetailBo::getInstanceCode)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
-        if (CollUtil.isEmpty(instanceIds)) {
+        if (CollUtil.isEmpty(instanceCodes)) {
             return;
         }
-        Map<Long, ItemInstance> itemInstanceMap = queryByIds(instanceIds).stream()
-            .collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
+        Map<String, ItemInstance> itemInstanceMap = queryByInstanceCodes(instanceCodes).stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
         List<ItemInstance> updateList = new ArrayList<>();
         for (ShipmentOrderDetailBo detail : detailList) {
-            if (detail.getItemInstanceId() == null) {
+            if (detail.getInstanceCode() == null) {
                 continue;
             }
-            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
+            ItemInstance itemInstance = itemInstanceMap.get(detail.getInstanceCode());
             Assert.notNull(itemInstance, "单品实例不存在");
             validateAvailableForShipment(itemInstance, detail.getId());
             Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例" + itemInstance.getInstanceCode() + "与当前明细规格不匹配");
@@ -811,7 +846,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Set<Long> rackIds = validList.stream().map(ItemInstanceVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> locationIds = validList.stream().map(ItemInstanceVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = validList.stream().map(ItemInstanceVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> instanceIds = validList.stream().map(ItemInstanceVo::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<String> instanceCodes = validList.stream().map(ItemInstanceVo::getInstanceCode).filter(StrUtil::isNotBlank).collect(Collectors.toSet());
         Set<Long> receiptDetailIds = validList.stream().map(ItemInstanceVo::getReceiptOrderDetailId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> shipmentDetailIds = validList.stream().map(ItemInstanceVo::getShipmentOrderDetailId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream().collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
@@ -825,7 +860,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty() ? java.util.Collections.emptyMap() :
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
-        Map<Long, BorrowRecord> activeBorrowMap = queryActiveBorrowRecordMap(instanceIds);
+        Map<String, BorrowRecord> activeBorrowMap = queryActiveBorrowRecordMap(instanceCodes);
         Map<Long, ReceiptOrderDetail> receiptDetailMap = receiptDetailIds.isEmpty() ? java.util.Collections.emptyMap() :
             receiptOrderDetailMapper.selectBatchIds(receiptDetailIds).stream().collect(Collectors.toMap(ReceiptOrderDetail::getId, Function.identity()));
         Set<Long> receiptOrderIds = receiptDetailMap.values().stream().map(ReceiptOrderDetail::getReceiptOrderId).filter(Objects::nonNull).collect(Collectors.toSet());
@@ -872,26 +907,26 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         });
     }
 
-    private Map<Long, BorrowRecord> queryActiveBorrowRecordMap(Set<Long> instanceIds) {
-        if (CollUtil.isEmpty(instanceIds)) {
+    private Map<String, BorrowRecord> queryActiveBorrowRecordMap(Set<String> instanceCodes) {
+        if (CollUtil.isEmpty(instanceCodes)) {
             return java.util.Collections.emptyMap();
         }
         LambdaQueryWrapper<BorrowRecord> lqw = Wrappers.lambdaQuery();
-        lqw.in(BorrowRecord::getItemInstanceId, instanceIds);
+        lqw.in(BorrowRecord::getInstanceCode, instanceCodes);
         lqw.eq(BorrowRecord::getBorrowStatus, ServiceConstants.BorrowStatus.BORROWED);
         lqw.orderByDesc(BorrowRecord::getBorrowTime, BorrowRecord::getId);
         List<BorrowRecord> borrowRecords = borrowRecordMapper.selectList(lqw);
         if (CollUtil.isEmpty(borrowRecords)) {
             return java.util.Collections.emptyMap();
         }
-        Map<Long, BorrowRecord> result = new java.util.HashMap<>();
-        borrowRecords.forEach(record -> result.putIfAbsent(record.getItemInstanceId(), record));
+        Map<String, BorrowRecord> result = new java.util.HashMap<>();
+        borrowRecords.forEach(record -> result.putIfAbsent(record.getInstanceCode(), record));
         return result;
     }
 
     private void fillCurrentBusinessFields(
         ItemInstanceVo vo,
-        Map<Long, BorrowRecord> activeBorrowMap,
+        Map<String, BorrowRecord> activeBorrowMap,
         Map<Long, ReceiptOrderDetail> receiptDetailMap,
         Map<Long, ReceiptOrder> receiptOrderMap,
         Map<Long, ShipmentOrderDetail> shipmentDetailMap,
@@ -900,7 +935,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         vo.setCurrentBusinessType("-");
         vo.setCurrentBusinessNo(StrUtil.blankToDefault(vo.getSourceOrderNo(), "-"));
 
-        BorrowRecord borrowRecord = activeBorrowMap.get(vo.getId());
+        BorrowRecord borrowRecord = activeBorrowMap.get(vo.getInstanceCode());
         if (borrowRecord != null) {
             vo.setCurrentBusinessType("借用");
             vo.setCurrentBusinessNo(StrUtil.blankToDefault(borrowRecord.getBorrowNo(), "-"));

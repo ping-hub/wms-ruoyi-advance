@@ -22,9 +22,6 @@ public class BorrowRecordVo implements Serializable {
     @ExcelProperty(value = "")
     private Long id;
 
-    @ExcelProperty(value = "单品实例ID")
-    private Long itemInstanceId;
-
     @ExcelProperty(value = "器材实例编码")
     private String instanceCode;
 

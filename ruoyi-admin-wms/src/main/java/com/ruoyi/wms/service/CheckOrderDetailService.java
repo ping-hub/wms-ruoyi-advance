@@ -6,12 +6,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
-import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
-import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.vo.CheckOrderDetailVo;
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * 库存盘点单据详情Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @RequiredArgsConstructor
@@ -37,7 +35,6 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
     private final CheckOrderDetailMapper checkOrderDetailMapper;
     private final ItemSkuService itemSkuService;
     private final InventoryDetailMapper inventoryDetailMapper;
-    private final ItemInstanceMapper itemInstanceMapper;
     private final BoxMapper boxMapper;
 
     @Transactional
@@ -89,18 +86,13 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
         if (CollUtil.isEmpty(details)) {
             return;
         }
-        Set<Long> itemInstanceIds = details.stream().map(CheckOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = details.stream().map(CheckOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty()
-            ? java.util.Collections.emptyMap()
-            : itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty()
             ? java.util.Collections.emptyMap()
             : boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
-            ItemInstance itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
-            if (itemInstance != null) {
-                detail.setInstanceCode(itemInstance.getInstanceCode());
+            if (detail.getInstanceCode() != null) {
+                detail.setInstanceCode(detail.getInstanceCode());
             }
             Box box = boxMap.get(detail.getBoxId());
             if (box != null) {
@@ -146,8 +138,8 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
             if (detail.getReceiptTime() == null) {
                 detail.setReceiptTime(inventoryDetail.getCreateTime());
             }
-            if (detail.getItemInstanceId() == null) {
-                detail.setItemInstanceId(inventoryDetail.getItemInstanceId());
+            if (detail.getInstanceCode() == null) {
+                detail.setInstanceCode(inventoryDetail.getInstanceCode());
             }
             if (detail.getBoxId() == null) {
                 detail.setBoxId(inventoryDetail.getBoxId());
@@ -192,8 +184,8 @@ public class CheckOrderDetailService extends ServiceImpl<CheckOrderDetailMapper,
             if (detail.getReceiptTime() == null) {
                 detail.setReceiptTime(inventoryDetail.getCreateTime());
             }
-            if (detail.getItemInstanceId() == null) {
-                detail.setItemInstanceId(inventoryDetail.getItemInstanceId());
+            if (detail.getInstanceCode() == null) {
+                detail.setInstanceCode(inventoryDetail.getInstanceCode());
             }
             if (detail.getBoxId() == null) {
                 detail.setBoxId(inventoryDetail.getBoxId());

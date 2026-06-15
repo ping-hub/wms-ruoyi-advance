@@ -13,7 +13,7 @@ import java.time.LocalDate;
 /**
  * 出库单对象 wms_shipment_order
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 @Data

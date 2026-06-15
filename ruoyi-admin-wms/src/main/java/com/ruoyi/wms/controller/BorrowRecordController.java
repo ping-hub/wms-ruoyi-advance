@@ -56,9 +56,9 @@ public class BorrowRecordController extends BaseController {
     }
 
     @SaCheckPermission("wms:borrowRecord:list")
-    @GetMapping("/current/{itemInstanceId}")
-    public R<BorrowRecordVo> getCurrent(@NotNull(message = "单品实例不能为空") @PathVariable Long itemInstanceId) {
-        return R.ok(borrowRecordService.queryCurrentByItemInstanceId(itemInstanceId));
+    @GetMapping("/current/{instanceCode}")
+    public R<BorrowRecordVo> getCurrent(@NotNull(message = "单品实例不能为空") @PathVariable String instanceCode) {
+        return R.ok(borrowRecordService.queryCurrentByInstanceCode(instanceCode));
     }
 
     @SaCheckPermission("wms:borrowRecord:list")

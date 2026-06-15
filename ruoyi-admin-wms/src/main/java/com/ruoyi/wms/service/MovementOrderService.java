@@ -20,6 +20,7 @@ import com.ruoyi.wms.domain.bo.InventoryDetailBo;
 import com.ruoyi.wms.domain.bo.MovementOrderBo;
 import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
+import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.MovementOrder;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
@@ -37,11 +38,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 调拨单 Service 业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 @RequiredArgsConstructor
@@ -333,7 +336,7 @@ public class MovementOrderService {
             addInventoryDetail.setAreaId(it.getTargetAreaId());
             addInventoryDetail.setRackId(it.getTargetRackId());
             addInventoryDetail.setLocationId(it.getTargetLocationId());
-            addInventoryDetail.setItemInstanceId(resolveItemInstanceId(it, sourceInventoryDetail));
+            addInventoryDetail.setInstanceCode(resolveItemInstanceCode(it, sourceInventoryDetail));
             addInventoryDetail.setBoxId(null);
             addInventoryDetail.setSourceOrderType(ServiceConstants.ItemInstanceSourceType.MOVEMENT);
             addInventoryDetail.setSourceOrderId(bo.getId());
@@ -365,7 +368,7 @@ public class MovementOrderService {
             shipmentInventoryHistory.setOrderId(bo.getId());
             shipmentInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             shipmentInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
-            shipmentInventoryHistory.setItemInstanceId(resolveItemInstanceId(detail, sourceInventoryDetail));
+            shipmentInventoryHistory.setInstanceCode(resolveItemInstanceCode(detail, sourceInventoryDetail));
             shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
             shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
             addInventoryHistoryList.add(shipmentInventoryHistory);
@@ -379,7 +382,7 @@ public class MovementOrderService {
             receiptInventoryHistory.setOrderId(bo.getId());
             receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
             receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
-            receiptInventoryHistory.setItemInstanceId(resolveItemInstanceId(detail, sourceInventoryDetail));
+            receiptInventoryHistory.setInstanceCode(resolveItemInstanceCode(detail, sourceInventoryDetail));
             receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
             receiptInventoryHistory.setLineAmount(detail.getLineAmount());
             addInventoryHistoryList.add(receiptInventoryHistory);
@@ -388,14 +391,37 @@ public class MovementOrderService {
     }
 
     private void syncMovementInstances(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
+        // Collect all instanceCodes from details and inventory details
+        Set<String> instanceCodes = new HashSet<>();
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            if (StringUtils.isNotBlank(detail.getInstanceCode())) {
+                instanceCodes.add(detail.getInstanceCode());
+            }
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            if (sourceInventoryDetail != null && StringUtils.isNotBlank(sourceInventoryDetail.getInstanceCode())) {
+                instanceCodes.add(sourceInventoryDetail.getInstanceCode());
+            }
+        }
+        if (CollUtil.isEmpty(instanceCodes)) {
+            return;
+        }
+        // Batch load ItemInstances by instanceCode to get actual IDs
+        Map<String, ItemInstance> itemInstanceByCode = itemInstanceService.queryByInstanceCodes(instanceCodes)
+            .stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
+
         for (MovementOrderDetailBo detail : bo.getDetails()) {
             InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
-            Long itemInstanceId = resolveItemInstanceId(detail, sourceInventoryDetail);
-            if (itemInstanceId == null) {
+            String instanceCode = resolveItemInstanceCode(detail, sourceInventoryDetail);
+            if (instanceCode == null) {
+                continue;
+            }
+            ItemInstance itemInstance = itemInstanceByCode.get(instanceCode);
+            if (itemInstance == null) {
                 continue;
             }
             itemInstanceService.moveByMovement(
-                itemInstanceId,
+                itemInstance.getId(),
                 detail.getTargetWarehouseId(),
                 detail.getTargetAreaId(),
                 detail.getTargetRackId(),
@@ -406,11 +432,11 @@ public class MovementOrderService {
         }
     }
 
-    private Long resolveItemInstanceId(MovementOrderDetailBo detail, InventoryDetail sourceInventoryDetail) {
-        if (detail.getItemInstanceId() != null) {
-            return detail.getItemInstanceId();
+    private String resolveItemInstanceCode(MovementOrderDetailBo detail, InventoryDetail sourceInventoryDetail) {
+        if (StringUtils.isNotBlank(detail.getInstanceCode())) {
+            return detail.getInstanceCode();
         }
-        return sourceInventoryDetail == null ? null : sourceInventoryDetail.getItemInstanceId();
+        return sourceInventoryDetail == null ? null : sourceInventoryDetail.getInstanceCode();
     }
 
     private void fillHeaderLocationByDetails(MovementOrderBo bo) {

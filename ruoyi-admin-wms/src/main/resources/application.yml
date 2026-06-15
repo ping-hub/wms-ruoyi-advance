@@ -212,9 +212,9 @@ springdoc:
     version: '版本号: ${revision}'
     # 作者信息
     contact:
-      name: zcc
-      email: zccbbg@qq.com
-      url: https://gitee.com/zccbbg/ruoyi-wms
+      name: xx
+      email: 123@qq.com
+      url: xx
   components:
     # 鉴权方式配置
     security-schemes:

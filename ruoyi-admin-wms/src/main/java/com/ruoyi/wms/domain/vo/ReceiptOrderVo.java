@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 入库单视图对象 wms_receipt_order
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 @Data

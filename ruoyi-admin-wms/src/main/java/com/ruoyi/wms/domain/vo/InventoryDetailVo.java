@@ -9,12 +9,11 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 库存详情视图对象 wms_inventory_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 @Data
@@ -96,12 +95,6 @@ public class InventoryDetailVo extends BaseVo {
      */
     @ExcelProperty(value = "货位名称")
     private String locationName;
-
-    /**
-     * 物品明细ID
-     */
-    @ExcelProperty(value = "物品明细ID")
-    private Long itemInstanceId;
 
     /**
      * 器材实例编码

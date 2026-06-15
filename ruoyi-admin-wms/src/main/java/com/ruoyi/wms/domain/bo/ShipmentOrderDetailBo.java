@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 /**
  * 出库单详情业务对象 wms_shipment_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 
@@ -34,6 +34,10 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
      */
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 出库单
@@ -114,7 +118,6 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     /**
      * 单品实例ID
      */
-    private Long itemInstanceId;
 
     /**
      * 箱体ID

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * 库存盘点单据对象 wms_check_order
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 @Data
@@ -25,7 +25,7 @@ public class CheckOrder extends BaseEntity {
     private static final long serialVersionUID=1L;
 
     /**
-     * 
+     *
      */
     @TableId(value = "id")
     private Long id;

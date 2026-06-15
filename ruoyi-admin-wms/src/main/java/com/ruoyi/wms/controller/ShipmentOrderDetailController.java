@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * 出库单详情
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 @Validated

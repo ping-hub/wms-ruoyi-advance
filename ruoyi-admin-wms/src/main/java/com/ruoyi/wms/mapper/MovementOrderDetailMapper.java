@@ -7,7 +7,7 @@ import com.ruoyi.common.mybatis.core.mapper.BaseMapperPlus;
 /**
  * 调拨单明细 Mapper 接口
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 public interface MovementOrderDetailMapper extends BaseMapperPlus<MovementOrderDetail, MovementOrderDetailVo> {

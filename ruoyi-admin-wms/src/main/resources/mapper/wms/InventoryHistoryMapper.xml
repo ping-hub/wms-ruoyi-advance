@@ -43,8 +43,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="bo.locationId != null">
                 and history.location_id=#{bo.locationId}
             </if>
-            <if test="bo.itemInstanceId != null">
-                and history.item_instance_id=#{bo.itemInstanceId}
+            <if test="bo.instanceCode != null">
+                and history.instance_code=#{bo.instanceCode}
             </if>
             <if test="bo.boxId != null">
                 and history.box_id=#{bo.boxId}

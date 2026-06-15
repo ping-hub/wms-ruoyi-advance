@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.vo.InventoryDetailVo;
-import com.ruoyi.wms.domain.vo.ItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 调拨单明细 Service 业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-09
  */
 @RequiredArgsConstructor
@@ -38,7 +37,6 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     private final MovementOrderDetailMapper movementOrderDetailMapper;
     private final ItemSkuService itemSkuService;
     private final InventoryDetailService inventoryDetailService;
-    private final ItemInstanceService itemInstanceService;
     /**
      * 查询调拨单明细
      */
@@ -129,31 +127,23 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         List<Long> inventoryDetailIds = details.stream().map(MovementOrderDetailVo::getInventoryDetailId).toList();
         Map<Long, InventoryDetailVo> inventoryDetailMap = inventoryDetailService.queryVoListByIds(inventoryDetailIds)
             .stream().collect(Collectors.toMap(InventoryDetailVo::getId, Function.identity()));
-        Set<Long> itemInstanceIds = details.stream()
-            .map(MovementOrderDetailVo::getItemInstanceId)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
-        Map<Long, ItemInstanceVo> itemInstanceMap = itemInstanceService.queryVosByIds(itemInstanceIds)
-            .stream()
-            .collect(Collectors.toMap(ItemInstanceVo::getId, Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
             detail.setItemSku(itemSku);
             fillSnapshotFields(detail, itemSku);
             InventoryDetailVo inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
-            ItemInstanceVo itemInstance = itemInstanceMap.get(detail.getItemInstanceId());
             if (inventoryDetail != null) {
                 detail.setInventoryDetail(inventoryDetail);
                 detail.setRemainQuantity(inventoryDetail.getRemainQuantity());
                 detail.setInstanceCode(StringUtils.isNotBlank(detail.getInstanceCode())
                     ? detail.getInstanceCode()
-                    : (itemInstance != null ? itemInstance.getInstanceCode() : inventoryDetail.getInstanceCode()));
+                    : (StringUtils.isNotBlank(detail.getInstanceCode()) ? detail.getInstanceCode() : inventoryDetail.getInstanceCode()));
                 detail.setSourceRackName(inventoryDetail.getRackName());
                 detail.setSourceLocationName(inventoryDetail.getLocationName());
             } else {
                 detail.setRemainQuantity(BigDecimal.ZERO);
-                if (itemInstance != null) {
-                    detail.setInstanceCode(itemInstance.getInstanceCode());
+                if (StringUtils.isNotBlank(detail.getInstanceCode())) {
+                    detail.setInstanceCode(detail.getInstanceCode());
                 }
             }
         });

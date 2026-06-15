@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 入库单详情Mapper接口
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-19
  */
 public interface ReceiptOrderDetailMapper extends BaseMapperPlus<ReceiptOrderDetail, ReceiptOrderDetailVo> {

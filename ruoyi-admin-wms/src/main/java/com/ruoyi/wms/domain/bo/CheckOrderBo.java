@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 库存盘点单据业务对象 wms_check_order
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 
@@ -45,7 +45,7 @@ public class CheckOrderBo extends BaseEntity {
     /**
      * 盈亏数
      */
-    @NotNull(message = "盈亏数不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotNull(message = "盈亏数不能为空", groups = { EditGroup.class })
     private BigDecimal checkOrderTotal;
 
     /**

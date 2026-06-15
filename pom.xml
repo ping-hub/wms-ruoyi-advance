@@ -8,9 +8,8 @@
     <artifactId>ruoyi-wms</artifactId>
     <version>${revision}</version>
 
-    <name>ruoyi-wms</name>
-    <url>https://gitee.com/zccbbg/wms-ruoyi</url>
-    <description>ruoyi-wms后台管理系统</description>
+    <name>wms</name>
+    <description>wms后台管理系统</description>
 
     <properties>
         <revision>5.2.0</revision>

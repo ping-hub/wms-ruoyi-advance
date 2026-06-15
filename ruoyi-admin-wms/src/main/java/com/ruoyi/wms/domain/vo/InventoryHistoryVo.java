@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 /**
  * 库存记录视图对象 wms_inventory_history
  *
- * @author zcc
+ * @author ping
  * @date 2024-07-22
  */
 @Data
@@ -33,6 +33,10 @@ public class InventoryHistoryVo implements Serializable {
      */
     @ExcelProperty(value = "")
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 操作id（出库、入库、库存移动表单id）
@@ -118,12 +122,6 @@ public class InventoryHistoryVo implements Serializable {
      */
     @ExcelProperty(value = "所属货位")
     private Long locationId;
-
-    /**
-     * 物品明细ID
-     */
-    @ExcelProperty(value = "物品明细ID")
-    private Long itemInstanceId;
 
     /**
      * 箱体ID

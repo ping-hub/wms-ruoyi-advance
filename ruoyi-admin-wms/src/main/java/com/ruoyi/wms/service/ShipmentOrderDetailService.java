@@ -11,12 +11,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
 import com.ruoyi.wms.domain.entity.Box;
-import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.InventoryMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
-import com.ruoyi.wms.mapper.ItemInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
@@ -33,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * 出库单详情Service业务层处理
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-01
  */
 @RequiredArgsConstructor
@@ -44,7 +42,6 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
     private final ItemSkuService itemSkuService;
     private final InventoryMapper inventoryMapper;
     private final InventoryDetailMapper inventoryDetailMapper;
-    private final ItemInstanceMapper itemInstanceMapper;
     private final BoxMapper boxMapper;
 
     /**
@@ -144,9 +141,9 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         return details;
     }
 
-    public List<ShipmentOrderDetailVo> queryByItemInstanceId(Long itemInstanceId) {
+    public List<ShipmentOrderDetailVo> queryByInstanceCode(String instanceCode) {
         ShipmentOrderDetailBo bo = new ShipmentOrderDetailBo();
-        bo.setItemInstanceId(itemInstanceId);
+        bo.setInstanceCode(instanceCode);
         return queryList(bo);
     }
 
@@ -170,19 +167,15 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         if (CollUtil.isEmpty(details)) {
             return;
         }
-        Set<Long> itemInstanceIds = details.stream().map(ShipmentOrderDetailVo::getItemInstanceId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> boxIds = details.stream().map(ShipmentOrderDetailVo::getBoxId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, ItemInstance> itemInstanceMap = itemInstanceIds.isEmpty() ? Map.of() :
-            itemInstanceMapper.selectBatchIds(itemInstanceIds).stream().collect(Collectors.toMap(ItemInstance::getId, Function.identity()));
         Map<Long, Box> boxMap = boxIds.isEmpty() ? Map.of() :
             boxMapper.selectBatchIds(boxIds).stream().collect(Collectors.toMap(Box::getId, Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
             detail.setItemSku(itemSku);
             fillSnapshotFields(detail, itemSku);
-            ItemInstance itemInstance = detail.getItemInstanceId() == null ? null : itemInstanceMap.get(detail.getItemInstanceId());
-            if (itemInstance != null) {
-                detail.setInstanceCode(itemInstance.getInstanceCode());
+            if (detail.getInstanceCode() != null) {
+                detail.setInstanceCode(detail.getInstanceCode());
             }
             Box box = detail.getBoxId() == null ? null : boxMap.get(detail.getBoxId());
             if (box != null) {

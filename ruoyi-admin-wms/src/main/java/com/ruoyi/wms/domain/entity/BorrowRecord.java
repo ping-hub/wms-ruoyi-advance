@@ -27,7 +27,6 @@ public class BorrowRecord extends BaseEntity {
     /**
      * 单品实例ID
      */
-    private Long itemInstanceId;
 
     /**
      * 借还状态

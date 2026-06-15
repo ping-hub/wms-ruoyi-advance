@@ -16,8 +16,8 @@ public class BoxOperationBo {
     private Long boxId;
 
     /**
-     * 单品实例ID列表
+     * 器材实例编码列表
      */
-    @NotEmpty(message = "单品实例不能为空")
-    private List<Long> itemInstanceIds;
+    @NotEmpty(message = "器材实例编码不能为空")
+    private List<String> instanceCodes;
 }

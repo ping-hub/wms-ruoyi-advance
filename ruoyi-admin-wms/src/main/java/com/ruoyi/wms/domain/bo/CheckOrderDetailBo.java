@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 /**
  * 库存盘点单据详情业务对象 wms_check_order_detail
  *
- * @author zcc
+ * @author ping
  * @date 2024-08-13
  */
 
@@ -29,6 +29,10 @@ public class CheckOrderDetailBo extends BaseEntity {
      */
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
+    /**
+     * 器材实例编码
+     */
+    private String instanceCode;
 
     /**
      * 盘点单id
@@ -91,13 +95,11 @@ public class CheckOrderDetailBo extends BaseEntity {
     /**
      * 入库记录id
      */
-    @NotNull(message = "入库记录id不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long inventoryDetailId;
 
     /**
      * 物品明细ID
      */
-    private Long itemInstanceId;
 
     /**
      * 箱体ID
@@ -107,8 +109,13 @@ public class CheckOrderDetailBo extends BaseEntity {
     /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空", groups = { AddGroup.class, EditGroup.class })
     private String remark;
+
+    /**
+     * 有盈亏
+     */
+    /** 已扫描的器材实例编码列表（前端提交） */
+    private java.util.List<String> scannedInstanceCodes;
 
     /**
      * 有盈亏
