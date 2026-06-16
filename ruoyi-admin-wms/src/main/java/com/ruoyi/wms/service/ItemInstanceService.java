@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemInstance> {
 
     private final ItemInstanceMapper itemInstanceMapper;
+    private final CodeRuleService codeRuleService;
     private final ItemSkuService itemSkuService;
     private final WarehouseMapper warehouseMapper;
     private final AreaMapper areaMapper;
@@ -781,7 +782,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     }
 
     private String generateInstanceCode() {
-        return "II" + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("item");
+        return code != null ? code : "II" + IdUtil.getSnowflakeNextIdStr();
     }
 
     private List<ItemInstance> queryByCodes(Set<String> instanceCodes) {

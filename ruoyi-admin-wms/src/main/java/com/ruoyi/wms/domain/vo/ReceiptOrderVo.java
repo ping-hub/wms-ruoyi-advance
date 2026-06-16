@@ -81,9 +81,9 @@ public class ReceiptOrderVo extends BaseVo {
     private LocalDate receiptDate;
 
     /**
-     * 商品总数
+     * 器材总数
      */
-    @ExcelProperty(value = "商品总数")
+    @ExcelProperty(value = "器材总数")
     private BigDecimal totalQuantity;
 
     /**

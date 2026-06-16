@@ -49,12 +49,12 @@ public class ItemSkuBo extends BaseEntity {
     private String status;
 
     /**
-     * 商品名称
+     * 器材名称
      */
     private String itemName;
 
     /**
-     * 商品编码
+     * 器材编码
      */
     private String itemCode;
 
@@ -64,7 +64,7 @@ public class ItemSkuBo extends BaseEntity {
     private String equipmentName;
 
     /**
-     * 商品分类
+     * 器材分类
      */
     private String itemCategory;
 }

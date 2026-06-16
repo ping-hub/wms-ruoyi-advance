@@ -55,6 +55,7 @@ public class ReceiptOrderService {
     private String warehouse;
 
     private final ReceiptOrderMapper receiptOrderMapper;
+    private final CodeRuleService codeRuleService;
     private final ReceiptOrderDetailService receiptOrderDetailService;
     private final InventoryService inventoryService;
     private final InventoryDetailService inventoryDetailService;
@@ -190,7 +191,7 @@ public class ReceiptOrderService {
 
     private void validateBeforeReceive(ReceiptOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
-            throw new BaseException("商品明细不能为空");
+            throw new BaseException("器材明细不能为空");
         }
         if (bo.getId() != null) {
             ReceiptOrder receiptOrder = receiptOrderMapper.selectById(bo.getId());
@@ -348,7 +349,8 @@ public class ReceiptOrderService {
     }
 
     private String generateReceiptOrderNo() {
-        return "RK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("receipt");
+        return code != null ? code : "RK" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     private void attachReceiptInstances(ReceiptOrderVo receiptOrderVo) {

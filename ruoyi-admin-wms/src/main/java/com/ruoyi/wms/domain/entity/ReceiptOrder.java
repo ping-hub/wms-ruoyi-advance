@@ -51,7 +51,7 @@ public class ReceiptOrder extends BaseEntity {
     private LocalDate receiptDate;
 
     /**
-     * 商品总数
+     * 器材总数
      */
     private BigDecimal totalQuantity;
     /**

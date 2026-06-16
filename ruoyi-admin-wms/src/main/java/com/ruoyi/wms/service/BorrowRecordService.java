@@ -50,6 +50,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private String warehouse;
 
     private final BorrowRecordMapper borrowRecordMapper;
+    private final CodeRuleService codeRuleService;
     private final ItemInstanceService itemInstanceService;
     private final WarehouseMapper warehouseMapper;
     private final AreaMapper areaMapper;
@@ -478,6 +479,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     }
 
     private String generateBorrowNo() {
-        return "BR" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("borrow");
+        return code != null ? code : "BR" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 }

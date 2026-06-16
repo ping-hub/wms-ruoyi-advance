@@ -43,6 +43,7 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
     private static final String RACK_CODE_KEY = "RACK";
 
     private final RackMapper rackMapper;
+    private final CodeRuleService codeRuleService;
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
     private final LocationMapper locationMapper;
@@ -202,6 +203,11 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
     }
 
     private String generateRackCodeWithRetry(Long warehouseId, Long areaId) {
+        String code = codeRuleService.generateCode("rack");
+        if (code != null) {
+            return code;
+        }
+        // 降级：原有逻辑
         int maxAttempts = 5;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             long serialValue = itemQrCodeSerialService.allocateSerialValues(RACK_CODE_KEY + warehouse, 1).get(0);

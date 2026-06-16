@@ -101,7 +101,7 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
 
     private void validateSkuIdsBeforeDelete(Collection<Long> skuIds) {
         if (inventoryService.existsBySkuIds(skuIds)) {
-            throw new ServiceException("商品已有业务关联，无法删除！", HttpStatus.CONFLICT.value());
+            throw new ServiceException("器材已有业务关联，无法删除！", HttpStatus.CONFLICT.value());
         }
     }
     /**
@@ -116,8 +116,8 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
     }
 
     /**
-     * 批量保存商品sku
-     * @param sku    商品sku
+     * 批量保存器材sku
+     * @param sku    器材sku
      */
     @Transactional
     public void saveOrUpdateBatchByBo(List<ItemSkuBo> sku) {
@@ -134,7 +134,7 @@ public class ItemSkuService extends ServiceImpl<ItemSkuMapper, ItemSku> {
     /**
      * 查询sku列表
      *
-     * @param id 商品id
+     * @param id 器材id
      */
 
     public List<ItemSkuVo> queryListByItemId(Long id) {

@@ -6,7 +6,6 @@ import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.wms.domain.entity.ReceiptOrder;
 import io.github.linpeilie.annotations.AutoMapper;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -76,7 +75,7 @@ public class ReceiptOrderBo extends BaseEntity {
     private LocalDate receiptDate;
 
     /**
-     * 商品总数
+     * 器材总数
      */
     private BigDecimal totalQuantity;
 
@@ -107,7 +106,7 @@ public class ReceiptOrderBo extends BaseEntity {
     private String remark;
 
     /**
-     * 商品信息
+     * 器材信息
      */
     private List<ReceiptOrderDetailBo> details;
 }

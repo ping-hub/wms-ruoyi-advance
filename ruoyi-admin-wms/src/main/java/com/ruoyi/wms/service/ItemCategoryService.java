@@ -118,10 +118,10 @@ public class ItemCategoryService extends ServiceImpl<ItemCategoryMapper, ItemCat
         LambdaQueryWrapper<ItemCategory> itemCategoryLqw = new LambdaQueryWrapper<>();
         itemCategoryLqw.in(ItemCategory::getParentId, ids);
         Assert.state(itemCategoryMapper.selectCount(itemCategoryLqw) == 0, "删除失败！请先删除该分类下的子分类！");
-        // 被商品应用了不能删
+        // 被器材应用了不能删
         LambdaQueryWrapper<Item> itemLqw = Wrappers.lambdaQuery();
         itemLqw.in(Item::getItemCategory, ids);
-        Assert.state(itemMapper.selectCount(itemLqw) == 0, "删除失败！分类已被商品使用！");
+        Assert.state(itemMapper.selectCount(itemLqw) == 0, "删除失败！分类已被器材使用！");
         // 删除
         LambdaQueryWrapper<ItemCategory> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.in(ItemCategory::getId, ids);

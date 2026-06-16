@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 public class BoxService extends ServiceImpl<BoxMapper, Box> {
 
     private final BoxMapper boxMapper;
+    private final CodeRuleService codeRuleService;
     private final ItemInstanceService itemInstanceService;
     private final ItemSkuService itemSkuService;
     private final WarehouseMapper warehouseMapper;
@@ -283,7 +284,8 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     }
 
     private String generateBoxCode() {
-        return "BOX" + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("box");
+        return code != null ? code : "BOX" + IdUtil.getSnowflakeNextIdStr();
     }
 
     private boolean sameLocation(Box box, LocationContext location) {

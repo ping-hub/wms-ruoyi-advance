@@ -53,6 +53,7 @@ public class ShipmentOrderService {
     private String warehouse;
 
     private final ShipmentOrderMapper shipmentOrderMapper;
+    private final CodeRuleService codeRuleService;
     private final ShipmentOrderDetailService shipmentOrderDetailService;
     private final InventoryService inventoryService;
     private final InventoryDetailMapper inventoryDetailMapper;
@@ -139,7 +140,8 @@ public class ShipmentOrderService {
     }
 
     private String generateShipmentOrderNo() {
-        return "CK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("shipment");
+        return code != null ? code : "CK" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
 
@@ -212,10 +214,10 @@ public class ShipmentOrderService {
      */
     @Transactional
     public void shipment(ShipmentOrderBo bo) {
-        // 1.校验商品明细不能为空！
+        // 1.校验器材明细不能为空！
         validateBeforeShipment(bo);
         Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
-        // 2.按仓库/库区/货架/货位/规格合并商品明细数量
+        // 2.按仓库/库区/货架/货位/规格合并器材明细数量
         List<InventoryBo> mergedInventoryBoList = mergeShipmentOrderDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
         // 3.校验库存明细
         List<InventoryDetailBo> inventoryDetailBoList = convertShipmentOrderDetailToInventoryDetail(bo.getDetails());
@@ -242,7 +244,7 @@ public class ShipmentOrderService {
     }
 
     /**
-     * 按仓库/库区/货架/货位/规格合并商品明细数量
+     * 按仓库/库区/货架/货位/规格合并器材明细数量
      * @param shipmentOrderDetailBoList 明细
      * @param inventoryDetailMap 库存明细映射
      * @return 合并后的库存变更
@@ -325,7 +327,7 @@ public class ShipmentOrderService {
 
     private void validateBeforeShipment(ShipmentOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
-            throw new BaseException("商品明细不能为空！");
+            throw new BaseException("器材明细不能为空！");
         }
         if (bo.getId() != null) {
             ShipmentOrder shipmentOrder = shipmentOrderMapper.selectById(bo.getId());

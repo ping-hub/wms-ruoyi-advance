@@ -47,6 +47,7 @@ public class CheckOrderService {
     private String warehouse;
 
     private final CheckOrderMapper checkOrderMapper;
+    private final CodeRuleService codeRuleService;
     private final CheckOrderDetailService checkOrderDetailService;
     private final CheckOrderInstanceService checkOrderInstanceService;
     private final InventoryMapper inventoryMapper;
@@ -117,7 +118,8 @@ public class CheckOrderService {
     }
 
     private String generateCheckOrderNo() {
-        return "PK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("check");
+        return code != null ? code : "PK" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**

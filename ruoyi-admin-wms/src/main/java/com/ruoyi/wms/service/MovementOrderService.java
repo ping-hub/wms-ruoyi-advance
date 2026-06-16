@@ -55,6 +55,7 @@ public class MovementOrderService {
     private String warehouse;
 
     private final MovementOrderMapper movementOrderMapper;
+    private final CodeRuleService codeRuleService;
     private final MovementOrderDetailService movementOrderDetailService;
     private final InventoryService inventoryService;
     private final InventoryDetailService inventoryDetailService;
@@ -141,7 +142,8 @@ public class MovementOrderService {
     }
 
     private String generateMovementOrderNo() {
-        return "DB" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        String code = codeRuleService.generateCode("movement");
+        return code != null ? code : "DB" + warehouse + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**
@@ -211,7 +213,7 @@ public class MovementOrderService {
         List<InventoryDetailBo> inventoryDetailBoList = convertMovementOrderDetailToInventoryDetail(bo.getDetails());
         Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
 
-        // 1.校验商品明细不能为空！
+        // 1.校验器材明细不能为空！
         validateBeforeMove(bo);
 
         // 2.校验库存记录
@@ -244,7 +246,7 @@ public class MovementOrderService {
 
     private void validateBeforeMove(MovementOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
-            throw new BaseException("商品明细不能为空！");
+            throw new BaseException("器材明细不能为空！");
         }
     }
 
