@@ -76,4 +76,14 @@ public class InventoryVo implements Serializable {
 
     private ItemVo item;
 
+    /**
+     * 货架名称
+     */
+    private String rackName;
+
+    /**
+     * 货位名称
+     */
+    private String locationName;
+
 }

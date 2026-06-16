@@ -143,4 +143,9 @@ public class ShipmentOrderDetailVo implements Serializable, PlaceAndItem {
     private ItemSkuVo itemSku;
 
     private BigDecimal remainQuantity;
+
+    /**
+     * 关联出库单（仅列表查询时填充）
+     */
+    private ShipmentOrderVo shipmentOrder;
 }

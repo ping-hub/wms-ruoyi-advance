@@ -44,12 +44,24 @@ public class ReceiptOrderDetailService extends ServiceImpl<ReceiptOrderDetailMap
     }
 
     /**
-     * 查询入库单详情列表
+     * 查询入库单详情列表（跨表分页，支持入库单号/器材/时间筛选）
      */
     public TableDataInfo<ReceiptOrderDetailVo> queryPageList(ReceiptOrderDetailBo bo, PageQuery pageQuery) {
-        LambdaQueryWrapper<ReceiptOrderDetail> lqw = buildQueryWrapper(bo);
-        Page<ReceiptOrderDetailVo> result = receiptOrderDetailMapper.selectVoPage(pageQuery.build(), lqw);
-        return TableDataInfo.build(result);
+        Page<ReceiptOrderDetailVo> page = receiptOrderDetailMapper.queryDetailPage(pageQuery.build(), bo);
+        // 补充 itemSku 快照字段
+        if (CollUtil.isNotEmpty(page.getRecords())) {
+            Set<Long> skuIds = page.getRecords().stream()
+                .map(ReceiptOrderDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+            Map<Long, ItemSkuVo> itemSkuMap = skuIds.isEmpty() ? Map.of() :
+                itemSkuService.queryVosByIds(skuIds).stream()
+                    .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+            page.getRecords().forEach(detail -> {
+                ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
+                detail.setItemSku(itemSku);
+                fillSnapshotFields(detail, itemSku);
+            });
+        }
+        return TableDataInfo.build(page);
     }
 
     /**

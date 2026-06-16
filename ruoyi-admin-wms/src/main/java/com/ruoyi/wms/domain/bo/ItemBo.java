@@ -43,7 +43,6 @@ public class ItemBo extends BaseEntity {
     /**
      * 器材分类
      */
-    @NotBlank(message = "器材分类不能为空", groups = { AddGroup.class, EditGroup.class })
     private String itemCategory;
 
     /**

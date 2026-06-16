@@ -129,4 +129,19 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
      * 备注
      */
     private String remark;
+
+    /**
+     * 出库单号（用于跨表筛选）
+     */
+    private String shipmentOrderNo;
+
+    /**
+     * 创建时间范围起始
+     */
+    private String startTime;
+
+    /**
+     * 创建时间范围结束
+     */
+    private String endTime;
 }

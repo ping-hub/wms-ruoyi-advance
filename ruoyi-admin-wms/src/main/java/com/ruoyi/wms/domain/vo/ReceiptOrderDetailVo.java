@@ -145,4 +145,9 @@ public class ReceiptOrderDetailVo implements Serializable {
     private ItemSkuVo itemSku;
 
     private List<ReceiptItemInstanceVo> receiptItemInstances;
+
+    /**
+     * 关联入库单（仅列表查询时填充）
+     */
+    private ReceiptOrderVo receiptOrder;
 }

@@ -54,12 +54,24 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
     }
 
     /**
-     * 查询出库单详情列表
+     * 查询出库单详情列表（跨表分页，支持出库单号/器材/时间筛选）
      */
     public TableDataInfo<ShipmentOrderDetailVo> queryPageList(ShipmentOrderDetailBo bo, PageQuery pageQuery) {
-        LambdaQueryWrapper<ShipmentOrderDetail> lqw = buildQueryWrapper(bo);
-        Page<ShipmentOrderDetailVo> result = shipmentOrderDetailMapper.selectVoPage(pageQuery.build(), lqw);
-        return TableDataInfo.build(result);
+        Page<ShipmentOrderDetailVo> page = shipmentOrderDetailMapper.queryDetailPage(pageQuery.build(), bo);
+        // 补充 itemSku 快照字段
+        if (CollUtil.isNotEmpty(page.getRecords())) {
+            Set<Long> skuIds = page.getRecords().stream()
+                .map(ShipmentOrderDetailVo::getSkuId).filter(Objects::nonNull).collect(Collectors.toSet());
+            Map<Long, ItemSkuVo> itemSkuMap = skuIds.isEmpty() ? Map.of() :
+                itemSkuService.queryVosByIds(skuIds).stream()
+                    .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+            page.getRecords().forEach(detail -> {
+                ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
+                detail.setItemSku(itemSku);
+                fillSnapshotFields(detail, itemSku);
+            });
+        }
+        return TableDataInfo.build(page);
     }
 
     /**

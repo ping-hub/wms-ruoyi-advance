@@ -138,4 +138,19 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      * 入库时录入的器材实例
      */
     private List<ReceiptItemInstanceBo> receiptItemInstances;
+
+    /**
+     * 入库单号（用于跨表筛选）
+     */
+    private String receiptOrderNo;
+
+    /**
+     * 创建时间范围起始
+     */
+    private String startTime;
+
+    /**
+     * 创建时间范围结束
+     */
+    private String endTime;
 }

@@ -13,10 +13,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select
         inventory.*,
         sku.*,
-        item.*
+        item.*,
+        rack.rack_name,
+        loc.location_name
         from wms_inventory inventory
         inner join wms_item_sku sku on inventory.sku_id=sku.id
         inner join wms_item item on sku.item_id=item.id
+        left join wms_rack rack on inventory.rack_id=rack.id
+        left join wms_location loc on inventory.location_id=loc.id
         <where>
             <if test="bo.itemName != null and bo.itemName != ''">
                 item.item_name like concat('%', #{bo.itemName}, '%')
