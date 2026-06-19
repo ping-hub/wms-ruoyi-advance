@@ -89,6 +89,17 @@ public class CheckOrderBo extends BaseEntity {
      */
     private String remark;
 
+
+    /**
+     * App端"我的盘点"过滤参数（非数据库字段）
+     */
+    private transient String myNickName;
+
+    /**
+     * 扫码驱动模式：订单级别已扫描实例编码列表（App端使用）
+     */
+    private List<String> scannedInstanceCodes;
+
     private List<CheckOrderDetailBo> details;
 
 }

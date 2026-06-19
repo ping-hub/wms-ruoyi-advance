@@ -15,6 +15,10 @@ import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.InventoryMapper;
 import com.ruoyi.wms.mapper.BoxMapper;
+import com.ruoyi.wms.mapper.RackMapper;
+import com.ruoyi.wms.mapper.LocationMapper;
+import com.ruoyi.wms.domain.entity.Rack;
+import com.ruoyi.wms.domain.entity.Location;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
@@ -43,6 +47,8 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
     private final InventoryMapper inventoryMapper;
     private final InventoryDetailMapper inventoryDetailMapper;
     private final BoxMapper boxMapper;
+    private final RackMapper rackMapper;
+    private final LocationMapper locationMapper;
 
     /**
      * 查询出库单详情
@@ -140,15 +146,37 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         Map<Long, ItemSkuVo> itemSkuMap = itemSkuService.queryVosByIds(skuIds)
             .stream()
             .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
-        // 查剩余库存
+        // 查剩余库存 & 货位/货架信息
         List<Long> inventoryDetailIds = details
             .stream()
             .map(ShipmentOrderDetailVo::getInventoryDetailId)
             .toList();
-        Map<Long, BigDecimal> remainQuantityMap = inventoryDetailMapper.selectBatchIds(inventoryDetailIds)
+        List<InventoryDetail> inventoryDetails = inventoryDetailMapper.selectBatchIds(inventoryDetailIds);
+        Map<Long, InventoryDetail> inventoryDetailMap = inventoryDetails
             .stream()
-            .collect(Collectors.toMap(InventoryDetail::getId, InventoryDetail::getRemainQuantity));
-        details.forEach(detail -> detail.setRemainQuantity(remainQuantityMap.getOrDefault(detail.getInventoryDetailId(), BigDecimal.ZERO)));
+            .collect(Collectors.toMap(InventoryDetail::getId, Function.identity()));
+        // 填充剩余库存 & 货位/货架ID
+        details.forEach(detail -> {
+            InventoryDetail inv = inventoryDetailMap.get(detail.getInventoryDetailId());
+            detail.setRemainQuantity(inv != null ? inv.getRemainQuantity() : BigDecimal.ZERO);
+            if (inv != null) {
+                if (detail.getRackId() == null) detail.setRackId(inv.getRackId());
+                if (detail.getLocationId() == null) detail.setLocationId(inv.getLocationId());
+            }
+        });
+        // 查货架/货位名称
+        Set<Long> rackIds = details.stream().map(ShipmentOrderDetailVo::getRackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> locationIds = details.stream().map(ShipmentOrderDetailVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> rackNameMap = rackIds.isEmpty()
+            ? Collections.emptyMap()
+            : rackMapper.selectBatchIds(rackIds).stream().collect(Collectors.toMap(Rack::getId, Rack::getRackName));
+        Map<Long, String> locationNameMap = locationIds.isEmpty()
+            ? Collections.emptyMap()
+            : locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, Location::getLocationName));
+        details.forEach(detail -> {
+            if (StringUtils.isBlank(detail.getRackName())) detail.setRackName(rackNameMap.get(detail.getRackId()));
+            if (StringUtils.isBlank(detail.getLocationName())) detail.setLocationName(locationNameMap.get(detail.getLocationId()));
+        });
         enrich(details, itemSkuMap);
         return details;
     }

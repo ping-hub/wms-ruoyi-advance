@@ -18,9 +18,9 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
 import com.ruoyi.wms.domain.entity.*;
 import com.ruoyi.wms.domain.vo.*;
+import com.ruoyi.wms.domain.vo.CheckOrderInstanceVo;
 import com.ruoyi.wms.mapper.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.ruoyi.wms.domain.bo.CheckOrderBo;
@@ -43,8 +43,6 @@ import java.util.stream.Collectors;
 @Service
 public class CheckOrderService {
 
-    @Value("${warehouse}")
-    private String warehouse;
 
     private final CheckOrderMapper checkOrderMapper;
     private final CodeRuleService codeRuleService;
@@ -93,6 +91,12 @@ public class CheckOrderService {
         lqw.eq(bo.getAreaId() != null, CheckOrder::getAreaId, bo.getAreaId());
         lqw.eq(bo.getRackId() != null, CheckOrder::getRackId, bo.getRackId());
         lqw.eq(StringUtils.isNotBlank(bo.getCheckScopeType()), CheckOrder::getCheckScopeType, bo.getCheckScopeType());
+        // "我的盘点"：盘点人或复核人是当前用户
+        if (StringUtils.isNotBlank(bo.getMyNickName())) {
+            lqw.and(w -> w.eq(CheckOrder::getCheckerName, bo.getMyNickName())
+                           .or()
+                           .eq(CheckOrder::getReviewerName, bo.getMyNickName()));
+        }
         lqw.orderByDesc(BaseEntity::getCreateTime);
         return lqw;
     }
@@ -119,7 +123,7 @@ public class CheckOrderService {
 
     private String generateCheckOrderNo() {
         String code = codeRuleService.generateCode("check");
-        return code != null ? code : "PK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        return code != null ? code : "PK" + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**
@@ -134,14 +138,42 @@ public class CheckOrderService {
             List<CheckOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), CheckOrderDetail.class);
             detailList.forEach(it -> it.setCheckOrderId(bo.getId()));
             checkOrderDetailService.saveDetails(detailList);
+            // 暂存实例差异（前端传入 scannedInstanceCodes 时生效）
+            saveDraftInstances(bo.getId(), bo.getDetails());
         }
+        // 扫码驱动暂存：保存已扫描编码到 instance 表（resultType='scanned'）
+        if (CollUtil.isNotEmpty(bo.getScannedInstanceCodes())) {
+            saveScannedCodes(bo.getId(), bo.getScannedInstanceCodes());
+        }
+    }
+
+    /**
+     * 保存扫码暂存数据（resultType='scanned'）
+     */
+    private void saveScannedCodes(Long checkOrderId, List<String> scannedCodes) {
+        // 只删除 scanned 类型，保留其他类型（如暂存的 loss/gain）
+        LambdaQueryWrapper<CheckOrderInstance> delLqw = Wrappers.lambdaQuery();
+        delLqw.eq(CheckOrderInstance::getCheckOrderId, checkOrderId);
+        delLqw.eq(CheckOrderInstance::getResultType, "scanned");
+        checkOrderInstanceService.remove(delLqw);
+
+        if (scannedCodes.isEmpty()) return;
+
+        List<CheckOrderInstance> instances = scannedCodes.stream().map(code -> {
+            CheckOrderInstance ci = new CheckOrderInstance();
+            ci.setCheckOrderId(checkOrderId);
+            ci.setInstanceCode(code);
+            ci.setResultType("scanned");
+            return ci;
+        }).toList();
+        checkOrderInstanceService.saveInstances(instances);
     }
 
     /**
      * 开始盘点：从 wms_inventory 按 sku_id 汇总加载账面库存
      */
     @Transactional
-    public CheckOrderVo startCheck(Long id) {
+    public Map<String, Object> startCheck(Long id) {
         CheckOrder checkOrder = checkOrderMapper.selectById(id);
         Assert.notNull(checkOrder, "盘点单不存在");
         Assert.isTrue(ServiceConstants.CheckOrderStatus.PENDING.equals(checkOrder.getCheckOrderStatus()),
@@ -170,6 +202,8 @@ public class CheckOrderService {
 
         // 删除旧明细（如果有）
         checkOrderDetailService.deleteByCheckOrderIds(Collections.singletonList(id));
+        // 删除旧实例差异记录（避免重新盘点时残留脏数据）
+        checkOrderInstanceService.deleteByCheckOrderIds(Collections.singletonList(id));
 
         // 生成 SKU 级明细
         List<CheckOrderDetail> details = new ArrayList<>();
@@ -182,15 +216,87 @@ public class CheckOrderService {
         });
         checkOrderDetailService.saveDetails(details);
 
-        return queryById(id);
+        // 返回轻量信息（不返回全量明细）
+        Map<String, Object> result = new HashMap<>();
+        result.put("skuCount", skuQuantityMap.size());
+        result.put("totalInstanceCount", inventories.stream()
+            .filter(inv -> inv.getQuantity() != null)
+            .mapToInt(inv -> inv.getQuantity().intValue())
+            .sum());
+        return result;
     }
 
     /**
-     * 懒加载指定SKU的在库实例列表
+     * 验码：校验扫码结果是否属于盘点范围，实时返回盘盈信息
+     */
+    public Map<String, Object> verify(Long checkOrderId, List<String> instanceCodes) {
+        CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
+        Assert.notNull(checkOrder, "盘点单不存在");
+
+        // 查询盘点范围内的所有实例编码（缓存友好：只查 instanceCode 和 skuId）
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.select(ItemInstance::getInstanceCode, ItemInstance::getSkuId, ItemInstance::getItemId);
+        if (checkOrder.getWarehouseId() != null) lqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+        if (checkOrder.getAreaId() != null) lqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+        if (checkOrder.getRackId() != null) lqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+        lqw.in(ItemInstance::getInstanceCode, instanceCodes);
+        List<ItemInstance> matched = itemInstanceMapper.selectList(lqw);
+
+        Set<String> matchedCodes = matched.stream().map(ItemInstance::getInstanceCode).collect(Collectors.toSet());
+
+        // 盘盈：扫到了但不在账面范围内
+        List<String> surplusCodes = instanceCodes.stream()
+            .filter(code -> !matchedCodes.contains(code))
+            .toList();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("matched", matchedCodes.size());
+        result.put("surplus", surplusCodes.size());
+        result.put("surplusCodes", surplusCodes);
+        return result;
+    }
+
+    /**
+     * 从快照中获取指定SKU的账面实例（用于已完成的盘点单）
+     */
+    private List<ItemInstanceVo> getStoredBookInstancesBySku(Long checkOrderId, Long skuId) {
+        LambdaQueryWrapper<CheckOrderInstance> lqw = Wrappers.lambdaQuery();
+        lqw.eq(CheckOrderInstance::getCheckOrderId, checkOrderId);
+        lqw.eq(CheckOrderInstance::getSkuId, skuId);
+        lqw.eq(CheckOrderInstance::getResultType, "book");
+        List<CheckOrderInstance> instances = checkOrderInstanceService.list(lqw);
+
+        // 获取SKU信息用于填充展示字段
+        Set<Long> skuIds = Collections.singleton(skuId);
+        Map<Long, ItemSkuVo> skuMap = itemSkuService.queryVosByIds(skuIds).stream()
+            .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+
+        return instances.stream().map(inst -> {
+            ItemInstanceVo vo = new ItemInstanceVo();
+            vo.setId(inst.getId());
+            vo.setInstanceCode(inst.getInstanceCode());
+            vo.setSkuId(inst.getSkuId());
+            vo.setInstanceStatus(null);
+            ItemSkuVo skuVo = skuMap.get(inst.getSkuId());
+            if (skuVo != null) {
+                vo.setSkuName(skuVo.getSkuName());
+                vo.setItemName(skuVo.getItem() != null ? skuVo.getItem().getItemName() : null);
+            }
+            return vo;
+        }).toList();
+    }
+
+    /**
+     * 懒加载指定SKU的实例列表（已完成盘点单返回快照，待盘点返回实时数据）
      */
     public List<ItemInstanceVo> getInstancesBySku(Long checkOrderId, Long skuId) {
         CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
         Assert.notNull(checkOrder, "盘点单不存在");
+
+        // 已完成的盘点单：返回存储的账面实例快照，不再查询实时数据
+        if (ServiceConstants.CheckOrderStatus.FINISH.equals(checkOrder.getCheckOrderStatus())) {
+            return getStoredBookInstancesBySku(checkOrderId, skuId);
+        }
 
         LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
         lqw.eq(ItemInstance::getSkuId, skuId);
@@ -228,10 +334,20 @@ public class CheckOrderService {
 
     /**
      * 完成盘点（保存差异+实例明细，不调整库存）
+     * 支持两种模式：
+     * 1. 扫码驱动（App端）：bo.scannedInstanceCodes 为全量已扫码，后端自动按SKU分组计算差异
+     * 2. 明细驱动（Web端）：bo.details 为前端组装好的SKU级明细
      */
     @Transactional
     public void check(CheckOrderBo bo) {
         List<CheckOrderDetailBo> details = bo.getDetails();
+
+        // 扫码驱动模式：根据全量已扫码自动计算SKU级差异
+        if (CollUtil.isNotEmpty(bo.getScannedInstanceCodes()) && CollUtil.isEmpty(details)) {
+            details = computeDetailsFromScannedCodes(bo.getId(), bo.getScannedInstanceCodes());
+            bo.setDetails(details);
+        }
+
         Assert.notEmpty(details, "盘点明细不能为空");
 
         // 保存盘点单
@@ -264,34 +380,134 @@ public class CheckOrderService {
     }
 
     /**
-     * 保存实例差异明细：集合运算找出盘亏/盘盈实例
+     * 扫码驱动：根据全量已扫描编码，自动按SKU分组，计算每个SKU的实盘数量和差异
+     */
+    private List<CheckOrderDetailBo> computeDetailsFromScannedCodes(Long checkOrderId, List<String> scannedCodes) {
+        CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
+        Assert.notNull(checkOrder, "盘点单不存在");
+
+        // 查询已有的SKU级明细（startCheck 时生成的）
+        LambdaQueryWrapper<CheckOrderDetail> detailLqw = Wrappers.lambdaQuery();
+        detailLqw.eq(CheckOrderDetail::getCheckOrderId, checkOrderId);
+        List<CheckOrderDetail> existingDetails = checkOrderDetailService.list(detailLqw);
+        if (CollUtil.isEmpty(existingDetails)) {
+            return new ArrayList<>();
+        }
+
+        // 查询盘点范围内所有账面实例，建立 instanceCode → skuId 映射
+        LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
+        lqw.select(ItemInstance::getInstanceCode, ItemInstance::getSkuId);
+        if (checkOrder.getWarehouseId() != null) lqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+        if (checkOrder.getAreaId() != null) lqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+        if (checkOrder.getRackId() != null) lqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+        List<ItemInstance> bookInstances = itemInstanceMapper.selectList(lqw);
+
+        Map<String, Long> codeToSkuMap = bookInstances.stream()
+            .filter(i -> i.getInstanceCode() != null && i.getSkuId() != null)
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, ItemInstance::getSkuId, (a, b) -> a));
+
+        // 统计已扫码编码按SKU分组
+        Map<Long, Set<String>> scannedBySku = new HashMap<>();
+        Set<String> scannedSet = new HashSet<>(scannedCodes);
+        for (String code : scannedCodes) {
+            Long skuId = codeToSkuMap.get(code);
+            if (skuId != null) {
+                scannedBySku.computeIfAbsent(skuId, k -> new HashSet<>()).add(code);
+            }
+        }
+
+        // 构建明细Bo列表
+        List<CheckOrderDetailBo> result = new ArrayList<>();
+        for (CheckOrderDetail detail : existingDetails) {
+            CheckOrderDetailBo bo = new CheckOrderDetailBo();
+            bo.setId(detail.getId());
+            bo.setCheckOrderId(checkOrderId);
+            bo.setSkuId(detail.getSkuId());
+            bo.setQuantity(detail.getQuantity());
+            bo.setWarehouseId(checkOrder.getWarehouseId());
+            bo.setAreaId(detail.getAreaId());
+            bo.setRackId(detail.getRackId());
+
+            // 实盘数量 = 该SKU被扫到的编码数
+            Set<String> skuScanned = scannedBySku.getOrDefault(detail.getSkuId(), Collections.emptySet());
+            // 加上盘盈（扫到了但不属于该SKU账面范围的编码不会被计入，盘盈单独处理）
+            bo.setCheckQuantity(BigDecimal.valueOf(skuScanned.size()));
+
+            // 把该SKU对应的已扫描编码传下去（供 saveInstanceDifferences 使用）
+            bo.setScannedInstanceCodes(new ArrayList<>(skuScanned));
+            result.add(bo);
+        }
+
+        // 处理盘盈：扫到了但不属于任何账面SKU的编码
+        Set<String> allBookCodes = codeToSkuMap.keySet();
+        Set<String> gainCodes = scannedSet.stream()
+            .filter(code -> !allBookCodes.contains(code))
+            .collect(Collectors.toSet());
+        if (!gainCodes.isEmpty()) {
+            // 盘盈编码作为特殊的"虚拟SKU"明细记录
+            // 暂时记录在 checkOrderInstance 中（resultType='gain'），不关联具体SKU
+            // 在 saveInstanceDifferences 中处理
+        }
+
+        return result;
+    }
+
+    /**
+     * 保存实例差异明细：集合运算找出盘亏/盘盈实例，同时存储账面实例快照
      */
     private void saveInstanceDifferences(Long checkOrderId, List<CheckOrderDetailBo> details) {
-        // 先删除旧实例差异
+        // 先删除旧实例记录（含快照和差异）
         checkOrderInstanceService.deleteByCheckOrderIds(Collections.singletonList(checkOrderId));
 
         CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
         List<CheckOrderInstance> allInstances = new ArrayList<>();
 
+        // 收集所有SKU ID，为每个SKU存储账面实例快照
+        Set<Long> allSkuIds = details.stream().map(CheckOrderDetailBo::getSkuId).collect(Collectors.toSet());
+
+        // 查询所有SKU在盘点范围内的账面实例
+        LambdaQueryWrapper<ItemInstance> bookLqw = Wrappers.lambdaQuery();
+        bookLqw.in(ItemInstance::getSkuId, allSkuIds);
+        if (checkOrder.getWarehouseId() != null) {
+            bookLqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+        }
+        if (checkOrder.getAreaId() != null) {
+            bookLqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+        }
+        if (checkOrder.getRackId() != null) {
+            bookLqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+        }
+        List<ItemInstance> allBookInstances = itemInstanceMapper.selectList(bookLqw);
+
+        // 按skuId分组
+        Map<Long, List<ItemInstance>> bookInstancesBySku = allBookInstances.stream()
+            .filter(i -> i.getSkuId() != null)
+            .collect(Collectors.groupingBy(ItemInstance::getSkuId));
+
+        // 为所有SKU存储账面实例快照（resultType='book'）
+        for (CheckOrderDetailBo detail : details) {
+            List<ItemInstance> skuBookInstances = bookInstancesBySku.getOrDefault(detail.getSkuId(), Collections.emptyList());
+            for (ItemInstance inst : skuBookInstances) {
+                if (inst.getInstanceCode() == null) continue;
+                CheckOrderInstance ci = new CheckOrderInstance();
+                ci.setCheckOrderId(checkOrderId);
+                ci.setCheckOrderDetailId(detail.getId());
+                ci.setSkuId(detail.getSkuId());
+                ci.setInstanceCode(inst.getInstanceCode());
+                ci.setInstanceItemName(inst.getInstanceCode());
+                ci.setResultType("book");
+                allInstances.add(ci);
+            }
+        }
+
+        // 计算并存储差异实例
         for (CheckOrderDetailBo detail : details) {
             if (detail.getProfitAndLoss() == null || detail.getProfitAndLoss().compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
 
-            // 查询该SKU在盘点范围内的账面实例编码
-            LambdaQueryWrapper<ItemInstance> bookLqw = Wrappers.lambdaQuery();
-            bookLqw.eq(ItemInstance::getSkuId, detail.getSkuId());
-            if (checkOrder.getWarehouseId() != null) {
-                bookLqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
-            }
-            if (checkOrder.getAreaId() != null) {
-                bookLqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
-            }
-            if (checkOrder.getRackId() != null) {
-                bookLqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
-            }
-            List<ItemInstance> bookInstances = itemInstanceMapper.selectList(bookLqw);
-            Map<String, ItemInstance> bookCodeMap = bookInstances.stream()
+            List<ItemInstance> skuBookInstances = bookInstancesBySku.getOrDefault(detail.getSkuId(), Collections.emptyList());
+            Map<String, ItemInstance> bookCodeMap = skuBookInstances.stream()
                 .filter(i -> i.getInstanceCode() != null)
                 .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity(), (a, b) -> a));
 
@@ -309,7 +525,6 @@ public class CheckOrderService {
                 ci.setCheckOrderId(checkOrderId);
                 ci.setCheckOrderDetailId(detail.getId());
                 ci.setSkuId(detail.getSkuId());
-                ci.setInstanceCode(inst != null ? inst.getInstanceCode() : null);
                 ci.setInstanceCode(code);
                 ci.setInstanceItemName(inst != null ? inst.getInstanceCode() : null);
                 ci.setResultType("loss");
@@ -324,7 +539,93 @@ public class CheckOrderService {
                 ci.setCheckOrderId(checkOrderId);
                 ci.setCheckOrderDetailId(detail.getId());
                 ci.setSkuId(detail.getSkuId());
-                ci.setInstanceCode(null);
+                ci.setInstanceCode(code);
+                ci.setResultType("gain");
+                allInstances.add(ci);
+            }
+        }
+
+        checkOrderInstanceService.saveInstances(allInstances);
+    }
+
+    /**
+     * 暂存实例差异：根据前端传入的 scannedInstanceCodes 对比当前账面实例，
+     * 计算盘亏/盘盈并写入 wms_check_order_instance（每次覆盖旧记录）。
+     * 未传入 scannedInstanceCodes 的 SKU 不做处理。
+     */
+    private void saveDraftInstances(Long checkOrderId, List<CheckOrderDetailBo> details) {
+        // 检查是否有任何 SKU 携带 scannedInstanceCodes
+        boolean hasScanned = details.stream()
+            .anyMatch(d -> d.getScannedInstanceCodes() != null);
+        if (!hasScanned) {
+            return;
+        }
+
+        // 覆盖旧记录（draft 和 final 均清除，由后续操作重新写入）
+        checkOrderInstanceService.deleteByCheckOrderIds(Collections.singletonList(checkOrderId));
+
+        CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
+
+        // 收集需要处理的 SKU
+        Set<Long> skuIds = details.stream()
+            .filter(d -> d.getScannedInstanceCodes() != null)
+            .map(CheckOrderDetailBo::getSkuId)
+            .collect(Collectors.toSet());
+        if (skuIds.isEmpty()) return;
+
+        // 查询当前账面实例
+        LambdaQueryWrapper<ItemInstance> bookLqw = Wrappers.lambdaQuery();
+        bookLqw.in(ItemInstance::getSkuId, skuIds);
+        if (checkOrder.getWarehouseId() != null) {
+            bookLqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
+        }
+        if (checkOrder.getAreaId() != null) {
+            bookLqw.eq(ItemInstance::getAreaId, checkOrder.getAreaId());
+        }
+        if (checkOrder.getRackId() != null) {
+            bookLqw.eq(ItemInstance::getRackId, checkOrder.getRackId());
+        }
+        List<ItemInstance> allBookInstances = itemInstanceMapper.selectList(bookLqw);
+        Map<Long, List<ItemInstance>> bookInstancesBySku = allBookInstances.stream()
+            .filter(i -> i.getSkuId() != null)
+            .collect(Collectors.groupingBy(ItemInstance::getSkuId));
+
+        List<CheckOrderInstance> allInstances = new ArrayList<>();
+
+        for (CheckOrderDetailBo detail : details) {
+            if (detail.getScannedInstanceCodes() == null) continue;
+
+            List<ItemInstance> skuBookInstances = bookInstancesBySku.getOrDefault(detail.getSkuId(), Collections.emptyList());
+            Map<String, ItemInstance> bookCodeMap = skuBookInstances.stream()
+                .filter(i -> i.getInstanceCode() != null)
+                .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity(), (a, b) -> a));
+
+            Set<String> scannedCodes = new HashSet<>(detail.getScannedInstanceCodes());
+            Set<String> bookCodes = bookCodeMap.keySet();
+
+            // 盘亏：账面有 - 已扫描
+            Set<String> lossCodes = new HashSet<>(bookCodes);
+            lossCodes.removeAll(scannedCodes);
+            for (String code : lossCodes) {
+                ItemInstance inst = bookCodeMap.get(code);
+                CheckOrderInstance ci = new CheckOrderInstance();
+                ci.setCheckOrderId(checkOrderId);
+                ci.setCheckOrderDetailId(detail.getId());
+                ci.setSkuId(detail.getSkuId());
+                ci.setInstanceCode(code);
+                ci.setInstanceItemName(inst != null ? inst.getInstanceCode() : null);
+                ci.setResultType("loss");
+                allInstances.add(ci);
+            }
+
+            // 盘盈：已扫描 - 账面有
+            Set<String> gainCodes = new HashSet<>(scannedCodes);
+            gainCodes.removeAll(bookCodes);
+            for (String code : gainCodes) {
+                CheckOrderInstance ci = new CheckOrderInstance();
+                ci.setCheckOrderId(checkOrderId);
+                ci.setCheckOrderDetailId(detail.getId());
+                ci.setSkuId(detail.getSkuId());
                 ci.setInstanceCode(code);
                 ci.setResultType("gain");
                 allInstances.add(ci);
@@ -367,5 +668,77 @@ public class CheckOrderService {
         checkOrderInstanceService.deleteByCheckOrderIds(ids);
         checkOrderDetailService.deleteByCheckOrderIds(ids);
         checkOrderMapper.deleteBatchIds(ids);
+    }
+
+
+    /**
+     * 盘点冻结校验：检查指定位置是否存在活跃的盘点单（待盘点/盘点中）
+     * 用于出入库、调拨、借用等操作执行前的拦截
+     *
+     * @param warehouseId 仓库ID
+     * @param areaId      库区ID（可为null）
+     * @param rackId      货架ID（可为null）
+     */
+    public void assertNoActiveCheckOrder(Long warehouseId, Long areaId, Long rackId) {
+        if (warehouseId == null) {
+            return;
+        }
+        LambdaQueryWrapper<CheckOrder> lqw = Wrappers.lambdaQuery();
+        lqw.eq(CheckOrder::getWarehouseId, warehouseId);
+        lqw.in(CheckOrder::getCheckOrderStatus,
+            List.of(ServiceConstants.CheckOrderStatus.PENDING));
+        List<CheckOrder> activeOrders = checkOrderMapper.selectList(lqw);
+        if (CollUtil.isEmpty(activeOrders)) {
+            return;
+        }
+        for (CheckOrder co : activeOrders) {
+            if (isLocationInScope(co, warehouseId, areaId, rackId)) {
+                throw new ServiceException("仓库范围正在盘点（盘点单号：" + co.getCheckOrderNo()
+                    + "），禁止出入库操作", HttpStatus.CONFLICT.value());
+            }
+        }
+    }
+
+    /**
+     * 批量校验多个位置的盘点冻结（适用于调拨等涉及多个位置的场景）
+     */
+    public void assertNoActiveCheckOrders(List<long[]> locations) {
+        if (CollUtil.isEmpty(locations)) {
+            return;
+        }
+        for (long[] loc : locations) {
+            Long wid = loc.length > 0 && loc[0] != 0 ? loc[0] : null;
+            Long aid = loc.length > 1 && loc[1] != 0 ? loc[1] : null;
+            Long rid = loc.length > 2 && loc[2] != 0 ? loc[2] : null;
+            assertNoActiveCheckOrder(wid, aid, rid);
+        }
+    }
+
+    /**
+     * 判断操作位置是否在盘点单的范围内
+     * 盘点范围层级：仓库 > 库区 > 货架（null 表示该层级不限）
+     */
+    private boolean isLocationInScope(CheckOrder co, Long warehouseId, Long areaId, Long rackId) {
+        // 仓库不匹配 → 不在范围
+        if (!Objects.equals(co.getWarehouseId(), warehouseId)) {
+            return false;
+        }
+        // 盘点单只指定了仓库级 → 覆盖整个仓库
+        if (co.getAreaId() == null && co.getRackId() == null) {
+            return true;
+        }
+        // 盘点单指定了库区 → 检查库区匹配
+        if (co.getAreaId() != null) {
+            if (!Objects.equals(co.getAreaId(), areaId)) {
+                return false;
+            }
+        }
+        // 盘点单指定了货架 → 检查货架匹配
+        if (co.getRackId() != null) {
+            if (!Objects.equals(co.getRackId(), rackId)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -1,7 +1,6 @@
 package com.ruoyi.wms.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.ruoyi.common.core.constant.ServiceConstants;
 import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.validate.AddGroup;
 import com.ruoyi.common.core.validate.EditGroup;
@@ -12,7 +11,11 @@ import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
+import com.ruoyi.system.domain.bo.SysUserBo;
+import com.ruoyi.system.domain.vo.SysUserVo;
+import com.ruoyi.system.service.SysUserService;
 import com.ruoyi.wms.domain.bo.ShipmentOrderBo;
+import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
 import com.ruoyi.wms.service.InventoryDetailService;
 import com.ruoyi.wms.service.ShipmentOrderService;
@@ -24,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import com.ruoyi.wms.domain.bo.ShipmentOrderDetailBo;
 
 /**
  * 出库单
@@ -40,6 +42,7 @@ public class ShipmentOrderController extends BaseController {
 
     private final ShipmentOrderService shipmentOrderService;
     private final InventoryDetailService inventoryDetailService;
+    private final SysUserService sysUserService;
 
     /**
      * 查询出库单列表
@@ -74,15 +77,15 @@ public class ShipmentOrderController extends BaseController {
     }
 
     /**
-     * 新增出库单
+     * 新增出库单（返回ID，供后续提交审批使用）
      */
     @SaCheckPermission("wms:shipment:all")
     @Log(title = "出库单", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping()
-    public R<Void> add(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
+    public R<Long> add(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
         shipmentOrderService.insertByBo(bo);
-        return R.ok();
+        return R.ok(bo.getId());
     }
 
     /**
@@ -98,17 +101,70 @@ public class ShipmentOrderController extends BaseController {
     }
 
     /**
-     * 出库
+     * 执行出库（状态必须为已审批=2）
      */
-    @SaCheckPermission("wms:shipment:all")
+    @SaCheckPermission("wms:shipment:execute")
     @Log(title = "出库单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping("/shipment")
     public R<Void> shipment(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
-        bo.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.FINISH);
         shipmentOrderService.shipment(bo);
         List<Long> affectedIds = bo.getDetails().stream().map(ShipmentOrderDetailBo::getInventoryDetailId).filter(Objects::nonNull).toList();
         inventoryDetailService.clearByIdsWithZeroRemainQuantity(affectedIds);
+        return R.ok();
+    }
+
+    /**
+     * 提交审批（草稿/已驳回 → 待审批）
+     */
+    @SaCheckPermission("wms:shipment:submit")
+    @Log(title = "出库单", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/submit/{id}")
+    public R<Void> submit(@NotNull(message = "主键不能为空") @PathVariable Long id,
+                          @RequestParam(required = false) Long approverId,
+                          @RequestParam(required = false) String approverName) {
+        shipmentOrderService.submitForApproval(id, approverId, approverName);
+        return R.ok();
+    }
+
+    /**
+     * 审批通过（待审批 → 已审批）
+     */
+    @SaCheckPermission("wms:shipment:approve")
+    @Log(title = "出库单", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/approve/{id}")
+    public R<Void> approve(@NotNull(message = "主键不能为空") @PathVariable Long id,
+                           @RequestParam(required = false) String remark,
+                           @RequestParam(required = false) Long executorId,
+                           @RequestParam(required = false) String executorName) {
+        shipmentOrderService.approve(id, remark, executorId, executorName);
+        return R.ok();
+    }
+
+    /**
+     * 驳回（待审批 → 已驳回）
+     */
+    @SaCheckPermission("wms:shipment:approve")
+    @Log(title = "出库单", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/reject/{id}")
+    public R<Void> reject(@NotNull(message = "主键不能为空") @PathVariable Long id,
+                          @RequestParam(required = false) String remark) {
+        shipmentOrderService.reject(id, remark);
+        return R.ok();
+    }
+
+    /**
+     * 作废（草稿/已驳回 → 作废）
+     */
+    @SaCheckPermission("wms:shipment:all")
+    @Log(title = "出库单", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/void/{id}")
+    public R<Void> voidOrder(@NotNull(message = "主键不能为空") @PathVariable Long id) {
+        shipmentOrderService.voidOrder(id);
         return R.ok();
     }
 
@@ -124,5 +180,16 @@ public class ShipmentOrderController extends BaseController {
                           @PathVariable Long id) {
         shipmentOrderService.deleteById(id);
         return R.ok();
+    }
+
+    /**
+     * 获取用户下拉列表（轻量级，仅需登录，无需系统管理权限）
+     * 用于审批人选择等场景
+     */
+    @GetMapping("/userSelectList")
+    public R<List<SysUserVo>> userSelectList() {
+        SysUserBo bo = new SysUserBo();
+        bo.setStatus("1");
+        return R.ok(sysUserService.selectUserList(bo));
     }
 }

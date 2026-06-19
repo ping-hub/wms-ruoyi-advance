@@ -58,6 +58,16 @@ public class CodeRuleService {
      */
     @Transactional
     public String generateCode(String ruleType) {
+        return generateCode(ruleType, null);
+    }
+
+    /**
+     * 根据编码类型生成编码，支持传入器材编码作为动态前缀。
+     * 当 rule_type='item' 且 useItemCodeAsPrefix='0' 时，使用 itemCode 替代固定前缀。
+     * 若规则不存在或未启用，返回 null（调用方自行降级处理）。
+     */
+    @Transactional
+    public String generateCode(String ruleType, String itemCode) {
         CodeRule rule = codeRuleMapper.selectOne(
             Wrappers.<CodeRule>lambdaQuery().eq(CodeRule::getRuleType, ruleType));
 
@@ -72,19 +82,26 @@ public class CodeRuleService {
         long seq = rule.getCurrentSeq();
 
         // 2. 拼接编码
-        return buildCode(rule, seq);
+        return buildCode(rule, seq, itemCode);
     }
 
     /**
      * 拼接编码：prefix + separator + dateSuffix + separator + seq
+     * 当 useItemCodeAsPrefix='0' 且 itemCode 不为空时，用 itemCode 替代固定前缀
      */
-    private String buildCode(CodeRule rule, long seq) {
+    private String buildCode(CodeRule rule, long seq, String itemCode) {
         String sep = StrUtil.blankToDefault(rule.getSeparator(), "");
         StringBuilder sb = new StringBuilder();
 
-        // 前缀
-        if (StrUtil.isNotBlank(rule.getPrefix())) {
-            sb.append(rule.getPrefix()).append(sep);
+        // 前缀：优先使用器材编码（item类型 + 开关开启 + itemCode非空）
+        String effectivePrefix;
+        if ("0".equals(rule.getUseItemCodeAsPrefix()) && StrUtil.isNotBlank(itemCode)) {
+            effectivePrefix = itemCode;
+        } else {
+            effectivePrefix = rule.getPrefix();
+        }
+        if (StrUtil.isNotBlank(effectivePrefix)) {
+            sb.append(effectivePrefix).append(sep);
         }
 
         // 日期后缀

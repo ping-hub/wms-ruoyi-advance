@@ -31,7 +31,6 @@ import com.ruoyi.wms.domain.vo.ReceiptItemInstanceVo;
 import com.ruoyi.wms.domain.vo.ReceiptOrderVo;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,8 +50,6 @@ import java.util.stream.Collectors;
 @Service
 public class ReceiptOrderService {
 
-    @Value("${warehouse}")
-    private String warehouse;
 
     private final ReceiptOrderMapper receiptOrderMapper;
     private final CodeRuleService codeRuleService;
@@ -64,6 +61,7 @@ public class ReceiptOrderService {
     private final ItemSkuService itemSkuService;
     private final BoxService boxService;
     private final LocationService locationService;
+    private final CheckOrderService checkOrderService;
 
     /**
      * 查询入库单
@@ -147,6 +145,16 @@ public class ReceiptOrderService {
      */
     @Transactional
     public void receive(ReceiptOrderBo bo) {
+        // 0.1 盘点冻结校验
+        if (bo.getDetails() != null) {
+            Set<String> checked = new HashSet<>();
+            for (var d : bo.getDetails()) {
+                String key = d.getWarehouseId() + "_" + d.getAreaId() + "_" + d.getRackId();
+                if (checked.add(key)) {
+                    checkOrderService.assertNoActiveCheckOrder(d.getWarehouseId(), d.getAreaId(), d.getRackId());
+                }
+            }
+        }
         // 1. 校验
         validateBeforeReceive(bo);
 
@@ -310,6 +318,10 @@ public class ReceiptOrderService {
             .filter(Objects::nonNull)
             .toList();
         itemInstanceService.releaseReceiptReservationsByDetailIds(detailIds);
+        // 删除明细
+        if (CollUtil.isNotEmpty(detailIds)) {
+            receiptOrderDetailService.deleteByIds(detailIds);
+        }
         receiptOrderMapper.deleteById(id);
     }
 
@@ -337,6 +349,10 @@ public class ReceiptOrderService {
                 .filter(Objects::nonNull)
                 .toList();
             itemInstanceService.releaseReceiptReservationsByDetailIds(detailIds);
+            // 删除明细
+            if (CollUtil.isNotEmpty(detailIds)) {
+                receiptOrderDetailService.deleteByIds(detailIds);
+            }
         }
         receiptOrderMapper.deleteBatchIds(ids);
     }
@@ -350,7 +366,7 @@ public class ReceiptOrderService {
 
     private String generateReceiptOrderNo() {
         String code = codeRuleService.generateCode("receipt");
-        return code != null ? code : "RK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        return code != null ? code : "RK" + IdUtil.getSnowflakeNextIdStr();
     }
 
     private void attachReceiptInstances(ReceiptOrderVo receiptOrderVo) {

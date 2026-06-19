@@ -9,12 +9,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.core.constant.ServiceConstants;
-import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.MapstructUtils;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BoxBo;
-import com.ruoyi.wms.domain.bo.BoxOperationBo;
 import com.ruoyi.wms.domain.bo.ItemInstanceBo;
 import com.ruoyi.wms.domain.entity.Area;
 import com.ruoyi.wms.domain.entity.Box;
@@ -31,7 +29,6 @@ import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,16 +96,6 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     public void updateByBo(BoxBo bo) {
         fillAndValidateBeforeSave(bo);
         boxMapper.updateById(MapstructUtils.convert(bo, Box.class));
-    }
-
-    @Transactional
-    public void pack(BoxOperationBo bo) {
-        throw new ServiceException("装箱关系已停用，请在入库作业中录入箱码完成绑定", HttpStatus.CONFLICT.value());
-    }
-
-    @Transactional
-    public void unpack(BoxOperationBo bo) {
-        throw new ServiceException("拆箱关系已停用，请通过新的入库/出库作业维护当前箱码状态", HttpStatus.CONFLICT.value());
     }
 
     public Box getOrCreateForReceipt(String boxCode, Long warehouseId, Long areaId, Long rackId, Long locationId) {
@@ -215,8 +202,16 @@ public class BoxService extends ServiceImpl<BoxMapper, Box> {
     }
 
     public void deleteById(Long id) {
-        Assert.isTrue(countItemsByBoxId(id) == 0, "箱体内仍有单品，无法删除");
+        // 先清空箱内器材的 boxId（解除装箱关系，不影响器材自身位置）
+        clearItemsBoxId(id);
         boxMapper.deleteById(id);
+    }
+
+    private void clearItemsBoxId(Long boxId) {
+        itemInstanceService.lambdaUpdate()
+            .eq(ItemInstance::getBoxId, boxId)
+            .set(ItemInstance::getBoxId, null)
+            .update();
     }
 
     private LambdaQueryWrapper<Box> buildQueryWrapper(BoxBo bo) {

@@ -11,6 +11,7 @@ import io.github.linpeilie.annotations.AutoMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -102,6 +103,38 @@ public class ShipmentOrderBo extends BaseEntity {
      * 备注
      */
     private String remark;
+
+    // ========== 审批流程字段 ==========
+
+    /** 申请人ID */
+    private Long applicantId;
+
+    /** 申请人姓名 */
+    private String applicantName;
+
+    /** 提交时间 */
+    private LocalDateTime submitTime;
+
+    /** 审批人ID */
+    private Long approverId;
+
+    /** 审批人姓名 */
+    private String approverName;
+
+    /** 审批时间 */
+    private LocalDateTime approveTime;
+
+    /** 审批意见 */
+    private String approveRemark;
+
+    /** 执行人ID */
+    private Long executorId;
+
+    /** 执行人姓名 */
+    private String executorName;
+
+    /** 执行时间 */
+    private LocalDateTime executeTime;
 
     private List<ShipmentOrderDetailBo> details;
 }

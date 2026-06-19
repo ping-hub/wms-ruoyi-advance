@@ -267,4 +267,7 @@ management:
       show-details: ALWAYS
     logfile:
       external-file: ./logs/sys-console.log
-warehouse: WH1
+
+--- # License 授权配置
+license:
+  file-path: ./tools/license.lic

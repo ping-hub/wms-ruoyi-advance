@@ -136,6 +136,12 @@
 
             <dependency>
                 <groupId>com.ruoyi</groupId>
+                <artifactId>ruoyi-common-license</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-doc</artifactId>
                 <version>${revision}</version>
             </dependency>

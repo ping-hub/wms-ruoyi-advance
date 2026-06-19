@@ -43,6 +43,11 @@ public class MovementOrderBo extends BaseEntity {
     private String movementType;
 
     /**
+     * 调拨范围（库内调拨/库外调拨）
+     */
+    private String transferScope;
+
+    /**
      * 调拨依据
      */
     private String dispatchBasis;
@@ -121,7 +126,6 @@ public class MovementOrderBo extends BaseEntity {
     /**
      * 目标仓库
      */
-    @NotNull(message = "目标仓库不能为空", groups = { AddGroup.class, EditGroup.class })
     private Long targetWarehouseId;
 
     /**

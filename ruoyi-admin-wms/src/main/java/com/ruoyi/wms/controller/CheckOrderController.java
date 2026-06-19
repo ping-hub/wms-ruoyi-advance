@@ -23,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 库存盘点单据
@@ -96,12 +97,12 @@ public class CheckOrderController extends BaseController {
     }
 
     /**
-     * 开始盘点（加载SKU级账面库存明细）
+     * 开始盘点（生成SKU级明细，返回轻量统计信息）
      */
     @SaCheckPermission("wms:check:all")
     @Log(title = "库存盘点单据", businessType = BusinessType.UPDATE)
     @PostMapping("/startCheck/{id}")
-    public R<CheckOrderVo> startCheck(@NotNull(message = "主键不能为空") @PathVariable Long id) {
+    public R<Map<String, Object>> startCheck(@NotNull(message = "主键不能为空") @PathVariable Long id) {
         return R.ok(checkOrderService.startCheck(id));
     }
 
@@ -114,6 +115,17 @@ public class CheckOrderController extends BaseController {
             @PathVariable Long checkOrderId,
             @RequestParam Long skuId) {
         return R.ok(checkOrderService.getInstancesBySku(checkOrderId, skuId));
+    }
+
+    /**
+     * 验码：校验扫码结果是否属于盘点范围，实时返回盘盈信息
+     */
+    @SaCheckPermission("wms:check:all")
+    @PostMapping("/verify/{checkOrderId}")
+    public R<Map<String, Object>> verify(
+            @PathVariable Long checkOrderId,
+            @RequestBody List<String> instanceCodes) {
+        return R.ok(checkOrderService.verify(checkOrderId, instanceCodes));
     }
 
     /**

@@ -22,4 +22,5 @@ public class CodeRuleBo {
     private Integer seqLength;
     private String seqMethod;
     private Long currentSeq;
+    private String useItemCodeAsPrefix;
 }

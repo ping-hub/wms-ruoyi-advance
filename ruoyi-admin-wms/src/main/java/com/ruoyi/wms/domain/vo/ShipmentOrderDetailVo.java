@@ -135,6 +135,26 @@ public class ShipmentOrderDetailVo implements Serializable, PlaceAndItem {
 
 
     /**
+     * 货架ID
+     */
+    private Long rackId;
+
+    /**
+     * 货架名称
+     */
+    private String rackName;
+
+    /**
+     * 货位ID
+     */
+    private Long locationId;
+
+    /**
+     * 货位名称
+     */
+    private String locationName;
+
+    /**
      * 备注
      */
     @ExcelProperty(value = "备注")

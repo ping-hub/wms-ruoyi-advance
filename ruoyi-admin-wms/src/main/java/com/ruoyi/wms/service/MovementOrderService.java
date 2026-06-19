@@ -25,12 +25,12 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.MovementOrder;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
+import com.ruoyi.wms.domain.vo.MovementOrderDetailVo;
 import com.ruoyi.wms.domain.vo.MovementOrderVo;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.MovementOrderMapper;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,8 +51,6 @@ import java.util.stream.Collectors;
 @Service
 public class MovementOrderService {
 
-    @Value("${warehouse}")
-    private String warehouse;
 
     private final MovementOrderMapper movementOrderMapper;
     private final CodeRuleService codeRuleService;
@@ -63,6 +61,7 @@ public class MovementOrderService {
     private final InventoryHistoryService inventoryHistoryService;
     private final ItemSkuService itemSkuService;
     private final ItemInstanceService itemInstanceService;
+    private final CheckOrderService checkOrderService;
 
 
     /**
@@ -99,6 +98,7 @@ public class MovementOrderService {
         LambdaQueryWrapper<MovementOrder> lqw = Wrappers.lambdaQuery();
         lqw.eq(StringUtils.isNotBlank(bo.getMovementOrderNo()), MovementOrder::getMovementOrderNo, bo.getMovementOrderNo());
         lqw.eq(StringUtils.isNotBlank(bo.getMovementType()), MovementOrder::getMovementType, bo.getMovementType());
+        lqw.eq(StringUtils.isNotBlank(bo.getTransferScope()), MovementOrder::getTransferScope, bo.getTransferScope());
         lqw.eq(StringUtils.isNotBlank(bo.getDispatchBasis()), MovementOrder::getDispatchBasis, bo.getDispatchBasis());
         lqw.eq(StringUtils.isNotBlank(bo.getDispatchMode()), MovementOrder::getDispatchMode, bo.getDispatchMode());
         lqw.eq(bo.getSourceWarehouseId() != null, MovementOrder::getSourceWarehouseId, bo.getSourceWarehouseId());
@@ -131,6 +131,8 @@ public class MovementOrderService {
             it.setMovementOrderId(add.getId());
         });
         movementOrderDetailService.saveDetails(addDetailList);
+        // 4.暂存锁定器材实例
+        reserveMovementInstances(add.getId());
     }
 
     private void validateMovementOrderNo(String movementOrderNo) {
@@ -143,7 +145,7 @@ public class MovementOrderService {
 
     private String generateMovementOrderNo() {
         String code = codeRuleService.generateCode("movement");
-        return code != null ? code : "DB" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        return code != null ? code : "DB" + IdUtil.getSnowflakeNextIdStr();
     }
 
     /**
@@ -153,6 +155,8 @@ public class MovementOrderService {
     public void updateByBo(MovementOrderBo bo) {
         validateIdBeforeUpdate(bo.getId());
         normalizeMovementDetails(bo.getDetails());
+        // 0.释放旧的调拨暂存锁定
+        releaseMovementInstances(bo.getId());
         // 1.更新调拨单
         fillHeaderLocationByDetails(bo);
         MovementOrder update = MapstructUtils.convert(bo, MovementOrder.class);
@@ -161,6 +165,8 @@ public class MovementOrderService {
         List<MovementOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), MovementOrderDetail.class);
         detailList.forEach(it -> it.setMovementOrderId(bo.getId()));
         movementOrderDetailService.saveDetails(detailList);
+        // 3.重新暂存锁定器材实例
+        reserveMovementInstances(bo.getId());
     }
 
     private void validateIdBeforeUpdate(Long id) {
@@ -176,6 +182,18 @@ public class MovementOrderService {
      */
     public void deleteById(Long id) {
         validateIdBeforeDelete(id);
+        List<Long> detailIds = movementOrderDetailService.queryByMovementOrderId(id).stream()
+            .map(MovementOrderDetailVo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        // 释放调拨暂存锁定
+        if (CollUtil.isNotEmpty(detailIds)) {
+            itemInstanceService.releaseMovementReservationsByDetailIds(detailIds);
+        }
+        // 删除明细
+        if (CollUtil.isNotEmpty(detailIds)) {
+            movementOrderDetailService.deleteByIds(detailIds);
+        }
         movementOrderMapper.deleteById(id);
     }
 
@@ -200,6 +218,19 @@ public class MovementOrderService {
             return;
         }
         ids.forEach(this::validateIdBeforeDelete);
+        List<Long> detailIds = ids.stream()
+            .flatMap(id -> movementOrderDetailService.queryByMovementOrderId(id).stream())
+            .map(MovementOrderDetailVo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        // 释放调拨暂存锁定
+        if (CollUtil.isNotEmpty(detailIds)) {
+            itemInstanceService.releaseMovementReservationsByDetailIds(detailIds);
+        }
+        // 删除明细
+        if (CollUtil.isNotEmpty(detailIds)) {
+            movementOrderDetailService.deleteByIds(detailIds);
+        }
         movementOrderMapper.deleteBatchIds(ids);
     }
 
@@ -209,6 +240,22 @@ public class MovementOrderService {
      */
     @Transactional
     public void move(MovementOrderBo bo) {
+        // 0.1 盘点冻结校验（源位置 + 目标位置）
+        if (bo.getDetails() != null) {
+            Set<String> checked = new HashSet<>();
+            for (var d : bo.getDetails()) {
+                String srcKey = d.getSourceWarehouseId() + "_" + d.getSourceAreaId() + "_" + d.getSourceRackId();
+                if (checked.add(srcKey)) {
+                    checkOrderService.assertNoActiveCheckOrder(d.getSourceWarehouseId(), d.getSourceAreaId(), d.getSourceRackId());
+                }
+                if (d.getTargetWarehouseId() != null) {
+                    String tgtKey = d.getTargetWarehouseId() + "_" + d.getTargetAreaId() + "_" + d.getTargetRackId();
+                    if (checked.add(tgtKey)) {
+                        checkOrderService.assertNoActiveCheckOrder(d.getTargetWarehouseId(), d.getTargetAreaId(), d.getTargetRackId());
+                    }
+                }
+            }
+        }
 
         List<InventoryDetailBo> inventoryDetailBoList = convertMovementOrderDetailToInventoryDetail(bo.getDetails());
         Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
@@ -225,23 +272,71 @@ public class MovementOrderService {
         } else {
             updateByBo(bo);
         }
-        // 4.更新库存Inventory
-        List<InventoryBo> mergedShipmentInventoryList = mergeShipmentDetailByPlaceAndItem(bo.getDetails());
-        List<InventoryBo> mergedReceiptInventoryList = mergeReceiptDetailByPlaceAndItem(bo.getDetails());
-        mergedShipmentInventoryList.forEach(mergedShipmentInventory -> mergedShipmentInventory.setQuantity(mergedShipmentInventory.getQuantity().negate()));
-        inventoryService.updateInventoryQuantity(mergedShipmentInventoryList);
-        inventoryService.updateInventoryQuantity(mergedReceiptInventoryList);
 
-        // 5.更新库存明细InventoryDetail: deductInventoryDetailQuantity移出扣减库存，addInventoryDetail为移入增加库存
+        boolean isExternal = "库外调拨".equals(bo.getTransferScope());
+
+        // 4.更新库存Inventory：源库出库（库内库外都扣减）
+        List<InventoryBo> mergedShipmentInventoryList = mergeShipmentDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
+        mergedShipmentInventoryList.forEach(it -> it.setQuantity(it.getQuantity().negate()));
+        inventoryService.updateInventoryQuantity(mergedShipmentInventoryList);
+
+        if (!isExternal) {
+            // 库内调拨：目标位增加库存
+            List<InventoryBo> mergedReceiptInventoryList = mergeReceiptDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
+            inventoryService.updateInventoryQuantity(mergedReceiptInventoryList);
+        }
+
+        // 5.更新库存明细InventoryDetail
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
-        addInventoryDetail(bo, inventoryDetailMap);
+        if (!isExternal) {
+            // 库内调拨：创建目标位库存明细
+            addInventoryDetail(bo, inventoryDetailMap);
+        }
 
         // 6.创建库存记录流水
         createInventoryHistory(bo, inventoryDetailMap);
 
-        // 7.同步器材实例位置与来源单据
-        syncMovementInstances(bo, inventoryDetailMap);
+        // 6.5 释放调拨暂存锁定
+        releaseMovementInstances(bo.getId());
 
+        // 7.同步器材实例
+        if (isExternal) {
+            // 库外调拨：实例状态改为"已调拨"，清空位置
+            syncExternalMovementInstances(bo, inventoryDetailMap);
+        } else {
+            // 库内调拨：实例位置变更
+            syncMovementInstances(bo, inventoryDetailMap);
+        }
+    }
+
+    /**
+     * 暂存时锁定器材实例（按调拨单ID查询已保存明细）
+     */
+    private void reserveMovementInstances(Long movementOrderId) {
+        List<MovementOrderDetailVo> savedDetails = movementOrderDetailService.queryByMovementOrderId(movementOrderId);
+        if (CollUtil.isEmpty(savedDetails)) {
+            return;
+        }
+        List<MovementOrderDetailBo> boList = savedDetails.stream().map(vo -> {
+            MovementOrderDetailBo detailBo = new MovementOrderDetailBo();
+            detailBo.setId(vo.getId());
+            detailBo.setInstanceCode(vo.getInstanceCode());
+            return detailBo;
+        }).toList();
+        itemInstanceService.reserveForMovementDetails(boList);
+    }
+
+    /**
+     * 释放调拨暂存锁定（按调拨单ID查询明细ID）
+     */
+    private void releaseMovementInstances(Long movementOrderId) {
+        List<Long> detailIds = movementOrderDetailService.queryByMovementOrderId(movementOrderId).stream()
+            .map(MovementOrderDetailVo::getId)
+            .filter(Objects::nonNull)
+            .toList();
+        if (CollUtil.isNotEmpty(detailIds)) {
+            itemInstanceService.releaseMovementReservationsByDetailIds(detailIds);
+        }
     }
 
     private void validateBeforeMove(MovementOrderBo bo) {
@@ -251,13 +346,17 @@ public class MovementOrderService {
     }
 
     /**
-     * 按源仓库/库区/规格合并移出数量
+     * 按源仓库/库区/货架/货位/规格合并移出数量
      * @param movementOrderDetailBoList 明细
+     * @param inventoryDetailMap 库存明细映射
      */
-    public List<InventoryBo> mergeShipmentDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList) {
+    public List<InventoryBo> mergeShipmentDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList,
+                                                               Map<Long, InventoryDetail> inventoryDetailMap) {
         Map<String, InventoryBo> mergedShipmentMap = new HashMap<>();
         movementOrderDetailBoList.forEach(detail -> {
+            // 直接使用调拨明细的源位置（与 createInventoryHistory 保持一致）
             String mergedShipmentKey = detail.getSourceWarehouseId() + "_" + detail.getSourceAreaId()
+                + "_" + detail.getSourceRackId() + "_" + detail.getSourceLocationId()
                 + "_" + detail.getSkuId();
             if (mergedShipmentMap.containsKey(mergedShipmentKey)) {
                 InventoryBo mergedInventoryBo = mergedShipmentMap.get(mergedShipmentKey);
@@ -266,6 +365,8 @@ public class MovementOrderService {
                 InventoryBo mergedInventoryBo = new InventoryBo();
                 mergedInventoryBo.setWarehouseId(detail.getSourceWarehouseId());
                 mergedInventoryBo.setAreaId(detail.getSourceAreaId());
+                mergedInventoryBo.setRackId(detail.getSourceRackId());
+                mergedInventoryBo.setLocationId(detail.getSourceLocationId());
                 mergedInventoryBo.setSkuId(detail.getSkuId());
                 mergedInventoryBo.setQuantity(detail.getQuantity());
                 mergedShipmentMap.put(mergedShipmentKey, mergedInventoryBo);
@@ -278,11 +379,14 @@ public class MovementOrderService {
     /**
      * 按目标仓库/库区/货架/货位/规格合并移入数量
      * @param movementOrderDetailBoList 明细
+     * @param inventoryDetailMap 库存明细映射
      */
-    public List<InventoryBo> mergeReceiptDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList) {
+    public List<InventoryBo> mergeReceiptDetailByPlaceAndItem(@NotEmpty List<MovementOrderDetailBo> movementOrderDetailBoList,
+                                                              Map<Long, InventoryDetail> inventoryDetailMap) {
         Map<String, InventoryBo> mergedReceiptMap = new HashMap<>();
         movementOrderDetailBoList.forEach(detail -> {
-            String mergedReceiptKey = detail.getTargetWarehouseId() + "_" + detail.getTargetAreaId() + "_" + detail.getSkuId();
+            String mergedReceiptKey = detail.getTargetWarehouseId() + "_" + detail.getTargetAreaId()
+                + "_" + detail.getTargetRackId() + "_" + detail.getTargetLocationId() + "_" + detail.getSkuId();
             if (mergedReceiptMap.containsKey(mergedReceiptKey)) {
                 InventoryBo mergedInventoryBo = mergedReceiptMap.get(mergedReceiptKey);
                 mergedInventoryBo.setQuantity(mergedInventoryBo.getQuantity().add(detail.getQuantity()));
@@ -290,6 +394,8 @@ public class MovementOrderService {
                 InventoryBo mergedInventoryBo = new InventoryBo();
                 mergedInventoryBo.setWarehouseId(detail.getTargetWarehouseId());
                 mergedInventoryBo.setAreaId(detail.getTargetAreaId());
+                mergedInventoryBo.setRackId(detail.getTargetRackId());
+                mergedInventoryBo.setLocationId(detail.getTargetLocationId());
                 mergedInventoryBo.setSkuId(detail.getSkuId());
                 mergedInventoryBo.setQuantity(detail.getQuantity());
                 mergedReceiptMap.put(mergedReceiptKey, mergedInventoryBo);
@@ -357,9 +463,11 @@ public class MovementOrderService {
      */
     @Transactional
     public void createInventoryHistory(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
+        boolean isExternal = "库外调拨".equals(bo.getTransferScope());
         List<InventoryHistory> addInventoryHistoryList = new LinkedList<>();
         bo.getDetails().forEach(detail -> {
             InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            // 出库流水（库内库外都记录）
             InventoryHistory shipmentInventoryHistory = new InventoryHistory();
             shipmentInventoryHistory.setWarehouseId(detail.getSourceWarehouseId());
             shipmentInventoryHistory.setAreaId(detail.getSourceAreaId());
@@ -374,20 +482,23 @@ public class MovementOrderService {
             shipmentInventoryHistory.setUnitPrice(detail.getUnitPrice());
             shipmentInventoryHistory.setLineAmount(detail.getLineAmount());
             addInventoryHistoryList.add(shipmentInventoryHistory);
-            InventoryHistory receiptInventoryHistory = new InventoryHistory();
-            receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
-            receiptInventoryHistory.setAreaId(detail.getTargetAreaId());
-            receiptInventoryHistory.setRackId(detail.getTargetRackId());
-            receiptInventoryHistory.setLocationId(detail.getTargetLocationId());
-            receiptInventoryHistory.setSkuId(detail.getSkuId());
-            receiptInventoryHistory.setQuantity(detail.getQuantity());
-            receiptInventoryHistory.setOrderId(bo.getId());
-            receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
-            receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
-            receiptInventoryHistory.setInstanceCode(resolveItemInstanceCode(detail, sourceInventoryDetail));
-            receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
-            receiptInventoryHistory.setLineAmount(detail.getLineAmount());
-            addInventoryHistoryList.add(receiptInventoryHistory);
+            if (!isExternal) {
+                // 入库流水（仅库内调拨）
+                InventoryHistory receiptInventoryHistory = new InventoryHistory();
+                receiptInventoryHistory.setWarehouseId(detail.getTargetWarehouseId());
+                receiptInventoryHistory.setAreaId(detail.getTargetAreaId());
+                receiptInventoryHistory.setRackId(detail.getTargetRackId());
+                receiptInventoryHistory.setLocationId(detail.getTargetLocationId());
+                receiptInventoryHistory.setSkuId(detail.getSkuId());
+                receiptInventoryHistory.setQuantity(detail.getQuantity());
+                receiptInventoryHistory.setOrderId(bo.getId());
+                receiptInventoryHistory.setOrderNo(bo.getMovementOrderNo());
+                receiptInventoryHistory.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+                receiptInventoryHistory.setInstanceCode(resolveItemInstanceCode(detail, sourceInventoryDetail));
+                receiptInventoryHistory.setUnitPrice(detail.getUnitPrice());
+                receiptInventoryHistory.setLineAmount(detail.getLineAmount());
+                addInventoryHistoryList.add(receiptInventoryHistory);
+            }
         });
         inventoryHistoryService.saveBatch(addInventoryHistoryList);
     }
@@ -427,9 +538,45 @@ public class MovementOrderService {
                 detail.getTargetWarehouseId(),
                 detail.getTargetAreaId(),
                 detail.getTargetRackId(),
-                detail.getTargetLocationId(),
-                bo.getId(),
-                bo.getMovementOrderNo()
+                detail.getTargetLocationId()
+            );
+        }
+    }
+
+
+    /**
+     * 库外调拨：将实例状态改为"已调拨"，清空位置
+     */
+    private void syncExternalMovementInstances(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
+        Set<String> instanceCodes = new HashSet<>();
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            if (StringUtils.isNotBlank(detail.getInstanceCode())) {
+                instanceCodes.add(detail.getInstanceCode());
+            }
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            if (sourceInventoryDetail != null && StringUtils.isNotBlank(sourceInventoryDetail.getInstanceCode())) {
+                instanceCodes.add(sourceInventoryDetail.getInstanceCode());
+            }
+        }
+        if (CollUtil.isEmpty(instanceCodes)) {
+            return;
+        }
+        Map<String, ItemInstance> itemInstanceByCode = itemInstanceService.queryByInstanceCodes(instanceCodes)
+            .stream()
+            .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
+
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            String instanceCode = resolveItemInstanceCode(detail, sourceInventoryDetail);
+            if (instanceCode == null) {
+                continue;
+            }
+            ItemInstance itemInstance = itemInstanceByCode.get(instanceCode);
+            if (itemInstance == null) {
+                continue;
+            }
+            itemInstanceService.transferOut(
+                itemInstance.getId()
             );
         }
     }

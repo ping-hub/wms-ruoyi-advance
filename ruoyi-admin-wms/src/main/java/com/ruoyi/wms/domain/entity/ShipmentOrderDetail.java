@@ -95,6 +95,14 @@ public class ShipmentOrderDetail extends BaseEntity {
      */
     private Long areaId;
     /**
+     * 出库前货架ID
+     */
+    private Long rackId;
+    /**
+     * 出库前货位ID
+     */
+    private Long locationId;
+    /**
      * 入库记录id
      */
     private Long inventoryDetailId;

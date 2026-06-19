@@ -21,7 +21,6 @@ import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,17 +37,12 @@ import java.util.stream.Collectors;
 @Service
 public class RackService extends ServiceImpl<RackMapper, Rack> {
 
-    @Value("${warehouse}")
-    private String warehouse;
-    private static final String RACK_CODE_KEY = "RACK";
-
     private final RackMapper rackMapper;
     private final CodeRuleService codeRuleService;
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
     private final LocationMapper locationMapper;
     private final RackLocationPlannerService rackLocationPlannerService;
-    private final ItemQrCodeSerialService itemQrCodeSerialService;
 
     public RackVo queryById(Long id) {
         RackVo rackVo = rackMapper.selectVoById(id);
@@ -75,7 +69,7 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         bo.setRackCode(null);
         validateBoBeforeSave(bo);
         Rack rack = MapstructUtils.convert(bo, Rack.class);
-        rack.setRackCode(generateRackCodeWithRetry(bo.getWarehouseId(), bo.getAreaId()));
+        rack.setRackCode(generateRackCodeWithRetry());
         rackMapper.insert(rack);
         rackLocationPlannerService.generateLocationsForNewRack(rack);
     }
@@ -202,26 +196,12 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         });
     }
 
-    private String generateRackCodeWithRetry(Long warehouseId, Long areaId) {
+    private String generateRackCodeWithRetry() {
         String code = codeRuleService.generateCode("rack");
         if (code != null) {
             return code;
         }
-        // 降级：原有逻辑
-        int maxAttempts = 5;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            long serialValue = itemQrCodeSerialService.allocateSerialValues(RACK_CODE_KEY + warehouse, 1).get(0);
-            String rackCode = RACK_CODE_KEY + warehouse + serialValue;
-            long existed = rackMapper.selectCount(
-                Wrappers.<Rack>lambdaQuery()
-                    .eq(Rack::getWarehouseId, warehouseId)
-                    .eq(Rack::getAreaId, areaId)
-                    .eq(Rack::getRackCode, rackCode)
-            );
-            if (existed == 0) {
-                return rackCode;
-            }
-        }
-        throw new ServiceException("货架编码生成失败，请重试");
+        // 降级：雪花ID
+        return "RK" + cn.hutool.core.util.IdUtil.getSnowflakeNextIdStr();
     }
 }

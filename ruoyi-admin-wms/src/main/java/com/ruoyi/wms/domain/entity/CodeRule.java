@@ -48,4 +48,7 @@ public class CodeRule extends BaseEntity {
 
     /** 当前序号 */
     private Long currentSeq;
+
+    /** 是否使用器材编码作为前缀（0=是 1=否），仅 rule_type=item 时生效 */
+    private String useItemCodeAsPrefix;
 }

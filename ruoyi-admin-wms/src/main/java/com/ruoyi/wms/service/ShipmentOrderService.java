@@ -29,7 +29,6 @@ import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.ShipmentOrderMapper;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,8 +48,6 @@ import java.util.stream.Collectors;
 @Service
 public class ShipmentOrderService {
 
-    @Value("${warehouse}")
-    private String warehouse;
 
     private final ShipmentOrderMapper shipmentOrderMapper;
     private final CodeRuleService codeRuleService;
@@ -62,6 +59,8 @@ public class ShipmentOrderService {
     private final ItemInstanceService itemInstanceService;
     private final ItemSkuService itemSkuService;
     private final LocationService locationService;
+    private final WorkflowService workflowService;
+    private final CheckOrderService checkOrderService;
 
     /**
      * 查询出库单
@@ -72,6 +71,7 @@ public class ShipmentOrderService {
             throw new BaseException("出库单不存在");
         }
         shipmentOrderVo.setDetails(shipmentOrderDetailService.queryByShipmentOrderId(shipmentOrderVo.getId()));
+        shipmentOrderVo.setWorkflowLogs(workflowService.getLogs("shipment", shipmentOrderVo.getId()));
         return shipmentOrderVo;
     }
 
@@ -116,7 +116,9 @@ public class ShipmentOrderService {
         bo.setShipmentOrderNo(StrUtil.blankToDefault(bo.getShipmentOrderNo(), generateShipmentOrderNo()));
         // 校验出库单号唯一性
         validateShipmentOrderNo(bo.getShipmentOrderNo());
-        // 创建出库单
+        // 创建出库单（记录申请人）
+        bo.setApplicantId(LoginHelper.getUserId());
+        bo.setApplicantName(LoginHelper.getUsername());
         ShipmentOrder add = MapstructUtils.convert(bo, ShipmentOrder.class);
         shipmentOrderMapper.insert(add);
         bo.setId(add.getId());
@@ -141,7 +143,7 @@ public class ShipmentOrderService {
 
     private String generateShipmentOrderNo() {
         String code = codeRuleService.generateCode("shipment");
-        return code != null ? code : "CK" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        return code != null ? code : "CK" + IdUtil.getSnowflakeNextIdStr();
     }
 
 
@@ -192,6 +194,10 @@ public class ShipmentOrderService {
             .filter(Objects::nonNull)
             .toList();
         itemInstanceService.releaseShipmentReservationsByDetailIds(detailIds);
+        // 删除明细
+        if (CollUtil.isNotEmpty(detailIds)) {
+            shipmentOrderDetailService.deleteByIds(detailIds);
+        }
         shipmentOrderMapper.deleteById(id);
     }
 
@@ -200,11 +206,18 @@ public class ShipmentOrderService {
         if (shipmentOrderVo == null) {
             throw new BaseException("出库单不存在");
         }
-        if (ServiceConstants.ShipmentOrderStatus.INVALID.equals(shipmentOrderVo.getShipmentOrderStatus())) {
+        Integer status = shipmentOrderVo.getShipmentOrderStatus();
+        if (ServiceConstants.ShipmentOrderStatus.INVALID.equals(status)) {
             throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】已作废，无法删除！", HttpStatus.CONFLICT.value());
         }
-        if (ServiceConstants.ShipmentOrderStatus.FINISH.equals(shipmentOrderVo.getShipmentOrderStatus())) {
+        if (ServiceConstants.ShipmentOrderStatus.FINISH.equals(status)) {
             throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】已出库，无法删除！", HttpStatus.CONFLICT.value());
+        }
+        if (ServiceConstants.ShipmentOrderStatus.APPROVED.equals(status)) {
+            throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】已审批，无法删除！", HttpStatus.CONFLICT.value());
+        }
+        if (ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(status)) {
+            throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】待审批中，无法删除！", HttpStatus.CONFLICT.value());
         }
     }
 
@@ -214,6 +227,26 @@ public class ShipmentOrderService {
      */
     @Transactional
     public void shipment(ShipmentOrderBo bo) {
+        // 0.校验状态必须为已审批
+        if (bo.getId() != null) {
+            ShipmentOrder existing = shipmentOrderMapper.selectById(bo.getId());
+            Assert.notNull(existing, "出库单不存在");
+            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.APPROVED.equals(existing.getShipmentOrderStatus()),
+                "出库单未审批通过，不能执行出库");
+            if (existing.getExecutorId() != null && !existing.getExecutorId().equals(LoginHelper.getUserId())) {
+                throw new ServiceException("您不是指定的出库操作人，无权执行出库");
+            }
+        }
+        // 0.1 盘点冻结校验
+        if (bo.getDetails() != null && bo.getWarehouseId() != null) {
+            Set<String> checked = new HashSet<>();
+            for (var d : bo.getDetails()) {
+                String key = bo.getWarehouseId() + "_" + d.getAreaId() + "_" + d.getRackId();
+                if (checked.add(key)) {
+                    checkOrderService.assertNoActiveCheckOrder(bo.getWarehouseId(), d.getAreaId(), d.getRackId());
+                }
+            }
+        }
         // 1.校验器材明细不能为空！
         validateBeforeShipment(bo);
         Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
@@ -241,6 +274,15 @@ public class ShipmentOrderService {
             .map(InventoryDetail::getLocationId)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet()));
+        // 9.记录执行人 + 写流程日志
+        ShipmentOrder updateExecutor = new ShipmentOrder();
+        updateExecutor.setId(bo.getId());
+        updateExecutor.setExecutorId(LoginHelper.getUserId());
+        updateExecutor.setExecutorName(LoginHelper.getUsername());
+        updateExecutor.setExecuteTime(LocalDateTime.now());
+        updateExecutor.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.FINISH);
+        shipmentOrderMapper.updateById(updateExecutor);
+        workflowService.logOperation("shipment", bo.getId(), "execute", "执行出库", null, "executed");
     }
 
     /**
@@ -332,7 +374,8 @@ public class ShipmentOrderService {
         if (bo.getId() != null) {
             ShipmentOrder shipmentOrder = shipmentOrderMapper.selectById(bo.getId());
             Assert.notNull(shipmentOrder, "出库单不存在");
-            Assert.isFalse(ServiceConstants.ShipmentOrderStatus.FINISH.equals(shipmentOrder.getShipmentOrderStatus()), "出库单已完成出库");
+            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.APPROVED.equals(shipmentOrder.getShipmentOrderStatus()),
+                "出库单未审批通过，不能执行出库");
         }
         validateTrackedShipmentDetails(bo.getDetails());
     }
@@ -419,4 +462,101 @@ public class ShipmentOrderService {
         }
         return quantity.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
     }
+
+    // ==================== 审批流程方法 ====================
+
+    /**
+     * 提交审批（草稿/已驳回 → 待审批）
+     *
+     * @param id           出库单ID
+     * @param approverId   指定审批人ID
+     * @param approverName 指定审批人姓名
+     */
+    @Transactional
+    public void submitForApproval(Long id, Long approverId, String approverName) {
+        ShipmentOrder order = shipmentOrderMapper.selectById(id);
+        Assert.notNull(order, "出库单不存在");
+        Assert.isTrue(
+            ServiceConstants.ShipmentOrderStatus.DRAFT.equals(order.getShipmentOrderStatus())
+                || ServiceConstants.ShipmentOrderStatus.REJECTED.equals(order.getShipmentOrderStatus()),
+            "只有草稿或已驳回状态的出库单才能提交审批"
+        );
+        ShipmentOrder update = new ShipmentOrder();
+        update.setId(id);
+        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL);
+        update.setSubmitTime(LocalDateTime.now());
+        update.setApproverId(approverId);
+        update.setApproverName(approverName);
+        shipmentOrderMapper.updateById(update);
+        workflowService.logOperation("shipment", id, "submit", "提交审批",
+            approverName != null ? "指定审批人：" + approverName : null, "submitted");
+    }
+
+    /**
+     * 审批通过（待审批 → 已审批）
+     */
+    @Transactional
+    public void approve(Long id, String remark, Long executorId, String executorName) {
+        ShipmentOrder order = shipmentOrderMapper.selectById(id);
+        Assert.notNull(order, "出库单不存在");
+        Assert.isTrue(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(order.getShipmentOrderStatus()),
+            "只有待审批状态的出库单才能审批");
+
+        ShipmentOrder update = new ShipmentOrder();
+        update.setId(id);
+        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.APPROVED);
+        update.setApproverId(LoginHelper.getUserId());
+        update.setApproverName(LoginHelper.getUsername());
+        update.setApproveTime(LocalDateTime.now());
+        update.setApproveRemark(remark);
+        update.setExecutorId(executorId);
+        update.setExecutorName(executorName);
+        shipmentOrderMapper.updateById(update);
+        String logRemark = remark;
+        if (executorName != null) {
+            logRemark = (logRemark != null ? logRemark + "; " : "") + "指定操作人：" + executorName;
+        }
+        workflowService.logOperation("shipment", id, "approve", "审批通过", logRemark, "approved");
+    }
+
+    /**
+     * 驳回（待审批 → 已驳回）
+     */
+    @Transactional
+    public void reject(Long id, String remark) {
+        ShipmentOrder order = shipmentOrderMapper.selectById(id);
+        Assert.notNull(order, "出库单不存在");
+        Assert.isTrue(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(order.getShipmentOrderStatus()),
+            "只有待审批状态的出库单才能驳回");
+
+        ShipmentOrder update = new ShipmentOrder();
+        update.setId(id);
+        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.REJECTED);
+        update.setApproverId(LoginHelper.getUserId());
+        update.setApproverName(LoginHelper.getUsername());
+        update.setApproveTime(LocalDateTime.now());
+        update.setApproveRemark(remark);
+        shipmentOrderMapper.updateById(update);
+        workflowService.logOperation("shipment", id, "reject", "驳回", remark, "rejected");
+    }
+
+    /**
+     * 作废（草稿/已驳回 → 作废）
+     */
+    @Transactional
+    public void voidOrder(Long id) {
+        ShipmentOrder order = shipmentOrderMapper.selectById(id);
+        Assert.notNull(order, "出库单不存在");
+        Assert.isTrue(
+            ServiceConstants.ShipmentOrderStatus.DRAFT.equals(order.getShipmentOrderStatus())
+                || ServiceConstants.ShipmentOrderStatus.REJECTED.equals(order.getShipmentOrderStatus()),
+            "只有草稿或已驳回状态的出库单才能作废"
+        );
+        ShipmentOrder update = new ShipmentOrder();
+        update.setId(id);
+        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.INVALID);
+        shipmentOrderMapper.updateById(update);
+        workflowService.logOperation("shipment", id, "void", "作废", null, "voided");
+    }
+
 }

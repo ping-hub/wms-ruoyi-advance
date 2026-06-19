@@ -110,6 +110,16 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long areaId;
 
     /**
+     * 出库前货架ID
+     */
+    private Long rackId;
+
+    /**
+     * 出库前货位ID
+     */
+    private Long locationId;
+
+    /**
      * 入库记录id
      */
     @NotNull(message = "入库记录id不能为空", groups = { AddGroup.class, EditGroup.class })

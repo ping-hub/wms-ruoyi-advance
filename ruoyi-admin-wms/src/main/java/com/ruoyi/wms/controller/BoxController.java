@@ -12,11 +12,9 @@ import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.BoxBo;
-import com.ruoyi.wms.domain.bo.BoxOperationBo;
 import com.ruoyi.wms.domain.vo.BoxVo;
 import com.ruoyi.wms.service.BoxService;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -79,24 +77,6 @@ public class BoxController extends BaseController {
     @PutMapping
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody BoxBo bo) {
         boxService.updateByBo(bo);
-        return R.ok();
-    }
-
-    @SaCheckPermission("wms:box:edit")
-    @Log(title = "装箱", businessType = BusinessType.UPDATE)
-    @RepeatSubmit
-    @PostMapping("/pack")
-    public R<Void> pack(@Valid @RequestBody BoxOperationBo bo) {
-        boxService.pack(bo);
-        return R.ok();
-    }
-
-    @SaCheckPermission("wms:box:edit")
-    @Log(title = "拆箱", businessType = BusinessType.UPDATE)
-    @RepeatSubmit
-    @PostMapping("/unpack")
-    public R<Void> unpack(@Valid @RequestBody BoxOperationBo bo) {
-        boxService.unpack(bo);
         return R.ok();
     }
 

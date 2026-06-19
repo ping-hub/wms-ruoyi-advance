@@ -48,6 +48,12 @@ public class MovementOrderVo extends BaseVo{
     private String movementType;
 
     /**
+     * 调拨范围（库内调拨/库外调拨）
+     */
+    @ExcelProperty(value = "调拨范围")
+    private String transferScope;
+
+    /**
      * 调拨依据
      */
     @ExcelProperty(value = "调拨依据")

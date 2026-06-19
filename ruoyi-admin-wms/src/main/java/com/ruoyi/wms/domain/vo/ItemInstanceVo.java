@@ -76,26 +76,20 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "来源类型")
     private String sourceType;
 
-    @ExcelProperty(value = "来源单据类型")
-    private String sourceOrderType;
-
     @ExcelProperty(value = "箱体ID")
     private Long boxId;
 
     @ExcelProperty(value = "箱码")
     private String boxCode;
 
-    @ExcelProperty(value = "来源单据ID")
-    private Long sourceOrderId;
-
-    @ExcelProperty(value = "来源单据号")
-    private String sourceOrderNo;
-
     @ExcelProperty(value = "来源入库单明细ID")
     private Long receiptOrderDetailId;
 
     @ExcelProperty(value = "来源出库单明细ID")
     private Long shipmentOrderDetailId;
+
+    @ExcelProperty(value = "来源调拨单明细ID")
+    private Long movementOrderDetailId;
 
     private String currentBusinessType;
 

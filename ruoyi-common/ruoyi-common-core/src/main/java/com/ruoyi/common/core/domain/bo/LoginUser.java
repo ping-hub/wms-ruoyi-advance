@@ -90,6 +90,7 @@ public class LoginUser implements Serializable {
      */
     private String username;
 
+
     /**
      * 角色对象
      */

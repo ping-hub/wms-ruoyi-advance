@@ -26,11 +26,9 @@ import com.ruoyi.wms.mapper.ItemCategoryMapper;
 import com.ruoyi.wms.mapper.ItemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,16 +41,11 @@ import java.util.stream.Collectors;
 @Log4j2
 public class ItemService {
 
-    private static final String BATCH_PRINT_ITEM_KEY = "ITEM";
-
-    @Value("${warehouse}")
-    private String warehouse;
-
     private final ItemMapper itemMapper;
     private final ItemSkuService itemSkuService;
     private final ItemCategoryMapper itemCategoryMapper;
     private final ItemInstanceService itemInstanceService;
-    private final ItemQrCodeSerialService itemQrCodeSerialService;
+    private final CodeRuleService codeRuleService;
 
     /**
      * 查询物料
@@ -119,34 +112,30 @@ public class ItemService {
 
         ItemBo row = bo.getRow();
         ItemSkuVo sku = resolvePrintSku(row.getId(), bo.getSkuId());
-        String itemKey = BATCH_PRINT_ITEM_KEY + warehouse;
 
-        List<Long> serialValues = itemQrCodeSerialService.allocateSerialValues(itemKey, bo.getQrCodeCount());
-        LocalDateTime now = LocalDateTime.now();
-        List<ItemInstance> itemInstances = new ArrayList<>(serialValues.size());
-        List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(serialValues.size());
+        int count = bo.getQrCodeCount();
+        List<ItemInstance> itemInstances = new ArrayList<>(count);
+        List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(count);
 
-        for (Long serialValue : serialValues) {
-            String instanceCode = itemKey + serialValue;
-            String qrCodeValue = instanceCode;
-            String qrContent = buildQrCodeContent(qrCodeValue);
+        for (int i = 0; i < count; i++) {
+            // 优先走编码规则（支持器材编码动态前缀），降级用雪花ID
+            String instanceCode = codeRuleService.generateCode("item", item.getItemCode());
+            if (instanceCode == null) {
+                instanceCode = "II" + cn.hutool.core.util.IdUtil.getSnowflakeNextIdStr();
+            }
 
             ItemInstance itemInstance = new ItemInstance();
             itemInstance.setInstanceCode(instanceCode);
             itemInstance.setItemId(row.getId());
             itemInstance.setSkuId(sku.getId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
-            itemInstance.setSourceType(null);
-            itemInstance.setSourceOrderType(null);
-            itemInstance.setSourceOrderNo(null);
             itemInstance.setRemark(StrUtil.blankToDefault(row.getRemark(), item.getRemark()));
             itemInstances.add(itemInstance);
 
             BatchPrintQrCodeDetailVo payload = new BatchPrintQrCodeDetailVo();
             payload.setInstanceCode(instanceCode);
-            payload.setSerialValue(serialValue);
-            payload.setQrCodeValue(qrCodeValue);
-            payload.setQrContent(qrContent);
+            payload.setQrCodeValue(instanceCode);
+            payload.setQrContent(instanceCode);
             printPayloads.add(payload);
         }
 
@@ -155,7 +144,6 @@ public class ItemService {
         }
 
         BatchPrintQrCodeResultVo result = new BatchPrintQrCodeResultVo();
-        result.setItemKey(itemKey);
         result.setQrCodeCount(printPayloads.size());
         result.setRow(row);
         result.setDetails(printPayloads);
@@ -326,9 +314,6 @@ public class ItemService {
         return sku;
     }
 
-    private String buildQrCodeContent(String qrCodeValue) {
-        return qrCodeValue;
-    }
 
 
     /**

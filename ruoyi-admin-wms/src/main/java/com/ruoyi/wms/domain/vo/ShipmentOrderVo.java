@@ -4,12 +4,14 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.ruoyi.common.mybatis.core.domain.BaseVo;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
+import com.ruoyi.wms.domain.vo.WorkflowLogVo;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
 
 import java.io.Serial;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -116,5 +118,21 @@ public class ShipmentOrderVo extends BaseVo{
     @ExcelProperty(value = "备注")
     private String remark;
 
+    // ========== 审批流程字段 ==========
+
+    private Long applicantId;
+    private String applicantName;
+    private LocalDateTime submitTime;
+    private Long approverId;
+    private String approverName;
+    private LocalDateTime approveTime;
+    private String approveRemark;
+    private Long executorId;
+    private String executorName;
+    private LocalDateTime executeTime;
+
     List<ShipmentOrderDetailVo> details;
+
+    /** 审批操作日志 */
+    private List<WorkflowLogVo> workflowLogs;
 }

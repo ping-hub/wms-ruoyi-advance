@@ -22,12 +22,16 @@ public class ServiceConstants {
     }
 
     /**
-     * 出库单状态
+     * 出库单状态（审批流程）
+     * 0=草稿, 1=待审批, 2=已审批, 3=已出库, -1=作废, -2=已驳回
      */
     public class ShipmentOrderStatus {
+        public static final Integer REJECTED = -2;
         public static final Integer INVALID = -1;
-        public static final Integer PENDING = 0;
-        public static final Integer FINISH = 1;
+        public static final Integer DRAFT = 0;
+        public static final Integer PENDING_APPROVAL = 1;
+        public static final Integer APPROVED = 2;
+        public static final Integer FINISH = 3;
     }
 
     /**
@@ -71,6 +75,7 @@ public class ServiceConstants {
         public static final String LOSS = "盘亏";
         public static final String BORROWED = "借出";
         public static final String SCRAPPED = "报废";
+        public static final String TRANSFERRED = "已调拨";
     }
 
     /**

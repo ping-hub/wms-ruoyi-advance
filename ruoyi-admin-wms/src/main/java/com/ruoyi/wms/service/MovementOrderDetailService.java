@@ -17,6 +17,10 @@ import com.ruoyi.wms.domain.bo.MovementOrderDetailBo;
 import com.ruoyi.wms.domain.vo.MovementOrderDetailVo;
 import com.ruoyi.wms.domain.entity.MovementOrderDetail;
 import com.ruoyi.wms.mapper.MovementOrderDetailMapper;
+import com.ruoyi.wms.mapper.RackMapper;
+import com.ruoyi.wms.mapper.LocationMapper;
+import com.ruoyi.wms.domain.entity.Rack;
+import com.ruoyi.wms.domain.entity.Location;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -37,6 +41,8 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
     private final MovementOrderDetailMapper movementOrderDetailMapper;
     private final ItemSkuService itemSkuService;
     private final InventoryDetailService inventoryDetailService;
+    private final RackMapper rackMapper;
+    private final LocationMapper locationMapper;
     /**
      * 查询调拨单明细
      */
@@ -127,24 +133,36 @@ public class MovementOrderDetailService extends ServiceImpl<MovementOrderDetailM
         List<Long> inventoryDetailIds = details.stream().map(MovementOrderDetailVo::getInventoryDetailId).toList();
         Map<Long, InventoryDetailVo> inventoryDetailMap = inventoryDetailService.queryVoListByIds(inventoryDetailIds)
             .stream().collect(Collectors.toMap(InventoryDetailVo::getId, Function.identity()));
+        // 批量解析源货架/源货位名称（从明细自身的 sourceRackId/sourceLocationId 解析）
+        Set<Long> sourceRackIds = details.stream().map(MovementOrderDetailVo::getSourceRackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> sourceLocationIds = details.stream().map(MovementOrderDetailVo::getSourceLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> rackNameMap = sourceRackIds.isEmpty()
+            ? Collections.emptyMap()
+            : rackMapper.selectBatchIds(sourceRackIds).stream().collect(Collectors.toMap(Rack::getId, Rack::getRackName));
+        Map<Long, String> locationNameMap = sourceLocationIds.isEmpty()
+            ? Collections.emptyMap()
+            : locationMapper.selectBatchIds(sourceLocationIds).stream().collect(Collectors.toMap(Location::getId, Location::getLocationName));
+
         details.forEach(detail -> {
             ItemSkuVo itemSku = itemSkuMap.get(detail.getSkuId());
             detail.setItemSku(itemSku);
             fillSnapshotFields(detail, itemSku);
+            // 从明细自身的源位置ID解析名称
+            if (detail.getSourceRackId() != null) {
+                detail.setSourceRackName(rackNameMap.get(detail.getSourceRackId()));
+            }
+            if (detail.getSourceLocationId() != null) {
+                detail.setSourceLocationName(locationNameMap.get(detail.getSourceLocationId()));
+            }
             InventoryDetailVo inventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
             if (inventoryDetail != null) {
                 detail.setInventoryDetail(inventoryDetail);
                 detail.setRemainQuantity(inventoryDetail.getRemainQuantity());
-                detail.setInstanceCode(StringUtils.isNotBlank(detail.getInstanceCode())
-                    ? detail.getInstanceCode()
-                    : (StringUtils.isNotBlank(detail.getInstanceCode()) ? detail.getInstanceCode() : inventoryDetail.getInstanceCode()));
-                detail.setSourceRackName(inventoryDetail.getRackName());
-                detail.setSourceLocationName(inventoryDetail.getLocationName());
+                if (StringUtils.isBlank(detail.getInstanceCode())) {
+                    detail.setInstanceCode(inventoryDetail.getInstanceCode());
+                }
             } else {
                 detail.setRemainQuantity(BigDecimal.ZERO);
-                if (StringUtils.isNotBlank(detail.getInstanceCode())) {
-                    detail.setInstanceCode(detail.getInstanceCode());
-                }
             }
         });
         return details;

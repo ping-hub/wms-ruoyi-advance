@@ -30,7 +30,6 @@ import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.RackMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,9 +45,6 @@ import java.util.stream.Collectors;
 @Service
 public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowRecord> {
 
-    @Value("${warehouse}")
-    private String warehouse;
-
     private final BorrowRecordMapper borrowRecordMapper;
     private final CodeRuleService codeRuleService;
     private final ItemInstanceService itemInstanceService;
@@ -58,6 +54,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     private final LocationMapper locationMapper;
     private final BoxMapper boxMapper;
     private final InventoryHistoryService inventoryHistoryService;
+    private final CheckOrderService checkOrderService;
 
     public BorrowRecordVo queryById(Long id) {
         BorrowRecordVo vo = borrowRecordMapper.selectVoById(id);
@@ -117,6 +114,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     @Transactional
     public void borrow(BorrowRecordBo bo) {
         ItemInstance itemInstance = requireBorrowableItem(bo.getInstanceCode());
+        // 盘点冻结校验
+        checkOrderService.assertNoActiveCheckOrder(itemInstance.getWarehouseId(), itemInstance.getAreaId(), itemInstance.getRackId());
         Assert.isNull(findActiveRecordEntity(bo.getInstanceCode()), "该单品实例已处于借出状态");
         BorrowRecord add = new BorrowRecord();
         add.setInstanceCode(itemInstance.getInstanceCode());
@@ -146,6 +145,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
     @Transactional
     public void returnItem(BorrowRecordBo bo) {
         BorrowRecord borrowRecord = resolveActiveRecord(bo);
+        // 盘点冻结校验
+        checkOrderService.assertNoActiveCheckOrder(borrowRecord.getOriginalWarehouseId(), borrowRecord.getOriginalAreaId(), borrowRecord.getOriginalRackId());
         validateOriginalLocationStillAvailable(borrowRecord);
         LocalDateTime effectiveReturnTime = bo.getReturnTime() == null ? LocalDateTime.now() : bo.getReturnTime();
         Assert.isFalse(effectiveReturnTime.isAfter(LocalDateTime.now()), "归还时间不能晚于当前时间");
@@ -218,6 +219,8 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         Assert.notNull(itemInstance, "单品实例不存在");
         Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "单品实例已借出");
         Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
+        Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null, "单品实例已被出库单占用");
+        Assert.isTrue(itemInstance.getMovementOrderDetailId() == null, "单品实例已被调拨单占用");
         return itemInstance;
     }
 
@@ -480,6 +483,6 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
 
     private String generateBorrowNo() {
         String code = codeRuleService.generateCode("borrow");
-        return code != null ? code : "BR" + warehouse + IdUtil.getSnowflakeNextIdStr();
+        return code != null ? code : "BR" + IdUtil.getSnowflakeNextIdStr();
     }
 }

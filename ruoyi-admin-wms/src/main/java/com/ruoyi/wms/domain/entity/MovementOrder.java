@@ -36,6 +36,11 @@ public class MovementOrder extends BaseEntity {
 
     private String movementType;
 
+    /**
+     * 调拨范围（库内调拨/库外调拨）
+     */
+    private String transferScope;
+
     private String dispatchBasis;
 
     private String dispatchPurpose;
