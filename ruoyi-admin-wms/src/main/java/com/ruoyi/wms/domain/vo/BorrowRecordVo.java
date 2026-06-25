@@ -125,4 +125,8 @@ public class BorrowRecordVo implements Serializable {
     private Long returnedBoxId;
 
     private String returnedBoxCode;
+
+    private String createBy;
+
+    private LocalDateTime createTime;
 }

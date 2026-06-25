@@ -48,6 +48,9 @@ public class MyTaskVo implements Serializable {
     /** 创建时间 */
     private LocalDateTime createTime;
 
+    /** 办结时间 */
+    private LocalDateTime finishTime;
+
     /** 备注 */
     private String remark;
 }

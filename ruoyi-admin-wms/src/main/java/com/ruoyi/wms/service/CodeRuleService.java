@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -29,7 +30,7 @@ public class CodeRuleService {
 
     public List<CodeRuleVo> queryList() {
         List<CodeRule> list = codeRuleMapper.selectList(
-            Wrappers.<CodeRule>lambdaQuery().orderByAsc(CodeRule::getRuleType));
+            Wrappers.<CodeRule>lambdaQuery().orderByAsc(CodeRule::getSortOrder).orderByAsc(CodeRule::getRuleType));
         return MapstructUtils.convert(list, CodeRuleVo.class);
     }
 
@@ -83,6 +84,50 @@ public class CodeRuleService {
 
         // 2. 拼接编码
         return buildCode(rule, seq, itemCode);
+    }
+
+
+    /**
+     * 批量生成编码（一次原子递增 N 步，内存中构建 N 个编码，避免 N 次 DB 往返）。
+     * 若规则不存在或未启用，返回空列表（调用方降级处理）。
+     */
+    @Transactional
+    public List<String> generateBatchCodes(int count, String ruleType, String itemCode) {
+        if (count <= 0) {
+            return new ArrayList<>();
+        }
+        CodeRule rule = codeRuleMapper.selectOne(
+            Wrappers.<CodeRule>lambdaQuery().eq(CodeRule::getRuleType, ruleType));
+        if (rule == null || !"0".equals(rule.getEnabled())) {
+            return new ArrayList<>();
+        }
+
+        // 一次性原子递增 count 步
+        codeRuleMapper.incrementSeq(rule.getId(), count);
+        rule = codeRuleMapper.selectById(rule.getId());
+        long endSeq = rule.getCurrentSeq();
+        long startSeq = endSeq - count + 1;
+
+        List<String> codes = new ArrayList<>(count);
+        if ("random".equals(rule.getSeqMethod())) {
+            // 随机序号：无法批量化，逐个生成
+            for (int i = 0; i < count; i++) {
+                codes.add(buildCode(rule, 0L, itemCode));  // buildCode 内部会生成随机序号
+            }
+        } else {
+            // 顺序序号：内存中批量构建
+            for (long seq = startSeq; seq <= endSeq; seq++) {
+                codes.add(buildCode(rule, seq, itemCode));
+            }
+        }
+        return codes;
+    }
+
+    /**
+     * 批量生成编码（无 itemCode 前缀版本）
+     */
+    public List<String> generateBatchCodes(int count, String ruleType) {
+        return generateBatchCodes(count, ruleType, null);
     }
 
     /**

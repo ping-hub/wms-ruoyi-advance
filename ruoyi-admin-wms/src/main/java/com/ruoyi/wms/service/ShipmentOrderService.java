@@ -416,13 +416,18 @@ public class ShipmentOrderService {
             : ServiceConstants.ItemInstanceStatus.OUTBOUND;
         Map<String, ItemInstance> itemMap = itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
             .collect(Collectors.toMap(ItemInstance::getInstanceCode, java.util.function.Function.identity()));
+        // 收集所有需要出库的实例 ID，批量更新（避免逐条 SQL）
+        Set<Long> instanceIds = new HashSet<>();
         for (ShipmentOrderDetailBo detail : details) {
             if (detail.getInstanceCode() == null) {
                 continue;
             }
             ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
             Assert.notNull(itemInstance, "单品实例不存在");
-            itemInstanceService.markOutbound(itemInstance.getId(), targetStatus);
+            instanceIds.add(itemInstance.getId());
+        }
+        if (CollUtil.isNotEmpty(instanceIds)) {
+            itemInstanceService.batchMarkOutbound(instanceIds, targetStatus);
         }
     }
 

@@ -77,6 +77,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           </choose>
     </update>
 
+    <!-- 按 sku_id 汇总库存数量（SQL聚合，避免全量加载后内存分组） -->
+    <select id="selectSkuQuantitySummary" resultType="map">
+        SELECT sku_id AS "skuId", COALESCE(SUM(quantity), 0) AS "totalQuantity"
+        FROM wms_inventory
+        WHERE quantity IS NOT NULL
+        <if test="warehouseId != null">
+            AND warehouse_id = #{warehouseId}
+        </if>
+        <if test="areaId != null">
+            AND area_id = #{areaId}
+        </if>
+        <if test="rackId != null">
+            AND rack_id = #{rackId}
+        </if>
+        GROUP BY sku_id
+    </select>
+
     <!-- 删除数量为0的库存记录 -->
     <delete id="deleteZeroQuantity">
         DELETE FROM wms_inventory
@@ -92,5 +109,41 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
               <when test="locationId != null">AND location_id = #{locationId}</when>
               <otherwise>AND location_id IS NULL</otherwise>
           </choose>
+    </delete>
+
+    <!-- 批量原子增减库存数量（一次 SQL 更新多条记录，行锁保障并发安全） -->
+    <update id="batchAtomicIncrement">
+        <foreach collection="list" item="it" separator=";">
+            UPDATE wms_inventory
+            SET quantity = quantity + #{it.quantity}
+            WHERE warehouse_id = #{it.warehouseId}
+              AND area_id = #{it.areaId}
+              AND sku_id = #{it.skuId}
+              <choose>
+                  <when test="it.rackId != null">AND rack_id = #{it.rackId}</when>
+                  <otherwise>AND rack_id IS NULL</otherwise>
+              </choose>
+              <choose>
+                  <when test="it.locationId != null">AND location_id = #{it.locationId}</when>
+                  <otherwise>AND location_id IS NULL</otherwise>
+              </choose>
+        </foreach>
+    </update>
+
+    <!-- 批量删除数量为0或负数的库存记录（单次 SQL） -->
+    <delete id="batchDeleteZeroQuantity">
+        DELETE FROM wms_inventory WHERE quantity &lt;= 0 AND (
+        <foreach collection="list" item="it" separator=" OR ">
+            (warehouse_id = #{it.warehouseId} AND area_id = #{it.areaId} AND sku_id = #{it.skuId}
+            <choose>
+                <when test="it.rackId != null">AND rack_id = #{it.rackId}</when>
+                <otherwise>AND rack_id IS NULL</otherwise>
+            </choose>
+            <choose>
+                <when test="it.locationId != null">AND location_id = #{it.locationId}</when>
+                <otherwise>AND location_id IS NULL</otherwise>
+            </choose>)
+        </foreach>
+        )
     </delete>
 </mapper>

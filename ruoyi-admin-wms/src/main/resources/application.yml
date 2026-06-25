@@ -137,6 +137,8 @@ security:
     # actuator 监控配置
     - /actuator
     - /actuator/**
+    # 环境监测采集器上报（无需登录）
+    - /wms/envMonitor/upload
 
 # MyBatisPlus配置
 # https://baomidou.com/config/

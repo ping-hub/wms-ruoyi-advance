@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.InventoryWarningRuleMapper">
+
+    <!-- 共享 SELECT 字段 -->
+    <sql id="ruleVoFields">
+        r.id, r.rule_name, r.item_id, i.item_name, i.item_code,
+        r.critical_stock, r.safety_stock, r.notice_stock,
+        COALESCE(inv.total_qty, 0) AS current_stock,
+        r.enabled, r.remark, r.create_time, r.update_time
+    </sql>
+
+    <!-- 共享 FROM + JOIN -->
+    <sql id="ruleFromJoin">
+        FROM wms_inventory_warning_rule r
+        LEFT JOIN wms_item i ON r.item_id = i.id
+        LEFT JOIN (
+            SELECT s.item_id, SUM(inv.quantity) AS total_qty
+            FROM wms_inventory inv JOIN wms_item_sku s ON inv.sku_id = s.id
+            GROUP BY s.item_id
+        ) inv ON r.item_id = inv.item_id
+    </sql>
+
+    <!-- 共享 WHERE 条件片段 -->
+    <sql id="ruleListWhere">
+        <where>
+            <if test="ruleName != null and ruleName != ''">
+                AND r.rule_name LIKE CONCAT('%', #{ruleName}, '%')
+            </if>
+            <if test="itemId != null">
+                AND r.item_id = #{itemId}
+            </if>
+            <if test="enabled != null and enabled != ''">
+                AND r.enabled = #{enabled}
+            </if>
+            <if test="itemName != null and itemName != ''">
+                AND i.item_name LIKE CONCAT('%', #{itemName}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询规则列表（不分页） -->
+    <select id="selectRuleList" resultType="com.ruoyi.wms.domain.vo.InventoryWarningRuleVo">
+        SELECT <include refid="ruleVoFields"/>
+        <include refid="ruleFromJoin"/>
+        <include refid="ruleListWhere"/>
+        ORDER BY r.create_time DESC
+    </select>
+
+    <!-- 分页查询规则列表 -->
+    <select id="selectRuleListPage" resultType="com.ruoyi.wms.domain.vo.InventoryWarningRuleVo">
+        SELECT <include refid="ruleVoFields"/>
+        <include refid="ruleFromJoin"/>
+        <include refid="ruleListWhere"/>
+        ORDER BY r.create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 统计规则数量 -->
+    <select id="countRuleList" resultType="int">
+        SELECT COUNT(*)
+        FROM wms_inventory_warning_rule r
+        LEFT JOIN wms_item i ON r.item_id = i.id
+        <include refid="ruleListWhere"/>
+    </select>
+
+    <!-- 查询所有启用的规则及其实际库存（供预警计算使用） -->
+    <select id="selectWarningSummary" resultType="map">
+        SELECT
+            r.id              AS "ruleId",
+            r.rule_name       AS "ruleName",
+            r.item_id         AS "itemId",
+            i.item_name       AS "itemName",
+            i.item_code       AS "itemCode",
+            r.critical_stock  AS "criticalStock",
+            r.safety_stock    AS "safetyStock",
+            r.notice_stock    AS "noticeStock",
+            COALESCE(inv.total_qty, 0) AS "currentStock"
+        FROM wms_inventory_warning_rule r
+        LEFT JOIN wms_item i ON r.item_id = i.id
+        LEFT JOIN (
+            SELECT s.item_id, SUM(inv.quantity) AS total_qty
+            FROM wms_inventory inv JOIN wms_item_sku s ON inv.sku_id = s.id
+            GROUP BY s.item_id
+        ) inv ON r.item_id = inv.item_id
+        WHERE r.enabled = '1'
+        ORDER BY r.create_time DESC
+    </select>
+
+</mapper>

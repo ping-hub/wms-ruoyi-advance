@@ -36,9 +36,21 @@ public class MyTaskController extends BaseController {
     @SaCheckPermission("wms:myTasks:list")
     @GetMapping("/list")
     public TableDataInfo<MyTaskVo> list(
+        @RequestParam(required = false) String status,
         @RequestParam(required = false) String taskType,
         @RequestParam(required = false) String orderNo,
         PageQuery pageQuery) {
-        return myTaskService.queryMyTasks(taskType, orderNo, pageQuery);
+        return myTaskService.queryMyTasks(status, taskType, orderNo, pageQuery);
+    }
+
+    /**
+     * 我的待办统计（看板用）
+     *
+     * @return pendingCount, doneCount, percent
+     */
+    @SaCheckPermission("wms:myTasks:list")
+    @GetMapping("/summary")
+    public com.ruoyi.common.core.domain.R<java.util.Map<String, Object>> summary() {
+        return com.ruoyi.common.core.domain.R.ok(myTaskService.getMyTasksSummary());
     }
 }

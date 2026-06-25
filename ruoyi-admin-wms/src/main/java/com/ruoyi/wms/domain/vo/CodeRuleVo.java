@@ -25,4 +25,5 @@ public class CodeRuleVo implements Serializable {
     private String seqMethod;
     private Long currentSeq;
     private String useItemCodeAsPrefix;
+    private Integer sortOrder;
 }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.DashboardMapper">
+
+    <!-- 按入库类型分组统计 -->
+    <select id="countReceiptByType" resultType="map">
+        SELECT receipt_order_type AS "name", COUNT(*) AS "value"
+        FROM wms_receipt_order
+        WHERE receipt_order_status != -1
+        GROUP BY receipt_order_type
+    </select>
+
+    <!-- 按器材名称统计库存数量和金额 -->
+    <select id="countInventoryByCategory" resultType="map">
+        SELECT
+            COALESCE(i.item_name, '未命名') AS "name",
+            SUM(inv.quantity) AS "quantity",
+            SUM(inv.quantity * COALESCE(
+                (SELECT h.unit_price
+                 FROM wms_inventory_history h
+                 WHERE h.sku_id = inv.sku_id
+                 ORDER BY h.create_time DESC
+                 LIMIT 1), 0
+            )) AS "value"
+        FROM wms_inventory inv
+        JOIN wms_item_sku s ON inv.sku_id = s.id
+        JOIN wms_item i ON s.item_id = i.id
+        GROUP BY i.item_name
+        ORDER BY SUM(inv.quantity) DESC
+    </select>
+
+    <!-- 近N天出入库趋势（按日期和类型分组） -->
+    <select id="countInoutByDate" resultType="map">
+        SELECT
+            TO_CHAR(create_time, 'MM-DD') AS "date",
+            order_type AS "orderType",
+            SUM(ABS(quantity)) AS "quantity"
+        FROM wms_inventory_history
+        WHERE order_type IN (1, 2)
+          AND create_time >= CAST(#{startDate} AS timestamp)
+        GROUP BY TO_CHAR(create_time, 'MM-DD'), order_type
+        ORDER BY "date"
+    </select>
+
+    <!-- 按质量等级统计实例数量 -->
+    <select id="countByQualityGrade" resultType="map">
+        SELECT
+            COALESCE(s.quality_grade, '未评级') AS "name",
+            COUNT(*) AS "value"
+        FROM wms_item_instance inst
+        JOIN wms_item_sku s ON inst.sku_id = s.id
+        WHERE inst.instance_status = '在库'
+        GROUP BY s.quality_grade
+        ORDER BY COUNT(*) DESC
+    </select>
+
+    <!-- 统计总库存数量 -->
+    <select id="sumInventoryQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(quantity), 0) FROM wms_inventory
+    </select>
+
+    <!-- 统计总库存价值（基于入库历史最近单价） -->
+    <select id="sumInventoryValue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(
+            inv.quantity * COALESCE(
+                (SELECT h.unit_price
+                 FROM wms_inventory_history h
+                 WHERE h.sku_id = inv.sku_id
+                 ORDER BY h.create_time DESC
+                 LIMIT 1), 0
+            )
+        ), 0)
+        FROM wms_inventory inv
+    </select>
+
+</mapper>

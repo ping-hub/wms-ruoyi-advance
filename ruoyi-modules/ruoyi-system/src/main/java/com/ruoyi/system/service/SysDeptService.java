@@ -197,9 +197,9 @@ public class SysDeptService implements DeptService {
      */
     public void checkDeptDataScope(Long deptId) {
         if (!LoginHelper.isAdmin()) {
-            SysDept dept = new SysDept();
-            dept.setDeptId(deptId);
-            List<SysDeptVo> depts = this.selectDeptList(MapstructUtils.convert(dept, SysDeptBo.class));
+            SysDeptBo bo = new SysDeptBo();
+            bo.setDeptId(deptId);
+            List<SysDeptVo> depts = this.selectDeptList(bo);
             if (CollUtil.isEmpty(depts)) {
                 throw new ServiceException("没有权限访问部门数据！");
             }
@@ -229,7 +229,7 @@ public class SysDeptService implements DeptService {
      * @param bo 部门信息
      * @return 结果
      */
-    @CacheEvict(cacheNames = CacheNames.SYS_DEPT, key = "#dept.deptId")
+    @CacheEvict(cacheNames = CacheNames.SYS_DEPT, key = "#bo.deptId")
     public int updateDept(SysDeptBo bo) {
         SysDept dept = MapstructUtils.convert(bo, SysDept.class);
         SysDept newParentDept = deptMapper.selectById(dept.getParentId());

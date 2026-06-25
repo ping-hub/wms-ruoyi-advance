@@ -51,4 +51,7 @@ public class CodeRule extends BaseEntity {
 
     /** 是否使用器材编码作为前缀（0=是 1=否），仅 rule_type=item 时生效 */
     private String useItemCodeAsPrefix;
+
+    /** 排序（越小越靠前） */
+    private Integer sortOrder;
 }

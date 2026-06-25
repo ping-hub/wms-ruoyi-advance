@@ -57,12 +57,16 @@ public class ServiceConstants {
     }
 
     /**
-     * 盘库单状态
+     * 盘库单状态（两步流程：草稿→待盘点→待复核→已完成）
+     * -2=已驳回, -1=作废, 0=草稿, 1=待盘点, 2=待复核, 3=已完成
      */
     public class CheckOrderStatus {
+        public static final Integer REJECTED = -2;
         public static final Integer INVALID = -1;
-        public static final Integer PENDING = 0;
-        public static final Integer FINISH = 1;
+        public static final Integer DRAFT = 0;
+        public static final Integer PENDING_CHECK = 1;
+        public static final Integer PENDING_REVIEW = 2;
+        public static final Integer FINISH = 3;
     }
 
     /**
@@ -125,5 +129,24 @@ public class ServiceConstants {
     public class BorrowStatus {
         public static final String BORROWED = "borrowed";
         public static final String RETURNED = "returned";
+    }
+
+    /**
+     * 借用单状态
+     * 0=草稿, 1=借出中, 2=已归还, -1=已作废
+     */
+    public class BorrowOrderStatus {
+        public static final Integer INVALID = -1;
+        public static final Integer DRAFT = 0;
+        public static final Integer BORROWING = 1;
+        public static final Integer RETURNED = 2;
+    }
+
+    /**
+     * 借用单明细归还状态
+     */
+    public class BorrowDetailReturnStatus {
+        public static final Integer NOT_RETURNED = 0;
+        public static final Integer RETURNED = 1;
     }
 }

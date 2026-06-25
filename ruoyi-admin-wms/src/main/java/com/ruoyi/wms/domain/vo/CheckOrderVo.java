@@ -43,9 +43,9 @@ public class CheckOrderVo extends BaseVo {
     private String checkOrderNo;
 
     /**
-     * 库存盘点单状态 -1：作废 0：未盘库 1：已盘库
+     * 盘点单状态：-2已驳回 -1作废 0草稿 1待盘点 2待复核 3已完成
      */
-    @ExcelProperty(value = "库存盘点单状态 -1：作废 0：未盘库 1：已盘库")
+    @ExcelProperty(value = "盘点单状态")
     private Integer checkOrderStatus;
 
     /**
@@ -85,24 +85,27 @@ public class CheckOrderVo extends BaseVo {
     private LocalDateTime checkDate;
 
     /**
-     * 盘点人
-     */
-    @ExcelProperty(value = "盘点人")
-    private String checkerName;
-
-    /**
-     * 复核人
-     */
-    @ExcelProperty(value = "复核人")
-    private String reviewerName;
-
-    /**
      * 备注
      */
     @ExcelProperty(value = "备注")
     private String remark;
 
+    // ========== 流程字段 ==========
+
+    private Long applicantId;
+    private String applicantName;
+    private LocalDateTime submitTime;
+    private Long executorId;
+    private String executorName;
+    private Long reviewerId;
+    private String reviewerName;
+    private LocalDateTime executeTime;
+    private String approveRemark;
+
     private List<CheckOrderDetailVo> details;
 
     private List<CheckOrderInstanceVo> instances;
+
+    /** 流程操作日志 */
+    private List<WorkflowLogVo> workflowLogs;
 }

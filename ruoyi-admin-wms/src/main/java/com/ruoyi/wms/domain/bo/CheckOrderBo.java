@@ -38,7 +38,7 @@ public class CheckOrderBo extends BaseEntity {
     private String checkOrderNo;
 
     /**
-     * 库存盘点单状态 -1：作废 0：未盘库 1：已盘库
+     * 盘点单状态：-2已驳回 -1作废 0草稿 1待盘点 2待复核 3已完成
      */
     private Integer checkOrderStatus;
 
@@ -75,19 +75,38 @@ public class CheckOrderBo extends BaseEntity {
     private LocalDateTime checkDate;
 
     /**
-     * 盘点人
-     */
-    private String checkerName;
-
-    /**
-     * 复核人
-     */
-    private String reviewerName;
-
-    /**
      * 备注
      */
     private String remark;
+
+    // ========== 流程字段 ==========
+
+    /** 申请人ID */
+    private Long applicantId;
+
+    /** 申请人姓名 */
+    private String applicantName;
+
+    /** 提交时间 */
+    private LocalDateTime submitTime;
+
+    /** 盘点人ID */
+    private Long executorId;
+
+    /** 当前执行人姓名 */
+    private String executorName;
+
+    /** 复核人ID */
+    private Long reviewerId;
+
+    /** 复核人姓名 */
+    private String reviewerName;
+
+    /** 执行时间 */
+    private LocalDateTime executeTime;
+
+    /** 驳回/审批意见 */
+    private String approveRemark;
 
 
     /**

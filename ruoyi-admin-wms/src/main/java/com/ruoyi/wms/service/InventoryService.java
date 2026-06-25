@@ -1,5 +1,6 @@
 package com.ruoyi.wms.service;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.Set;
 
 /**
  * 库存Service业务层处理
@@ -76,29 +78,78 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
     /**
      * 批量更新库存数量（原子SQL，支持多实例部署并发安全）
      * 逻辑：已有记录 → quantity += delta；无记录 → 插入新记录；结果归零 → 删除
+     * 优化：合并为 3~4 次 SQL（批量SELECT + 批量UPDATE + 批量INSERT + 批量DELETE），替代逐条循环的 2~3N 次
      * @param list 库存变动列表（quantity 正=入库/归还，负=出库/借出）
      */
     @Transactional
     public void updateInventoryQuantity(List<InventoryBo> list) {
-        list.forEach(inventoryBo -> {
-            ValidatorUtils.validate(inventoryBo, AddGroup.class);
-        });
-        list.forEach(bo -> {
-            int rows = inventoryMapper.atomicIncrement(
-                bo.getWarehouseId(), bo.getAreaId(),
-                bo.getRackId(), bo.getLocationId(),
-                bo.getSkuId(), bo.getQuantity());
-            if (rows == 0 && bo.getQuantity().compareTo(java.math.BigDecimal.ZERO) > 0) {
-                // 记录不存在且增量为正：插入新记录
-                Inventory inventory = MapstructUtils.convert(bo, Inventory.class);
-                inventoryMapper.insert(inventory);
+        if (CollUtil.isEmpty(list)) return;
+        list.forEach(inventoryBo -> ValidatorUtils.validate(inventoryBo, AddGroup.class));
+
+        // 1. 一次 SELECT 查出已存在的库存记录
+        List<Inventory> existingList = queryExistingInventories(list);
+        Set<String> existingKeys = existingList.stream()
+            .map(this::buildInventoryKey)
+            .collect(java.util.stream.Collectors.toSet());
+
+        // 2. 已有记录 → 一次批量 UPDATE（行锁保障并发安全）
+        List<InventoryBo> existingBos = list.stream()
+            .filter(bo -> existingKeys.contains(buildBoKey(bo)))
+            .toList();
+        if (!existingBos.isEmpty()) {
+            inventoryMapper.batchAtomicIncrement(existingBos);
+        }
+
+        // 3. 无记录且增量为正 → 批量 INSERT
+        List<InventoryBo> newBos = list.stream()
+            .filter(bo -> !existingKeys.contains(buildBoKey(bo))
+                && bo.getQuantity().compareTo(java.math.BigDecimal.ZERO) > 0)
+            .toList();
+        if (!newBos.isEmpty()) {
+            List<Inventory> insertList = newBos.stream()
+                .map(bo -> MapstructUtils.convert(bo, Inventory.class))
+                .toList();
+            saveBatch(insertList);
+        }
+
+        // 4. 一次批量 DELETE 清理归零/负数记录
+        inventoryMapper.batchDeleteZeroQuantity(list);
+    }
+
+    /**
+     * 批量查询已存在的库存记录
+     */
+    private List<Inventory> queryExistingInventories(List<InventoryBo> list) {
+        if (list.size() <= 100) {
+            LambdaQueryWrapper<Inventory> lqw = Wrappers.lambdaQuery();
+            lqw.or();
+            for (InventoryBo bo : list) {
+                lqw.or(w -> {
+                    w.eq(Inventory::getWarehouseId, bo.getWarehouseId())
+                     .eq(Inventory::getAreaId, bo.getAreaId())
+                     .eq(Inventory::getSkuId, bo.getSkuId());
+                    if (bo.getRackId() != null) w.eq(Inventory::getRackId, bo.getRackId());
+                    else w.isNull(Inventory::getRackId);
+                    if (bo.getLocationId() != null) w.eq(Inventory::getLocationId, bo.getLocationId());
+                    else w.isNull(Inventory::getLocationId);
+                });
             }
-            // 归零或负数：删除该记录（明细与流水保留）
-            inventoryMapper.deleteZeroQuantity(
-                bo.getWarehouseId(), bo.getAreaId(),
-                bo.getRackId(), bo.getLocationId(),
-                bo.getSkuId());
-        });
+            return inventoryMapper.selectList(lqw);
+        }
+        // 超过 100 条时分批查询，避免 SQL 过长
+        List<Inventory> result = new java.util.ArrayList<>();
+        for (int i = 0; i < list.size(); i += 100) {
+            result.addAll(queryExistingInventories(list.subList(i, Math.min(i + 100, list.size()))));
+        }
+        return result;
+    }
+
+    private String buildInventoryKey(Inventory inv) {
+        return inv.getWarehouseId() + "_" + inv.getAreaId() + "_" + inv.getRackId() + "_" + inv.getLocationId() + "_" + inv.getSkuId();
+    }
+
+    private String buildBoKey(InventoryBo bo) {
+        return bo.getWarehouseId() + "_" + bo.getAreaId() + "_" + bo.getRackId() + "_" + bo.getLocationId() + "_" + bo.getSkuId();
     }
 
     /**

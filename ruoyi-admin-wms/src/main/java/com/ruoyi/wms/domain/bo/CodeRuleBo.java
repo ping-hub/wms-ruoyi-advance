@@ -23,4 +23,5 @@ public class CodeRuleBo {
     private String seqMethod;
     private Long currentSeq;
     private String useItemCodeAsPrefix;
+    private Integer sortOrder;
 }

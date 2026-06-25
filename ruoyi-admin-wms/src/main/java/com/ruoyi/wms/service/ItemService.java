@@ -117,12 +117,15 @@ public class ItemService {
         List<ItemInstance> itemInstances = new ArrayList<>(count);
         List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(count);
 
+        // 批量生成编码：一次原子递增 N 步 + 内存构建，将 2N 次 DB 往返降为 2 次
+        List<String> codes = codeRuleService.generateBatchCodes(count, "item", item.getItemCode());
+        boolean useFallback = CollUtil.isEmpty(codes);
+
         for (int i = 0; i < count; i++) {
-            // 优先走编码规则（支持器材编码动态前缀），降级用雪花ID
-            String instanceCode = codeRuleService.generateCode("item", item.getItemCode());
-            if (instanceCode == null) {
-                instanceCode = "II" + cn.hutool.core.util.IdUtil.getSnowflakeNextIdStr();
-            }
+            // 优先使用批量编码结果，降级用雪花ID
+            String instanceCode = useFallback
+                ? "II" + cn.hutool.core.util.IdUtil.getSnowflakeNextIdStr()
+                : codes.get(i);
 
             ItemInstance itemInstance = new ItemInstance();
             itemInstance.setInstanceCode(instanceCode);

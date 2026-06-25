@@ -27,48 +27,53 @@ public class StorageLayoutQueryService {
     private final LocationMapper locationMapper;
 
     /**
-     * 批量查询仓储布局树（4次查询代替 N+1）
+     * 批量查询仓储布局树（4次查询代替 N+1，WHERE 条件下推至 SQL 层）
      */
     public List<StorageLayoutNodeVo> queryLayoutTree(Long warehouseId, Long areaId, Long rackId) {
-        // 1. 批量查所有仓库
-        List<Warehouse> allWarehouses = warehouseMapper.selectList(null);
-        if (CollUtil.isEmpty(allWarehouses)) {
-            return List.of();
-        }
-        // 按过滤条件筛选仓库
-        if (warehouseId != null) {
-            allWarehouses = allWarehouses.stream().filter(w -> w.getId().equals(warehouseId)).toList();
-        }
+        // 1. 按条件查仓库（WHERE 下推）
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Warehouse> wqw = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        if (warehouseId != null) wqw.eq(Warehouse::getId, warehouseId);
+        List<Warehouse> allWarehouses = warehouseMapper.selectList(wqw);
         if (CollUtil.isEmpty(allWarehouses)) {
             return List.of();
         }
         Set<Long> warehouseIds = allWarehouses.stream().map(Warehouse::getId).collect(Collectors.toSet());
 
-        // 2. 批量查所有相关库区（1次查询）
-        List<Area> allAreas = areaMapper.selectList(null);
+        // 2. 按仓库 ID 查库区（WHERE 下推）
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Area> aqw = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        aqw.in(Area::getWarehouseId, warehouseIds);
+        if (areaId != null) aqw.eq(Area::getId, areaId);
+        List<Area> allAreas = areaMapper.selectList(aqw);
         Map<Long, List<Area>> areasByWarehouse = allAreas.stream()
-            .filter(a -> warehouseIds.contains(a.getWarehouseId()))
-            .filter(a -> areaId == null || a.getId().equals(areaId))
             .collect(Collectors.groupingBy(Area::getWarehouseId));
 
-        Set<Long> areaIds = areasByWarehouse.values().stream()
-            .flatMap(Collection::stream).map(Area::getId).collect(Collectors.toSet());
+        Set<Long> areaIds = allAreas.stream().map(Area::getId).collect(Collectors.toSet());
+        if (areaIds.isEmpty()) {
+            // 无库区，仅返回仓库节点
+            return allWarehouses.stream().map(this::toWarehouseNode).toList();
+        }
 
-        // 3. 批量查所有相关货架（1次查询）
-        List<Rack> allRacks = rackMapper.selectList(null);
+        // 3. 按库区 ID 查货架（WHERE 下推）
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Rack> rqw = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        rqw.in(Rack::getAreaId, areaIds);
+        if (rackId != null) rqw.eq(Rack::getId, rackId);
+        List<Rack> allRacks = rackMapper.selectList(rqw);
         Map<Long, List<Rack>> racksByArea = allRacks.stream()
-            .filter(r -> areaIds.contains(r.getAreaId()))
-            .filter(r -> rackId == null || r.getId().equals(rackId))
             .collect(Collectors.groupingBy(Rack::getAreaId));
 
-        Set<Long> rackIds = racksByArea.values().stream()
-            .flatMap(Collection::stream).map(Rack::getId).collect(Collectors.toSet());
+        Set<Long> rackIds = allRacks.stream().map(Rack::getId).collect(Collectors.toSet());
 
-        // 4. 批量查所有相关货位（1次查询）
-        List<Location> allLocations = rackIds.isEmpty() ? List.of() : locationMapper.selectList(null);
-        Map<Long, List<Location>> locationsByRack = allLocations.stream()
-            .filter(l -> rackIds.contains(l.getRackId()))
-            .collect(Collectors.groupingBy(Location::getRackId));
+        // 4. 按货架 ID 查货位（WHERE 下推）
+        Map<Long, List<Location>> locationsByRack;
+        if (rackIds.isEmpty()) {
+            locationsByRack = Map.of();
+        } else {
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Location> lqw = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            lqw.in(Location::getRackId, rackIds);
+            List<Location> allLocations = locationMapper.selectList(lqw);
+            locationsByRack = allLocations.stream()
+                .collect(Collectors.groupingBy(Location::getRackId));
+        }
 
         // 5. 内存中组装树
         List<StorageLayoutNodeVo> result = new ArrayList<>();

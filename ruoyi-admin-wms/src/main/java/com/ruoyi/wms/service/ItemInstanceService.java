@@ -43,6 +43,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final BorrowRecordMapper borrowRecordMapper;
     private final ReceiptOrderMapper receiptOrderMapper;
     private final ReceiptOrderDetailMapper receiptOrderDetailMapper;
+    private final ReceiptOrderDetailService receiptOrderDetailService;
     private final ShipmentOrderMapper shipmentOrderMapper;
     private final ShipmentOrderDetailMapper shipmentOrderDetailMapper;
     private final ItemMapper itemMapper;
@@ -363,6 +364,34 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         syncBoxAfterItemLeave(oldBoxId);
     }
 
+    /**
+     * 批量出库：一次 SQL 更新多个实例的状态，然后同步箱子状态
+     */
+    public void batchMarkOutbound(Set<Long> ids, String targetStatus) {
+        if (cn.hutool.core.collection.CollUtil.isEmpty(ids)) return;
+        // 先查出受影响的 boxId（用于后续箱子状态同步）
+        List<ItemInstance> instances = itemInstanceMapper.selectBatchIds(ids);
+        Set<Long> affectedBoxIds = instances.stream()
+            .map(ItemInstance::getBoxId)
+            .filter(java.util.Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+        // 批量 SQL 更新
+        LambdaUpdateWrapper<ItemInstance> wrapper = Wrappers.lambdaUpdate();
+        wrapper.in(ItemInstance::getId, ids);
+        wrapper.set(ItemInstance::getInstanceStatus,
+            StrUtil.blankToDefault(targetStatus, ServiceConstants.ItemInstanceStatus.OUTBOUND));
+        wrapper.set(ItemInstance::getBoxId, null);
+        wrapper.set(ItemInstance::getWarehouseId, null);
+        wrapper.set(ItemInstance::getAreaId, null);
+        wrapper.set(ItemInstance::getRackId, null);
+        wrapper.set(ItemInstance::getLocationId, null);
+        itemInstanceMapper.update(null, wrapper);
+        // 同步箱子状态
+        for (Long boxId : affectedBoxIds) {
+            syncBoxAfterItemLeave(boxId);
+        }
+    }
+
     public List<ItemInstance> queryByIds(Set<Long> ids) {
         if (CollUtil.isEmpty(ids)) {
             return List.of();
@@ -510,7 +539,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         if (CollUtil.isEmpty(detailList)) {
             return List.of();
         }
-        Assert.isTrue(countByReceiptOrderId(receiptOrder.getId()) == 0, "该入库单已生成单品实例，请勿重复入库");
+        // countByReceiptOrderId 已在 ReceiptOrderService.validateBeforeReceive 中校验，此处不再重复
         Set<Long> instanceIds = new java.util.HashSet<>();
         Set<String> instanceCodes = new java.util.HashSet<>();
         detailList.forEach(detail -> {
@@ -532,6 +561,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Map<String, ItemInstance> itemInstanceCodeMap = queryByCodes(instanceCodes).stream()
             .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
         List<ItemInstance> updateList = new ArrayList<>();
+        List<ReceiptOrderDetail> detailUpdateList = new ArrayList<>();
         for (ReceiptOrderDetailBo detail : detailList) {
             List<ReceiptItemInstanceBo> receiptItemInstances = detail.getReceiptItemInstances();
             Assert.isTrue(CollUtil.isNotEmpty(receiptItemInstances), "请先录入器材实例");
@@ -556,12 +586,16 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setRemark(StrUtil.blankToDefault(receiptItemInstance.getRemark(), detail.getRemark()));
                 updateList.add(itemInstance);
             }
-            ReceiptOrderDetail update = new ReceiptOrderDetail();
-            update.setId(detail.getId());
-            receiptOrderDetailMapper.updateById(update);
+            ReceiptOrderDetail detailUpdate = new ReceiptOrderDetail();
+            detailUpdate.setId(detail.getId());
+            detailUpdateList.add(detailUpdate);
         }
         if (CollUtil.isNotEmpty(updateList)) {
             updateBatchById(updateList);
+        }
+        // 批量更新入库单明细（替代逐条 updateById，省 N 次 SQL）
+        if (CollUtil.isNotEmpty(detailUpdateList)) {
+            receiptOrderDetailService.updateBatchById(detailUpdateList);
         }
         return updateList;
     }
@@ -856,7 +890,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     /**
      * 器材离开箱子后同步箱子状态：若箱内器材为0则置为空闲
      */
-    private void syncBoxAfterItemLeave(Long boxId) {
+    public void syncBoxAfterItemLeave(Long boxId) {
         syncBoxSnapshot(boxId, ServiceConstants.BoxStatus.PACKED);
     }
 
