@@ -3,6 +3,7 @@ package com.ruoyi.wms.domain.bo;
 import com.ruoyi.common.core.validate.AddGroup;
 import com.ruoyi.common.core.validate.EditGroup;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
+import java.time.LocalDate;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import io.github.linpeilie.annotations.AutoMapper;
 import jakarta.validation.constraints.NotBlank;
@@ -79,6 +80,16 @@ public class ItemInstanceBo extends BaseEntity {
     private String boxCode;
 
     /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 质保期
+     */
+    private LocalDate warrantyPeriod;
+
+    /**
      * 来源入库单明细ID
      */
     private Long receiptOrderDetailId;
@@ -107,6 +118,23 @@ public class ItemInstanceBo extends BaseEntity {
      * 是否仅查询未出库占用实例（排除暂存出库单占用）
      */
     private Boolean unshippedOnly;
+
+    // ========== 关联表查询条件（非本表字段，仅用于查询过滤） ==========
+
+    /**
+     * 器材名称（模糊查询，关联 wms_item.item_name）
+     */
+    private String itemName;
+
+    /**
+     * 器材编码（模糊查询，关联 wms_item.item_code）
+     */
+    private String itemCode;
+
+    /**
+     * 规格名称（模糊查询，关联 wms_item_sku.sku_name）
+     */
+    private String skuName;
 
     /**
      * 用于更新状态

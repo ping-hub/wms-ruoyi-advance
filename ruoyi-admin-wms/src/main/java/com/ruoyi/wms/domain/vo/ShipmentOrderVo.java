@@ -4,7 +4,6 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.ruoyi.common.mybatis.core.domain.BaseVo;
 import com.ruoyi.wms.domain.entity.ShipmentOrder;
-import com.ruoyi.wms.domain.vo.WorkflowLogVo;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
 
@@ -99,18 +98,6 @@ public class ShipmentOrderVo extends BaseVo{
      */
     @ExcelProperty(value = "出库单状态")
     private Integer shipmentOrderStatus;
-
-    /**
-     * 仓库id
-     */
-    @ExcelProperty(value = "仓库id")
-    private Long warehouseId;
-
-    /**
-     * 库区id
-     */
-    @ExcelProperty(value = "库区id")
-    private Long areaId;
 
     /**
      * 备注

@@ -81,7 +81,6 @@ public class BorrowOrderDetailService extends ServiceImpl<BorrowOrderDetailMappe
             if (sku != null) {
                 if (StringUtils.isBlank(vo.getSkuName())) vo.setSkuName(sku.getSkuName());
                 if (StringUtils.isBlank(vo.getProductIdentifier())) vo.setProductIdentifier(sku.getProductIdentifier());
-                if (StringUtils.isBlank(vo.getQualityGrade())) vo.setQualityGrade(sku.getQualityGrade());
                 if (sku.getItem() != null) {
                     if (StringUtils.isBlank(vo.getItemCode())) vo.setItemCode(sku.getItem().getItemCode());
                     if (StringUtils.isBlank(vo.getItemName())) vo.setItemName(sku.getItem().getItemName());

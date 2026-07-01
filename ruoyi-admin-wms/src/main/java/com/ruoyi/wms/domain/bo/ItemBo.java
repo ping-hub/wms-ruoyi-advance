@@ -55,10 +55,6 @@ public class ItemBo extends BaseEntity {
      */
     private String equipmentName;
 
-    /**
-     * 器材类型
-     */
-    private String equipmentType;
 
     /**
      * 启用状态

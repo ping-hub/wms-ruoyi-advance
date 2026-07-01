@@ -55,11 +55,6 @@ public class ItemVo implements Serializable {
     @ExcelProperty(value = "装备名称")
     private String equipmentName;
 
-    /**
-     * 器材类型
-     */
-    @ExcelProperty(value = "器材类型")
-    private String equipmentType;
 
     /**
      * 启用状态

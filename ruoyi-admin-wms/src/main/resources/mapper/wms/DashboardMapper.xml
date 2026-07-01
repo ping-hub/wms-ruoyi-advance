@@ -45,12 +45,11 @@
     <!-- 按质量等级统计实例数量 -->
     <select id="countByQualityGrade" resultType="map">
         SELECT
-            COALESCE(s.quality_grade, '未评级') AS "name",
+            COALESCE(inst.quality_grade, '未评级') AS "name",
             COUNT(*) AS "value"
         FROM wms_item_instance inst
-        JOIN wms_item_sku s ON inst.sku_id = s.id
         WHERE inst.instance_status = '在库'
-        GROUP BY s.quality_grade
+        GROUP BY inst.quality_grade
         ORDER BY COUNT(*) DESC
     </select>
 

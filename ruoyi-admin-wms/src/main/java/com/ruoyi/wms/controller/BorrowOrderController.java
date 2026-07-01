@@ -13,6 +13,7 @@ import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.BorrowOrderBo;
 import com.ruoyi.wms.domain.vo.BorrowOrderVo;
+import com.ruoyi.wms.domain.vo.BorrowOrderWarningStatsVo;
 import com.ruoyi.wms.service.BorrowOrderService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
@@ -122,6 +123,16 @@ public class BorrowOrderController extends BaseController {
     public R<Void> voidOrder(@NotNull(message = "主键不能为空") @PathVariable Long id) {
         borrowOrderService.voidOrder(id);
         return R.ok();
+    }
+
+
+    /**
+     * 查询借用单预警统计
+     */
+    @SaCheckPermission("wms:borrowOrder:list")
+    @GetMapping("/warning/stats")
+    public R<BorrowOrderWarningStatsVo> warningStats() {
+        return R.ok(borrowOrderService.queryWarningStats());
     }
 
     /**

@@ -24,6 +24,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="areaId" column="area_id" />
         <result property="rackId" column="rack_id" />
         <result property="locationId" column="location_id" />
+        <result property="warrantyPeriod" column="warranty_period" />
         <association property="receiptOrder" javaType="com.ruoyi.wms.domain.vo.ReceiptOrderVo">
             <result property="receiptOrderNo" column="receipt_order_no" />
             <result property="warehouseId" column="ro_warehouse_id" />

@@ -9,6 +9,7 @@ import com.ruoyi.wms.domain.bo.InventoryWarningRuleBo;
 import com.ruoyi.wms.domain.entity.InventoryWarningRule;
 import com.ruoyi.wms.domain.vo.InventoryWarningRuleVo;
 import com.ruoyi.wms.mapper.InventoryWarningRuleMapper;
+import com.ruoyi.common.core.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -43,12 +44,14 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
         int offset = (pageNum - 1) * pageSize;
 
         List<InventoryWarningRuleVo> list = inventoryWarningRuleMapper.selectRuleListPage(
-            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName(), offset, pageSize);
+            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName(),
+            bo.getRuleType(), bo.getItemCategoryName(), offset, pageSize);
         for (InventoryWarningRuleVo vo : list) {
             vo.setWarningLevel(calcWarningLevel(vo.getCurrentStock(), vo.getCriticalStock(), vo.getSafetyStock(), vo.getNoticeStock()));
         }
         long total = inventoryWarningRuleMapper.countRuleList(
-            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName());
+            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName(),
+            bo.getRuleType(), bo.getItemCategoryName());
         Page<InventoryWarningRuleVo> page = new Page<>(pageNum, pageSize);
         page.setRecords(list);
         page.setTotal(total);
@@ -60,7 +63,8 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
      */
     public List<InventoryWarningRuleVo> queryList(InventoryWarningRuleBo bo) {
         List<InventoryWarningRuleVo> list = inventoryWarningRuleMapper.selectRuleList(
-            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName());
+            bo.getRuleName(), bo.getItemId(), bo.getEnabled(), bo.getItemName(),
+            bo.getRuleType(), bo.getItemCategoryName());
         for (InventoryWarningRuleVo vo : list) {
             vo.setWarningLevel(calcWarningLevel(vo.getCurrentStock(), vo.getCriticalStock(), vo.getSafetyStock(), vo.getNoticeStock()));
         }
@@ -71,6 +75,7 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
      * 新增规则
      */
     public void insertByBo(InventoryWarningRuleBo bo) {
+        validateRule(bo, null);
         InventoryWarningRule entity = MapstructUtils.convert(bo, InventoryWarningRule.class);
         if (entity.getEnabled() == null) {
             entity.setEnabled("1");
@@ -83,9 +88,34 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
      * 修改规则
      */
     public void updateByBo(InventoryWarningRuleBo bo) {
+        validateRule(bo, bo.getId());
         InventoryWarningRule entity = MapstructUtils.convert(bo, InventoryWarningRule.class);
         fillDefaultThresholds(entity);
         inventoryWarningRuleMapper.updateById(entity);
+    }
+
+    /**
+     * 校验规则：根据 ruleType 校验必填字段 + 唯一性
+     */
+    private void validateRule(InventoryWarningRuleBo bo, Long excludeId) {
+        String ruleType = bo.getRuleType();
+        if ("item".equals(ruleType)) {
+            if (bo.getItemId() == null) {
+                throw new ServiceException("器材维度规则必须选择器材");
+            }
+            Long count = inventoryWarningRuleMapper.countByItemId(bo.getItemId(), excludeId);
+            if (count != null && count > 0) {
+                throw new ServiceException("该器材已存在预警规则，不允许重复创建");
+            }
+        } else if ("category".equals(ruleType)) {
+            if (bo.getItemCategoryId() == null) {
+                throw new ServiceException("分类维度规则必须选择器材分类");
+            }
+            Long count = inventoryWarningRuleMapper.countByItemCategoryId(bo.getItemCategoryId(), excludeId);
+            if (count != null && count > 0) {
+                throw new ServiceException("该器材分类已存在预警规则，不允许重复创建");
+            }
+        }
     }
 
     /**
@@ -131,9 +161,12 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("ruleId", row.get("ruleId"));
             item.put("ruleName", row.get("ruleName"));
+            item.put("ruleType", row.get("ruleType"));
             item.put("itemId", row.get("itemId"));
+            item.put("itemCategoryId", row.get("itemCategoryId"));
             item.put("itemName", row.get("itemName"));
             item.put("itemCode", row.get("itemCode"));
+            item.put("itemCategoryName", row.get("itemCategoryName"));
             item.put("criticalStock", criticalStock);
             item.put("safetyStock", safetyStock);
             item.put("noticeStock", noticeStock);
@@ -155,10 +188,6 @@ public class InventoryWarningRuleService extends ServiceImpl<InventoryWarningRul
 
     /**
      * 根据用户配置的三个具体数量阈值计算预警等级
-     * critical: 当前库存 <= criticalStock
-     * warning:  当前库存 <= safetyStock
-     * notice:   当前库存 <= noticeStock
-     * normal:   库存充足
      */
     private String calcWarningLevel(BigDecimal currentStock, BigDecimal criticalStock,
                                      BigDecimal safetyStock, BigDecimal noticeStock) {

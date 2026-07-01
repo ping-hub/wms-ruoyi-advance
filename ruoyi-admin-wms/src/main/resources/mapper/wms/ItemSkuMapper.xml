@@ -12,7 +12,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="itemCategory" column="item_category"/>
             <result property="unit" column="item_unit"/>
             <result property="equipmentName" column="equipment_name"/>
-            <result property="equipmentType" column="equipment_type"/>
             <result property="status" column="item_status"/>
             <result property="remark" column="item_remark"/>
         </association>
@@ -24,7 +23,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             sku.item_id,
             sku.sku_name,
             sku.product_identifier,
-            sku.quality_grade,
             sku.status,
             sku.create_by,
             sku.create_time,
@@ -36,7 +34,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.item_category,
             item.unit as item_unit,
             item.equipment_name,
-            item.equipment_type,
             item.status as item_status,
             item.remark as item_remark
         from wms_item_sku sku

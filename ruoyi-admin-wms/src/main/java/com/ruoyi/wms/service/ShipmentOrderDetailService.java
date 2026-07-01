@@ -234,9 +234,6 @@ public class ShipmentOrderDetailService extends ServiceImpl<ShipmentOrderDetailM
         if (StringUtils.isBlank(detail.getProductIdentifier())) {
             detail.setProductIdentifier(itemSku.getProductIdentifier());
         }
-        if (StringUtils.isBlank(detail.getQualityGrade())) {
-            detail.setQualityGrade(itemSku.getQualityGrade());
-        }
         if (itemSku.getItem() == null) {
             return;
         }

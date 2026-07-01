@@ -103,6 +103,7 @@ public class ShipmentOrderService {
         lqw.eq(bo.getReceivableAmount() != null, ShipmentOrder::getReceivableAmount, bo.getReceivableAmount());
         lqw.eq(bo.getTotalQuantity() != null, ShipmentOrder::getTotalQuantity, bo.getTotalQuantity());
         lqw.eq(bo.getShipmentOrderStatus() != null, ShipmentOrder::getShipmentOrderStatus, bo.getShipmentOrderStatus());
+        lqw.eq(bo.getMovementOrderId() != null, ShipmentOrder::getMovementOrderId, bo.getMovementOrderId());
         lqw.orderByDesc(BaseEntity::getCreateTime);
         return lqw;
     }
@@ -130,7 +131,7 @@ public class ShipmentOrderService {
             detailBoList.get(i).setId(addDetailList.get(i).getId());
         }
         if (CollUtil.isNotEmpty(detailBoList)) {
-            itemInstanceService.reserveForShipmentDetails(detailBoList);
+            itemInstanceService.reserveForShipmentDetails(detailBoList, bo.getMovementOrderId());
         }
     }
 
@@ -180,7 +181,7 @@ public class ShipmentOrderService {
         }
         itemInstanceService.releaseShipmentReservationsByDetailIds(existedIds);
         if (CollUtil.isNotEmpty(bo.getDetails())) {
-            itemInstanceService.reserveForShipmentDetails(bo.getDetails());
+            itemInstanceService.reserveForShipmentDetails(bo.getDetails(), bo.getMovementOrderId());
         }
     }
 
@@ -237,13 +238,13 @@ public class ShipmentOrderService {
                 throw new ServiceException("您不是指定的出库操作人，无权执行出库");
             }
         }
-        // 0.1 盘点冻结校验
-        if (bo.getDetails() != null && bo.getWarehouseId() != null) {
+        // 0.1 盘点冻结校验（从明细级取warehouseId，支持跨仓库出库）
+        if (bo.getDetails() != null) {
             Set<String> checked = new HashSet<>();
             for (var d : bo.getDetails()) {
-                String key = bo.getWarehouseId() + "_" + d.getAreaId() + "_" + d.getRackId();
+                String key = d.getWarehouseId() + "_" + d.getAreaId() + "_" + d.getRackId();
                 if (checked.add(key)) {
-                    checkOrderService.assertNoActiveCheckOrder(bo.getWarehouseId(), d.getAreaId(), d.getRackId());
+                    checkOrderService.assertNoActiveCheckOrder(d.getWarehouseId(), d.getAreaId(), d.getRackId());
                 }
             }
         }
@@ -268,8 +269,10 @@ public class ShipmentOrderService {
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
         // 7.创建库存记录
         saveInventoryHistory(bo, inventoryDetailMap);
-        // 8.同步单品实例状态
-        syncShipmentObjects(bo.getDetails(), bo.getShipmentOrderType());
+        // 8.同步单品实例状态（关联调拨单的出库单跳过，调拨单已将实例标为"已调拨"）
+        if (bo.getMovementOrderId() == null) {
+            syncShipmentObjects(bo.getDetails(), bo.getShipmentOrderType());
+        }
         locationService.refreshOccupiedFlagsByLocationIds(inventoryDetailMap.values().stream()
             .map(InventoryDetail::getLocationId)
             .filter(Objects::nonNull)
@@ -371,16 +374,22 @@ public class ShipmentOrderService {
         if (CollUtil.isEmpty(bo.getDetails())) {
             throw new BaseException("器材明细不能为空！");
         }
+        Long movementOrderId = bo.getMovementOrderId();
         if (bo.getId() != null) {
             ShipmentOrder shipmentOrder = shipmentOrderMapper.selectById(bo.getId());
             Assert.notNull(shipmentOrder, "出库单不存在");
             Assert.isTrue(ServiceConstants.ShipmentOrderStatus.APPROVED.equals(shipmentOrder.getShipmentOrderStatus()),
                 "出库单未审批通过，不能执行出库");
+            // movementOrderId以数据库为准（前端完成出库请求可能不携带此字段）
+            if (movementOrderId == null) {
+                movementOrderId = shipmentOrder.getMovementOrderId();
+                bo.setMovementOrderId(movementOrderId);
+            }
         }
-        validateTrackedShipmentDetails(bo.getDetails());
+        validateTrackedShipmentDetails(bo.getDetails(), movementOrderId);
     }
 
-    private void validateTrackedShipmentDetails(List<ShipmentOrderDetailBo> details) {
+    private void validateTrackedShipmentDetails(List<ShipmentOrderDetailBo> details, Long movementOrderId) {
         Set<String> instanceCodes = details.stream()
             .map(ShipmentOrderDetailBo::getInstanceCode)
             .filter(Objects::nonNull)
@@ -399,7 +408,15 @@ public class ShipmentOrderService {
             Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
             Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
             Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "已借出单品不能出库");
-            Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以出库");
+            // 关联调拨单的出库单：实例已被调拨单标记为"已调拨"，允许TRANSFERRED状态
+            if (movementOrderId != null) {
+                Assert.isTrue(
+                    ServiceConstants.ItemInstanceStatus.TRANSFERRED.equals(itemInstance.getInstanceStatus())
+                        || ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()),
+                    "关联调拨单的出库单仅允许已调拨或在库单品出库");
+            } else {
+                Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以出库");
+            }
         }
     }
 
@@ -441,23 +458,34 @@ public class ShipmentOrderService {
             .collect(Collectors.toSet()))
             .stream()
             .collect(Collectors.toMap(ItemSkuVo::getId, java.util.function.Function.identity()));
+        // 加载实例map用于填充qualityGrade
+        java.util.Set<String> instanceCodes = details.stream()
+            .map(ShipmentOrderDetailBo::getInstanceCode)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        Map<String, ItemInstance> instMap = instanceCodes.isEmpty() ? java.util.Collections.emptyMap()
+            : itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
+                .collect(Collectors.toMap(ItemInstance::getInstanceCode, java.util.function.Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
             Assert.notNull(itemSku, "规格不存在");
-            fillShipmentSnapshot(detail, itemSku);
+            ItemInstance inst = detail.getInstanceCode() != null ? instMap.get(detail.getInstanceCode()) : null;
+            fillShipmentSnapshot(detail, itemSku, inst);
             BigDecimal lineAmount = calcLineAmount(detail.getQuantity(), detail.getUnitPrice());
             detail.setLineAmount(lineAmount);
         });
     }
 
-    private void fillShipmentSnapshot(ShipmentOrderDetailBo detail, ItemSkuVo itemSku) {
+    private void fillShipmentSnapshot(ShipmentOrderDetailBo detail, ItemSkuVo itemSku, ItemInstance inst) {
         detail.setSkuName(itemSku.getSkuName());
         detail.setProductIdentifier(itemSku.getProductIdentifier());
-        detail.setQualityGrade(itemSku.getQualityGrade());
         if (itemSku.getItem() != null) {
             detail.setItemCode(itemSku.getItem().getItemCode());
             detail.setItemName(itemSku.getItem().getItemName());
             detail.setUnit(itemSku.getItem().getUnit());
+        }
+        if (inst != null) {
+            detail.setQualityGrade(inst.getQualityGrade());
         }
     }
 
@@ -562,6 +590,67 @@ public class ShipmentOrderService {
         update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.INVALID);
         shipmentOrderMapper.updateById(update);
         workflowService.logOperation("shipment", id, "void", "作废", null, "voided");
+    }
+
+
+    // ==================== 调拨单联动 ====================
+
+    /**
+     * 库外调拨完成时自动创建出库单（草稿态）
+     * 由调拨单 move() 调用，不触发库存操作
+     *
+     * @param movementBo 已执行的调拨单
+     */
+    @Transactional
+    public void createFromMovement(MovementOrderBo movementBo) {
+        // 幂等校验：同一调拨单不重复创建
+        LambdaQueryWrapper<ShipmentOrder> existCheck = Wrappers.lambdaQuery();
+        existCheck.eq(ShipmentOrder::getMovementOrderId, movementBo.getId());
+        if (shipmentOrderMapper.exists(existCheck)) {
+            return;
+        }
+
+        // 构建出库单
+        ShipmentOrder shipmentOrder = new ShipmentOrder();
+        shipmentOrder.setShipmentOrderNo(generateShipmentOrderNo());
+        shipmentOrder.setShipmentOrderType(ServiceConstants.ShipmentOrderType.MOVEMENT);
+        shipmentOrder.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.DRAFT);
+        shipmentOrder.setShipmentDate(java.time.LocalDate.now());
+        shipmentOrder.setBasisNo(movementBo.getMovementOrderNo());
+        shipmentOrder.setDispatchMode(movementBo.getDispatchMode());
+        shipmentOrder.setReceiveUnit(movementBo.getToUnit());
+        shipmentOrder.setTotalQuantity(movementBo.getTotalQuantity());
+        shipmentOrder.setMovementOrderId(movementBo.getId());
+        shipmentOrder.setRemark("由调拨单【" + movementBo.getMovementOrderNo() + "】自动创建");
+        shipmentOrder.setApplicantId(com.ruoyi.common.satoken.utils.LoginHelper.getUserId());
+        shipmentOrder.setApplicantName(com.ruoyi.common.satoken.utils.LoginHelper.getUsername());
+        shipmentOrderMapper.insert(shipmentOrder);
+
+        // 构建出库明细
+        if (CollUtil.isNotEmpty(movementBo.getDetails())) {
+            List<ShipmentOrderDetail> detailList = movementBo.getDetails().stream().map(md -> {
+                ShipmentOrderDetail sd = new ShipmentOrderDetail();
+                sd.setShipmentOrderId(shipmentOrder.getId());
+                sd.setInstanceCode(md.getInstanceCode());
+                sd.setSkuId(md.getSkuId());
+                sd.setQuantity(md.getQuantity());
+                sd.setItemCode(md.getItemCode());
+                sd.setItemName(md.getItemName());
+                sd.setSkuName(md.getSkuName());
+                sd.setUnit(md.getUnit());
+                sd.setProductIdentifier(md.getProductIdentifier());
+                sd.setQualityGrade(md.getQualityGrade());
+                sd.setUnitPrice(md.getUnitPrice());
+                sd.setLineAmount(md.getLineAmount());
+                sd.setWarehouseId(md.getSourceWarehouseId());
+                sd.setAreaId(md.getSourceAreaId());
+                sd.setRackId(md.getSourceRackId());
+                sd.setLocationId(md.getSourceLocationId());
+                sd.setInventoryDetailId(md.getInventoryDetailId());
+                return sd;
+            }).toList();
+            shipmentOrderDetailService.saveDetails(detailList);
+        }
     }
 
 }

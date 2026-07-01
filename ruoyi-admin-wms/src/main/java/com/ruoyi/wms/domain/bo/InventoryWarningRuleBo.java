@@ -36,10 +36,20 @@ public class InventoryWarningRuleBo extends BaseEntity {
     private String ruleName;
 
     /**
-     * 器材ID
+     * 规则类型：item=器材维度, category=分类维度
      */
-    @NotNull(message = "器材不能为空", groups = { AddGroup.class, EditGroup.class })
+    @NotBlank(message = "规则类型不能为空", groups = { AddGroup.class, EditGroup.class })
+    private String ruleType;
+
+    /**
+     * 器材ID（器材维度时必填）
+     */
     private Long itemId;
+
+    /**
+     * 器材分类ID（分类维度时必填）
+     */
+    private Long itemCategoryId;
 
     /**
      * 严重不足阈值
@@ -71,4 +81,9 @@ public class InventoryWarningRuleBo extends BaseEntity {
      * 器材名称（查询条件用）
      */
     private String itemName;
+
+    /**
+     * 器材分类名称（查询条件用）
+     */
+    private String itemCategoryName;
 }

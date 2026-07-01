@@ -6,7 +6,6 @@ import com.ruoyi.wms.domain.vo.InventoryWarningRuleVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +24,9 @@ public interface InventoryWarningRuleMapper extends BaseMapperPlus<InventoryWarn
     List<InventoryWarningRuleVo> selectRuleList(@Param("ruleName") String ruleName,
                                                  @Param("itemId") Long itemId,
                                                  @Param("enabled") String enabled,
-                                                 @Param("itemName") String itemName);
+                                                 @Param("itemName") String itemName,
+                                                 @Param("ruleType") String ruleType,
+                                                 @Param("itemCategoryName") String itemCategoryName);
 
     /**
      * 分页查询规则列表
@@ -34,6 +35,8 @@ public interface InventoryWarningRuleMapper extends BaseMapperPlus<InventoryWarn
                                                      @Param("itemId") Long itemId,
                                                      @Param("enabled") String enabled,
                                                      @Param("itemName") String itemName,
+                                                     @Param("ruleType") String ruleType,
+                                                     @Param("itemCategoryName") String itemCategoryName,
                                                      @Param("offset") int offset,
                                                      @Param("limit") int limit);
 
@@ -43,10 +46,22 @@ public interface InventoryWarningRuleMapper extends BaseMapperPlus<InventoryWarn
     int countRuleList(@Param("ruleName") String ruleName,
                       @Param("itemId") Long itemId,
                       @Param("enabled") String enabled,
-                      @Param("itemName") String itemName);
+                      @Param("itemName") String itemName,
+                      @Param("ruleType") String ruleType,
+                      @Param("itemCategoryName") String itemCategoryName);
 
     /**
      * 查询所有启用的规则及其实际库存（供预警计算使用）
      */
     List<Map<String, Object>> selectWarningSummary();
+
+    /**
+     * 按器材维度查重
+     */
+    Long countByItemId(@Param("itemId") Long itemId, @Param("excludeId") Long excludeId);
+
+    /**
+     * 按分类维度查重
+     */
+    Long countByItemCategoryId(@Param("itemCategoryId") Long itemCategoryId, @Param("excludeId") Long excludeId);
 }

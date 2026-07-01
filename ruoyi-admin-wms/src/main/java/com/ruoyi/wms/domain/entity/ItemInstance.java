@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.time.LocalDate;
 /**
  * 单品实例对象 wms_item_instance
  */
@@ -30,6 +31,11 @@ public class ItemInstance extends BaseEntity {
      * 物品ID
      */
     private Long itemId;
+
+    /**
+     * 器材分类ID
+     */
+    private String itemCategory;
 
     /**
      * 规格ID
@@ -70,6 +76,16 @@ public class ItemInstance extends BaseEntity {
      * 当前所在箱体ID
      */
     private Long boxId;
+
+    /**
+     * 质量等级
+     */
+    private String qualityGrade;
+
+    /**
+     * 质保期
+     */
+    private LocalDate warrantyPeriod;
 
     /**
      * 来源入库单明细ID

@@ -33,11 +33,6 @@ public class ItemSku extends BaseEntity {
     private String productIdentifier;
 
     /**
-     * 质量等级
-     */
-    private String qualityGrade;
-
-    /**
      *
      */
     private Long itemId;

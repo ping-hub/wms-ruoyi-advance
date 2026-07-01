@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDate;
 @Data
 @ExcelIgnoreUnannotated
 @AutoMapper(target = ItemInstance.class)
@@ -31,6 +32,12 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "物品编码")
     private String itemCode;
 
+    @ExcelProperty(value = "器材分类ID")
+    private String itemCategory;
+
+    @ExcelProperty(value = "器材分类")
+    private String categoryName;
+
     @ExcelProperty(value = "规格ID")
     private Long skuId;
 
@@ -45,6 +52,9 @@ public class ItemInstanceVo implements Serializable {
 
     @ExcelProperty(value = "质量等级")
     private String qualityGrade;
+
+    @ExcelProperty(value = "质保期")
+    private LocalDate warrantyPeriod;
 
     @ExcelProperty(value = "单品状态")
     private String instanceStatus;

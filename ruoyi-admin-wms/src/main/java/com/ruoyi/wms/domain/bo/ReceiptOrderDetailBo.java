@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -87,6 +88,11 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      * 质量等级
      */
     private String qualityGrade;
+
+    /**
+     * 质保期
+     */
+    private LocalDate warrantyPeriod;
 
     /**
      * 单价

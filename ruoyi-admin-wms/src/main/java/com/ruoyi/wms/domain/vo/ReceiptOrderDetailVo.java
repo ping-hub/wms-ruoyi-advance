@@ -9,6 +9,7 @@ import com.ruoyi.wms.domain.entity.ReceiptOrderDetail;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -89,6 +90,12 @@ public class ReceiptOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "质量等级")
     private String qualityGrade;
+
+    /**
+     * 质保期
+     */
+    @ExcelProperty(value = "质保期")
+    private LocalDate warrantyPeriod;
 
     /**
      * 单价

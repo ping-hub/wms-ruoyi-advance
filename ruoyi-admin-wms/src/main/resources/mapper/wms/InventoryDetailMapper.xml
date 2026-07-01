@@ -30,12 +30,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             item.unit as unit,
             sku.sku_name as sku_name,
             sku.product_identifier as product_identifier,
-            sku.quality_grade as quality_grade,
+            inst.quality_grade as quality_grade,
             rack.rack_name as rack_name,
             location.location_name as location_name
         from wms_inventory_detail detail
         inner join wms_item_sku sku on detail.sku_id=sku.id
         inner join wms_item item on sku.item_id=item.id
+        left join wms_item_instance inst on detail.instance_code = inst.instance_code
         left join wms_rack rack on detail.rack_id = rack.id
         left join wms_location location on detail.location_id = location.id
         <where>

@@ -522,7 +522,6 @@ public class ReceiptOrderService {
     private void fillReceiptSnapshot(ReceiptOrderDetailBo detail, ItemSkuVo itemSku) {
         detail.setSkuName(itemSku.getSkuName());
         detail.setProductIdentifier(itemSku.getProductIdentifier());
-        detail.setQualityGrade(itemSku.getQualityGrade());
         if (itemSku.getItem() != null) {
             detail.setItemCode(itemSku.getItem().getItemCode());
             detail.setItemName(itemSku.getItem().getItemName());

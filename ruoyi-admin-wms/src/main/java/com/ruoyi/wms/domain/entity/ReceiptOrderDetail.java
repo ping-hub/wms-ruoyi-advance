@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -75,6 +76,11 @@ public class ReceiptOrderDetail extends BaseEntity {
      * 质量等级
      */
     private String qualityGrade;
+
+    /**
+     * 质保期
+     */
+    private LocalDate warrantyPeriod;
 
     /**
      * 单价

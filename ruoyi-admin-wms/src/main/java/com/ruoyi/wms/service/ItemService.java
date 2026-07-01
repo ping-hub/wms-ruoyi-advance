@@ -167,7 +167,6 @@ public class ItemService {
         }
         lqw.eq(StrUtil.isNotBlank(bo.getUnit()), Item::getUnit, bo.getUnit());
         lqw.like(StrUtil.isNotBlank(bo.getEquipmentName()), Item::getEquipmentName, bo.getEquipmentName());
-        lqw.eq(StrUtil.isNotBlank(bo.getEquipmentType()), Item::getEquipmentType, bo.getEquipmentType());
         lqw.eq(StrUtil.isNotBlank(bo.getStatus()), Item::getStatus, bo.getStatus());
         return lqw;
     }
@@ -277,7 +276,6 @@ public class ItemService {
             itemBo.getSku().forEach(sku -> {
                 sku.setSkuName(StrUtil.trim(sku.getSkuName()));
                 sku.setProductIdentifier(StrUtil.trim(sku.getProductIdentifier()));
-                sku.setQualityGrade(StrUtil.trim(sku.getQualityGrade()));
             });
         }
     }

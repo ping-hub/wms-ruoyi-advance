@@ -15,6 +15,7 @@ import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.mybatis.core.domain.BaseEntity;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.system.service.SysConfigService;
 import com.ruoyi.wms.domain.bo.BorrowOrderBo;
 import com.ruoyi.wms.domain.bo.BorrowOrderDetailBo;
 import com.ruoyi.wms.domain.entity.BorrowOrder;
@@ -24,6 +25,7 @@ import com.ruoyi.wms.domain.entity.InventoryHistory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.vo.BorrowOrderDetailVo;
 import com.ruoyi.wms.domain.vo.BorrowOrderVo;
+import com.ruoyi.wms.domain.vo.BorrowOrderWarningStatsVo;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.mapper.BorrowOrderMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -59,6 +63,7 @@ public class BorrowOrderService {
     private final ItemSkuService itemSkuService;
     private final CheckOrderService checkOrderService;
     private final LocationService locationService;
+    private final SysConfigService sysConfigService;
 
     public BorrowOrderVo queryById(Long id) {
         BorrowOrderVo vo = borrowOrderMapper.selectVoById(id);
@@ -66,22 +71,51 @@ public class BorrowOrderService {
             throw new BaseException("借用单不存在");
         }
         vo.setDetails(borrowOrderDetailService.queryByBorrowOrderId(id));
-        fillOverdueFields(vo);
+        fillWarningFields(vo);
         return vo;
     }
 
     public TableDataInfo<BorrowOrderVo> queryPageList(BorrowOrderBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<BorrowOrder> lqw = buildQueryWrapper(bo);
         Page<BorrowOrderVo> result = borrowOrderMapper.selectVoPage(pageQuery.build(), lqw);
-        result.getRecords().forEach(this::fillOverdueFields);
+        result.getRecords().forEach(this::fillWarningFields);
         return TableDataInfo.build(result);
     }
 
     public List<BorrowOrderVo> queryList(BorrowOrderBo bo) {
         LambdaQueryWrapper<BorrowOrder> lqw = buildQueryWrapper(bo);
         List<BorrowOrderVo> list = borrowOrderMapper.selectVoList(lqw);
-        list.forEach(this::fillOverdueFields);
+        list.forEach(this::fillWarningFields);
         return list;
+    }
+
+    /**
+     * 查询借用单预警统计
+     */
+    public BorrowOrderWarningStatsVo queryWarningStats() {
+        BorrowOrderWarningStatsVo statsVo = new BorrowOrderWarningStatsVo();
+        LocalDate today = LocalDate.now();
+        int warningDays = getBorrowWarningDays();
+
+        // 借出中的借用单数量
+        LambdaQueryWrapper<BorrowOrder> borrowingWrapper = Wrappers.lambdaQuery();
+        borrowingWrapper.eq(BorrowOrder::getBorrowOrderStatus, ServiceConstants.BorrowOrderStatus.BORROWING);
+        statsVo.setBorrowingCount(borrowOrderMapper.selectCount(borrowingWrapper));
+
+        // 已超期的借用单数量（借出中 且 planReturnDate < today）
+        LambdaQueryWrapper<BorrowOrder> overdueWrapper = Wrappers.lambdaQuery();
+        overdueWrapper.eq(BorrowOrder::getBorrowOrderStatus, ServiceConstants.BorrowOrderStatus.BORROWING);
+        overdueWrapper.lt(BorrowOrder::getPlanReturnDate, today);
+        statsVo.setOverdueCount(borrowOrderMapper.selectCount(overdueWrapper));
+
+        // 即将超时的借用单数量（借出中 且 today ≤ planReturnDate ≤ today+warningDays）
+        LambdaQueryWrapper<BorrowOrder> warningWrapper = Wrappers.lambdaQuery();
+        warningWrapper.eq(BorrowOrder::getBorrowOrderStatus, ServiceConstants.BorrowOrderStatus.BORROWING);
+        warningWrapper.ge(BorrowOrder::getPlanReturnDate, today);
+        warningWrapper.le(BorrowOrder::getPlanReturnDate, today.plusDays(warningDays));
+        statsVo.setWarningCount(borrowOrderMapper.selectCount(warningWrapper));
+
+        return statsVo;
     }
 
     private LambdaQueryWrapper<BorrowOrder> buildQueryWrapper(BorrowOrderBo bo) {
@@ -145,17 +179,14 @@ public class BorrowOrderService {
         Assert.notNull(existing, "借用单不存在");
         Assert.isTrue(ServiceConstants.BorrowOrderStatus.DRAFT.equals(existing.getBorrowOrderStatus()),
             "只有草稿状态的借用单才能确认借出");
-        // Validate details not empty
         List<BorrowOrderDetailVo> details = borrowOrderDetailService.queryByBorrowOrderId(bo.getId());
         Assert.notEmpty(details, "器材明细不能为空");
-        // 批量查询所有器材实例，避免 N+1 逐条查询
         Set<String> instanceCodes = details.stream()
             .map(BorrowOrderDetailVo::getInstanceCode).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<String, ItemInstance> itemMap = instanceCodes.isEmpty() ? Map.of() :
             itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
                 .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
 
-        // === 收集所有操作，最后批量执行 ===
         List<InventoryBo> inventoryAdjustments = new ArrayList<>();
         List<ItemInstance> instanceUpdates = new ArrayList<>();
         Set<Long> affectedBoxIds = new HashSet<>();
@@ -173,7 +204,6 @@ public class BorrowOrderService {
                 "器材实例 " + detail.getInstanceCode() + " 已处于借出状态");
             checkOrderService.assertNoActiveCheckOrder(itemInstance.getWarehouseId(), itemInstance.getAreaId(), itemInstance.getRackId());
 
-            // 收集库存调整（-1）
             InventoryBo adj = new InventoryBo();
             adj.setWarehouseId(itemInstance.getWarehouseId());
             adj.setAreaId(itemInstance.getAreaId());
@@ -183,7 +213,6 @@ public class BorrowOrderService {
             adj.setQuantity(BigDecimal.ONE.negate());
             inventoryAdjustments.add(adj);
 
-            // 收集实例更新（状态+清空位置）
             if (itemInstance.getBoxId() != null) affectedBoxIds.add(itemInstance.getBoxId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.BORROWED);
             itemInstance.setBoxId(null);
@@ -193,29 +222,20 @@ public class BorrowOrderService {
             itemInstance.setLocationId(null);
             instanceUpdates.add(itemInstance);
 
-            // 收集明细更新（借出后位置信息清空，保持原行为）
             BorrowOrderDetail updateDetail = new BorrowOrderDetail();
             updateDetail.setId(detail.getId());
             updateDetail.setReturnStatus(ServiceConstants.BorrowDetailReturnStatus.NOT_RETURNED);
             detailUpdates.add(updateDetail);
 
-            // 收集历史
             historyList.add(buildBorrowHistory(existing, detail, itemInstance));
         }
 
-        // === 批量执行 ===
-        // 1次批量库存调整（替代 N 次 adjustQuantityBySkuAndPlace = 3N 次 SQL）
         inventoryService.updateInventoryQuantity(inventoryAdjustments);
-        // 1次批量实例更新（替代 N 次 update）
         if (!instanceUpdates.isEmpty()) itemInstanceService.updateBatchById(instanceUpdates);
-        // 批量同步箱子状态
         affectedBoxIds.forEach(boxId -> itemInstanceService.syncBoxAfterItemLeave(boxId));
-        // 1次批量明细更新（替代 N 次 updateById）
         if (!detailUpdates.isEmpty()) borrowOrderDetailService.updateBatchById(detailUpdates);
-        // 1次批量历史写入（替代 N 次 save）
         if (!historyList.isEmpty()) inventoryHistoryService.saveBatch(historyList);
 
-        // Update order status
         BorrowOrder updateOrder = new BorrowOrder();
         updateOrder.setId(bo.getId());
         updateOrder.setBorrowOrderStatus(ServiceConstants.BorrowOrderStatus.BORROWING);
@@ -236,7 +256,6 @@ public class BorrowOrderService {
         List<BorrowOrderDetailVo> details = borrowOrderDetailService.queryByBorrowOrderId(orderId);
         Assert.notEmpty(details, "器材明细不能为空");
         LocalDateTime now = LocalDateTime.now();
-        // 批量查询所有器材实例，避免 N+1 逐条查询
         Set<String> returnInstanceCodes = details.stream()
             .filter(d -> !ServiceConstants.BorrowDetailReturnStatus.RETURNED.equals(d.getReturnStatus()))
             .map(BorrowOrderDetailVo::getInstanceCode).filter(Objects::nonNull).collect(Collectors.toSet());
@@ -244,7 +263,6 @@ public class BorrowOrderService {
             itemInstanceService.queryByInstanceCodes(returnInstanceCodes).stream()
                 .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
 
-        // === 收集所有操作，最后批量执行 ===
         List<InventoryBo> inventoryAdjustments = new ArrayList<>();
         List<ItemInstance> instanceUpdates = new ArrayList<>();
         List<BorrowOrderDetail> detailUpdates = new ArrayList<>();
@@ -257,7 +275,6 @@ public class BorrowOrderService {
             ItemInstance itemInstance = returnItemMap.get(detail.getInstanceCode());
             Assert.notNull(itemInstance, "器材实例不存在：" + detail.getInstanceCode());
 
-            // 收集库存调整（+1 归还）
             InventoryBo adj = new InventoryBo();
             adj.setWarehouseId(detail.getWarehouseId());
             adj.setAreaId(detail.getAreaId());
@@ -267,7 +284,6 @@ public class BorrowOrderService {
             adj.setQuantity(BigDecimal.ONE);
             inventoryAdjustments.add(adj);
 
-            // 收集实例更新（恢复到原位）
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.IN_STOCK);
             itemInstance.setWarehouseId(detail.getWarehouseId());
             itemInstance.setAreaId(detail.getAreaId());
@@ -276,32 +292,25 @@ public class BorrowOrderService {
             itemInstance.setBoxId(null);
             instanceUpdates.add(itemInstance);
 
-            // 收集明细更新
             BorrowOrderDetail updateDetail = new BorrowOrderDetail();
             updateDetail.setId(detail.getId());
             updateDetail.setReturnStatus(ServiceConstants.BorrowDetailReturnStatus.RETURNED);
             updateDetail.setReturnTime(now);
             detailUpdates.add(updateDetail);
 
-            // 收集历史
             historyList.add(buildReturnHistory(existing, detail, itemInstance));
         }
 
-        // === 批量执行 ===
         inventoryService.updateInventoryQuantity(inventoryAdjustments);
         if (!instanceUpdates.isEmpty()) itemInstanceService.updateBatchById(instanceUpdates);
         if (!detailUpdates.isEmpty()) borrowOrderDetailService.updateBatchById(detailUpdates);
         if (!historyList.isEmpty()) inventoryHistoryService.saveBatch(historyList);
 
-        // Refresh location occupied flags
         Set<Long> locationIds = details.stream()
-            .map(BorrowOrderDetailVo::getLocationId)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
+            .map(BorrowOrderDetailVo::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (!locationIds.isEmpty()) {
             locationService.refreshOccupiedFlagsByLocationIds(locationIds);
         }
-        // Update order status
         BorrowOrder updateOrder = new BorrowOrder();
         updateOrder.setId(orderId);
         updateOrder.setBorrowOrderStatus(ServiceConstants.BorrowOrderStatus.RETURNED);
@@ -321,7 +330,6 @@ public class BorrowOrderService {
                 || ServiceConstants.BorrowOrderStatus.BORROWING.equals(existing.getBorrowOrderStatus()),
             "只有草稿或借出中状态的借用单才能作废"
         );
-        // If borrowing, need to restore all items
         if (ServiceConstants.BorrowOrderStatus.BORROWING.equals(existing.getBorrowOrderStatus())) {
             returnAll(orderId);
         }
@@ -371,17 +379,24 @@ public class BorrowOrderService {
         Map<Long, ItemSkuVo> skuMap = skuIds.isEmpty() ? Map.of() :
             itemSkuService.queryVosByIds(skuIds).stream()
                 .collect(Collectors.toMap(ItemSkuVo::getId, Function.identity()));
+        Set<String> instanceCodes = details.stream().map(BorrowOrderDetailBo::getInstanceCode).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, ItemInstance> instMap = instanceCodes.isEmpty() ? Map.of() :
+            itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
+                .collect(Collectors.toMap(ItemInstance::getInstanceCode, Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo sku = skuMap.get(detail.getSkuId());
             if (sku != null) {
                 detail.setSkuName(sku.getSkuName());
                 detail.setProductIdentifier(sku.getProductIdentifier());
-                detail.setQualityGrade(sku.getQualityGrade());
                 if (sku.getItem() != null) {
                     detail.setItemCode(sku.getItem().getItemCode());
                     detail.setItemName(sku.getItem().getItemName());
                     detail.setUnit(sku.getItem().getUnit());
                 }
+            }
+            ItemInstance inst = detail.getInstanceCode() != null ? instMap.get(detail.getInstanceCode()) : null;
+            if (inst != null) {
+                detail.setQualityGrade(inst.getQualityGrade());
             }
         });
     }
@@ -399,20 +414,50 @@ public class BorrowOrderService {
     }
 
     private com.ruoyi.wms.domain.entity.BorrowRecord findActiveBorrowRecord(String instanceCode) {
-        // Check old borrow_record table for active borrows
-        return null; // Simplified - in production, query BorrowRecordMapper
+        return null;
     }
 
-    private void fillOverdueFields(BorrowOrderVo vo) {
+    /**
+     * 填充预警字段：warningFlag 0=正常, 1=预警(即将超时), 2=超时(已超期)
+     */
+    private void fillWarningFields(BorrowOrderVo vo) {
         if (vo.getPlanReturnDate() == null || !ServiceConstants.BorrowOrderStatus.BORROWING.equals(vo.getBorrowOrderStatus())) {
-            vo.setOverdueFlag(0);
+            vo.setWarningFlag(0);
             vo.setOverdueDays(0);
             return;
         }
-        int overdueDays = (int) java.time.temporal.ChronoUnit.DAYS.between(
-            vo.getPlanReturnDate().atStartOfDay(), LocalDateTime.now());
-        vo.setOverdueFlag(overdueDays > 0 ? 1 : 0);
-        vo.setOverdueDays(Math.max(overdueDays, 0));
+        LocalDate today = LocalDate.now();
+        int warningDays = getBorrowWarningDays();
+        int daysUntilReturn = (int) ChronoUnit.DAYS.between(today, vo.getPlanReturnDate());
+
+        if (daysUntilReturn < 0) {
+            // 已超期：planReturnDate < today
+            vo.setWarningFlag(2);
+            vo.setOverdueDays(Math.abs(daysUntilReturn));
+        } else if (daysUntilReturn <= warningDays) {
+            // 预警：today ≤ planReturnDate ≤ today+warningDays
+            vo.setWarningFlag(1);
+            vo.setOverdueDays(0);
+        } else {
+            // 正常
+            vo.setWarningFlag(0);
+            vo.setOverdueDays(0);
+        }
+    }
+
+    /**
+     * 读取借用单超时预警天数阈值（与 MyTaskService 共用 sys_config key）
+     */
+    private int getBorrowWarningDays() {
+        try {
+            String configValue = sysConfigService.selectConfigByKey("wms.borrow.timeout.warning.days");
+            if (configValue != null && !configValue.isBlank()) {
+                return Integer.parseInt(configValue.trim());
+            }
+        } catch (Exception e) {
+            // ignore, use default
+        }
+        return 3;
     }
 
     private InventoryHistory buildBorrowHistory(BorrowOrder order, BorrowOrderDetailVo detail, ItemInstance itemInstance) {

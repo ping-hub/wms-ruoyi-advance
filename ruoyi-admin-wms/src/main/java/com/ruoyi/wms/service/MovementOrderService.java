@@ -62,6 +62,7 @@ public class MovementOrderService {
     private final ItemSkuService itemSkuService;
     private final ItemInstanceService itemInstanceService;
     private final CheckOrderService checkOrderService;
+    private final ShipmentOrderService shipmentOrderService;
 
 
     /**
@@ -236,7 +237,10 @@ public class MovementOrderService {
 
     /**
      * 调拨执行
-     * @param bo
+     * 库内调拨：更新Inventory汇总 + 更新InventoryDetail位置 + 一条移库流水 + 实例位置变更
+     * 库外调拨：实例标记"已调拨" + 自动创建出库单（不操作库存）
+     *
+     * @param bo 调拨单
      */
     @Transactional
     public void move(MovementOrderBo bo) {
@@ -257,14 +261,16 @@ public class MovementOrderService {
             }
         }
 
-        List<InventoryDetailBo> inventoryDetailBoList = convertMovementOrderDetailToInventoryDetail(bo.getDetails());
-        Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
+        boolean isExternal = "库外调拨".equals(bo.getTransferScope());
 
         // 1.校验器材明细不能为空！
         validateBeforeMove(bo);
 
-        // 2.校验库存记录
-        inventoryDetailService.validateRemainQuantity(inventoryDetailBoList);
+        // 2.校验库存记录（仅库内调拨）
+        if (!isExternal) {
+            List<InventoryDetailBo> inventoryDetailBoList = convertMovementOrderDetailToInventoryDetail(bo.getDetails());
+            inventoryDetailService.validateRemainQuantity(inventoryDetailBoList);
+        }
 
         // 3.保存调拨单和调拨单明细
         if (Objects.isNull(bo.getId())) {
@@ -273,38 +279,37 @@ public class MovementOrderService {
             updateByBo(bo);
         }
 
-        boolean isExternal = "库外调拨".equals(bo.getTransferScope());
-
-        // 4.更新库存Inventory：源库出库（库内库外都扣减）
-        List<InventoryBo> mergedShipmentInventoryList = mergeShipmentDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
-        mergedShipmentInventoryList.forEach(it -> it.setQuantity(it.getQuantity().negate()));
-        inventoryService.updateInventoryQuantity(mergedShipmentInventoryList);
-
-        if (!isExternal) {
-            // 库内调拨：目标位增加库存
-            List<InventoryBo> mergedReceiptInventoryList = mergeReceiptDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
-            inventoryService.updateInventoryQuantity(mergedReceiptInventoryList);
-        }
-
-        // 5.更新库存明细InventoryDetail
-        inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
-        if (!isExternal) {
-            // 库内调拨：创建目标位库存明细
-            addInventoryDetail(bo, inventoryDetailMap);
-        }
-
-        // 6.创建库存记录流水
-        createInventoryHistory(bo, inventoryDetailMap);
-
-        // 6.5 释放调拨暂存锁定
+        // 4.释放调拨暂存锁定
         releaseMovementInstances(bo.getId());
 
-        // 7.同步器材实例
         if (isExternal) {
-            // 库外调拨：实例状态改为"已调拨"，清空位置
+            // ===== 库外调拨 =====
+            Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
+
+            // 5.实例状态→"已调拨"，清空位置（锁定，防止被其他操作占用）
             syncExternalMovementInstances(bo, inventoryDetailMap);
+
+            // 6.自动创建出库单（草稿态），由出库单走审批后执行库存操作
+            shipmentOrderService.createFromMovement(bo);
         } else {
-            // 库内调拨：实例位置变更
+            // ===== 库内调拨 =====
+            Map<Long, InventoryDetail> inventoryDetailMap = queryInventoryDetailMap(bo.getDetails());
+
+            // 5.更新Inventory汇总表：源位减、目标位加
+            List<InventoryBo> mergedShipmentInventoryList = mergeShipmentDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
+            mergedShipmentInventoryList.forEach(it -> it.setQuantity(it.getQuantity().negate()));
+            inventoryService.updateInventoryQuantity(mergedShipmentInventoryList);
+
+            List<InventoryBo> mergedReceiptInventoryList = mergeReceiptDetailByPlaceAndItem(bo.getDetails(), inventoryDetailMap);
+            inventoryService.updateInventoryQuantity(mergedReceiptInventoryList);
+
+            // 6.更新InventoryDetail位置字段（不扣减remainQuantity，不新建记录）
+            updateInventoryDetailPosition(bo);
+
+            // 7.创建一条移库流水
+            createMovementHistory(bo, inventoryDetailMap);
+
+            // 8.同步器材实例位置（状态保持"在库"）
             syncMovementInstances(bo, inventoryDetailMap);
         }
     }
@@ -581,6 +586,48 @@ public class MovementOrderService {
         }
     }
 
+
+    /**
+     * 库内调拨：更新InventoryDetail的位置字段（warehouseId/areaId/rackId/locationId）
+     * 不扣减remainQuantity，不新建记录，ID保持不变
+     */
+    private void updateInventoryDetailPosition(MovementOrderBo bo) {
+        for (MovementOrderDetailBo detail : bo.getDetails()) {
+            InventoryDetail update = new InventoryDetail();
+            update.setId(detail.getInventoryDetailId());
+            update.setWarehouseId(detail.getTargetWarehouseId());
+            update.setAreaId(detail.getTargetAreaId());
+            update.setRackId(detail.getTargetRackId());
+            update.setLocationId(detail.getTargetLocationId());
+            inventoryDetailService.updateByBo(MapstructUtils.convert(update, InventoryDetailBo.class));
+        }
+    }
+
+    /**
+     * 库内调拨：创建一条移库流水记录
+     */
+    private void createMovementHistory(MovementOrderBo bo, Map<Long, InventoryDetail> inventoryDetailMap) {
+        List<InventoryHistory> historyList = new LinkedList<>();
+        bo.getDetails().forEach(detail -> {
+            InventoryDetail sourceInventoryDetail = inventoryDetailMap.get(detail.getInventoryDetailId());
+            InventoryHistory history = new InventoryHistory();
+            history.setWarehouseId(detail.getSourceWarehouseId());
+            history.setAreaId(detail.getSourceAreaId());
+            history.setRackId(detail.getSourceRackId());
+            history.setLocationId(detail.getSourceLocationId());
+            history.setSkuId(detail.getSkuId());
+            history.setQuantity(detail.getQuantity().negate());
+            history.setOrderId(bo.getId());
+            history.setOrderNo(bo.getMovementOrderNo());
+            history.setOrderType(ServiceConstants.InventoryHistoryOrderType.MOVEMENT);
+            history.setInstanceCode(resolveItemInstanceCode(detail, sourceInventoryDetail));
+            history.setUnitPrice(detail.getUnitPrice());
+            history.setLineAmount(detail.getLineAmount());
+            historyList.add(history);
+        });
+        inventoryHistoryService.saveBatch(historyList);
+    }
+
     private String resolveItemInstanceCode(MovementOrderDetailBo detail, InventoryDetail sourceInventoryDetail) {
         if (StringUtils.isNotBlank(detail.getInstanceCode())) {
             return detail.getInstanceCode();
@@ -604,6 +651,14 @@ public class MovementOrderService {
             .collect(java.util.stream.Collectors.toSet()))
             .stream()
             .collect(java.util.stream.Collectors.toMap(ItemSkuVo::getId, java.util.function.Function.identity()));
+        // 加载实例map用于填充qualityGrade
+        java.util.Set<String> instanceCodes = details.stream()
+            .map(MovementOrderDetailBo::getInstanceCode)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+        Map<String, ItemInstance> instMap = instanceCodes.isEmpty() ? java.util.Collections.emptyMap()
+            : itemInstanceService.queryByInstanceCodes(instanceCodes).stream()
+                .collect(java.util.stream.Collectors.toMap(ItemInstance::getInstanceCode, java.util.function.Function.identity()));
         details.forEach(detail -> {
             ItemSkuVo itemSku = skuMap.get(detail.getSkuId());
             if (itemSku == null) {
@@ -611,11 +666,14 @@ public class MovementOrderService {
             }
             detail.setSkuName(itemSku.getSkuName());
             detail.setProductIdentifier(itemSku.getProductIdentifier());
-            detail.setQualityGrade(itemSku.getQualityGrade());
             if (itemSku.getItem() != null) {
                 detail.setItemCode(itemSku.getItem().getItemCode());
                 detail.setItemName(itemSku.getItem().getItemName());
                 detail.setUnit(itemSku.getItem().getUnit());
+            }
+            ItemInstance inst = detail.getInstanceCode() != null ? instMap.get(detail.getInstanceCode()) : null;
+            if (inst != null) {
+                detail.setQualityGrade(inst.getQualityGrade());
             }
             detail.setLineAmount(calcLineAmount(detail.getQuantity(), detail.getUnitPrice()));
         });

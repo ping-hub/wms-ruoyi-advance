@@ -35,9 +35,19 @@ public class InventoryWarningRule extends BaseEntity {
     private String ruleName;
 
     /**
-     * 器材ID（关联 wms_item.id）
+     * 规则类型：item=器材维度, category=分类维度
+     */
+    private String ruleType;
+
+    /**
+     * 器材ID（器材维度时关联 wms_item.id）
      */
     private Long itemId;
+
+    /**
+     * 器材分类ID（分类维度时关联 wms_item_category.id）
+     */
+    private Long itemCategoryId;
 
     /**
      * 严重不足阈值（当前库存<=此值判定为严重不足）

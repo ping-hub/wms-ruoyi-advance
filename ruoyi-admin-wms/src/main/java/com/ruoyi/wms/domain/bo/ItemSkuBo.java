@@ -33,11 +33,6 @@ public class ItemSkuBo extends BaseEntity {
     private String productIdentifier;
 
     /**
-     * 质量等级
-     */
-    private String qualityGrade;
-
-    /**
      *
      */
     @NotNull(message = "不能为空", groups = { AddGroup.class, EditGroup.class })

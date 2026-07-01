@@ -4,9 +4,14 @@
 
     <!-- 共享 SELECT 字段 -->
     <sql id="ruleVoFields">
-        r.id, r.rule_name, r.item_id, i.item_name, i.item_code,
+        r.id, r.rule_name, r.rule_type, r.item_id, r.item_category_id,
+        i.item_name, i.item_code,
+        c.category_name AS item_category_name,
         r.critical_stock, r.safety_stock, r.notice_stock,
-        COALESCE(inv.total_qty, 0) AS current_stock,
+        CASE
+            WHEN r.rule_type = 'category' THEN COALESCE(inv_cat.total_qty, 0)
+            ELSE COALESCE(inv.total_qty, 0)
+        END AS current_stock,
         r.enabled, r.remark, r.create_time, r.update_time
     </sql>
 
@@ -14,11 +19,19 @@
     <sql id="ruleFromJoin">
         FROM wms_inventory_warning_rule r
         LEFT JOIN wms_item i ON r.item_id = i.id
+        LEFT JOIN wms_item_category c ON r.item_category_id = c.id
         LEFT JOIN (
             SELECT s.item_id, SUM(inv.quantity) AS total_qty
             FROM wms_inventory inv JOIN wms_item_sku s ON inv.sku_id = s.id
             GROUP BY s.item_id
         ) inv ON r.item_id = inv.item_id
+        LEFT JOIN (
+            SELECT i2.item_category, SUM(inv2.quantity) AS total_qty
+            FROM wms_inventory inv2
+            JOIN wms_item_sku s2 ON inv2.sku_id = s2.id
+            JOIN wms_item i2 ON s2.item_id = i2.id
+            GROUP BY i2.item_category
+        ) inv_cat ON r.item_category_id = inv_cat.item_category
     </sql>
 
     <!-- 共享 WHERE 条件片段 -->
@@ -35,6 +48,12 @@
             </if>
             <if test="itemName != null and itemName != ''">
                 AND i.item_name LIKE CONCAT('%', #{itemName}, '%')
+            </if>
+            <if test="ruleType != null and ruleType != ''">
+                AND r.rule_type = #{ruleType}
+            </if>
+            <if test="itemCategoryName != null and itemCategoryName != ''">
+                AND c.category_name LIKE CONCAT('%', #{itemCategoryName}, '%')
             </if>
         </where>
     </sql>
@@ -61,6 +80,7 @@
         SELECT COUNT(*)
         FROM wms_inventory_warning_rule r
         LEFT JOIN wms_item i ON r.item_id = i.id
+        LEFT JOIN wms_item_category c ON r.item_category_id = c.id
         <include refid="ruleListWhere"/>
     </select>
 
@@ -69,22 +89,50 @@
         SELECT
             r.id              AS "ruleId",
             r.rule_name       AS "ruleName",
+            r.rule_type       AS "ruleType",
             r.item_id         AS "itemId",
+            r.item_category_id AS "itemCategoryId",
             i.item_name       AS "itemName",
             i.item_code       AS "itemCode",
+            c.category_name   AS "itemCategoryName",
             r.critical_stock  AS "criticalStock",
             r.safety_stock    AS "safetyStock",
             r.notice_stock    AS "noticeStock",
-            COALESCE(inv.total_qty, 0) AS "currentStock"
+            CASE
+                WHEN r.rule_type = 'category' THEN COALESCE(inv_cat.total_qty, 0)
+                ELSE COALESCE(inv.total_qty, 0)
+            END               AS "currentStock"
         FROM wms_inventory_warning_rule r
         LEFT JOIN wms_item i ON r.item_id = i.id
+        LEFT JOIN wms_item_category c ON r.item_category_id = c.id
         LEFT JOIN (
             SELECT s.item_id, SUM(inv.quantity) AS total_qty
             FROM wms_inventory inv JOIN wms_item_sku s ON inv.sku_id = s.id
             GROUP BY s.item_id
         ) inv ON r.item_id = inv.item_id
+        LEFT JOIN (
+            SELECT i2.item_category, SUM(inv2.quantity) AS total_qty
+            FROM wms_inventory inv2
+            JOIN wms_item_sku s2 ON inv2.sku_id = s2.id
+            JOIN wms_item i2 ON s2.item_id = i2.id
+            GROUP BY i2.item_category
+        ) inv_cat ON r.item_category_id = inv_cat.item_category
         WHERE r.enabled = '1'
         ORDER BY r.create_time DESC
+    </select>
+
+    <!-- 按器材维度查重 -->
+    <select id="countByItemId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM wms_inventory_warning_rule
+        WHERE item_id = #{itemId} AND rule_type = 'item'
+        <if test="excludeId != null"> AND id != #{excludeId} </if>
+    </select>
+
+    <!-- 按分类维度查重 -->
+    <select id="countByItemCategoryId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM wms_inventory_warning_rule
+        WHERE item_category_id = #{itemCategoryId} AND rule_type = 'category'
+        <if test="excludeId != null"> AND id != #{excludeId} </if>
     </select>
 
 </mapper>

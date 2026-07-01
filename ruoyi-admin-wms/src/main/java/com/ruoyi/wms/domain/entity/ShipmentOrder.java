@@ -64,14 +64,6 @@ public class ShipmentOrder extends BaseEntity {
      */
     private Integer shipmentOrderStatus;
     /**
-     * 仓库id
-     */
-    private Long warehouseId;
-    /**
-     * 库区id
-     */
-    private Long areaId;
-    /**
      * 备注
      */
     private String remark;
@@ -107,5 +99,8 @@ public class ShipmentOrder extends BaseEntity {
 
     /** 执行时间 */
     private LocalDateTime executeTime;
+
+    /** 关联调拨单ID（库外调拨自动生成出库单时记录） */
+    private Long movementOrderId;
 
 }

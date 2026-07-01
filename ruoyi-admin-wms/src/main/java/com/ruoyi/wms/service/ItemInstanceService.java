@@ -47,6 +47,7 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
     private final ShipmentOrderMapper shipmentOrderMapper;
     private final ShipmentOrderDetailMapper shipmentOrderDetailMapper;
     private final ItemMapper itemMapper;
+    private final ItemSkuMapper itemSkuMapper;
     private final ItemCategoryMapper itemCategoryMapper;
     private final InventoryDetailMapper inventoryDetailMapper;
     private final InventoryService inventoryService;
@@ -584,6 +585,8 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
                 itemInstance.setReceiptOrderDetailId(detail.getId());
                 itemInstance.setBoxId(box == null ? null : box.getId());
                 itemInstance.setRemark(StrUtil.blankToDefault(receiptItemInstance.getRemark(), detail.getRemark()));
+                itemInstance.setQualityGrade(detail.getQualityGrade());
+                itemInstance.setWarrantyPeriod(detail.getWarrantyPeriod());
                 updateList.add(itemInstance);
             }
             ReceiptOrderDetail detailUpdate = new ReceiptOrderDetail();
@@ -629,6 +632,30 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         lqw.eq(bo.getBoxId() != null, ItemInstance::getBoxId, bo.getBoxId());
         lqw.eq(bo.getReceiptOrderDetailId() != null, ItemInstance::getReceiptOrderDetailId, bo.getReceiptOrderDetailId());
         lqw.eq(bo.getShipmentOrderDetailId() != null, ItemInstance::getShipmentOrderDetailId, bo.getShipmentOrderDetailId());
+        // ========== 关联表子查询：itemName / itemCode / skuName ==========
+        if (StrUtil.isNotBlank(bo.getItemName()) || StrUtil.isNotBlank(bo.getItemCode())) {
+            LambdaQueryWrapper<Item> itemSubWrapper = Wrappers.lambdaQuery();
+            itemSubWrapper.like(StrUtil.isNotBlank(bo.getItemName()), Item::getItemName, bo.getItemName());
+            itemSubWrapper.like(StrUtil.isNotBlank(bo.getItemCode()), Item::getItemCode, bo.getItemCode());
+            List<Long> itemIds = itemMapper.selectList(itemSubWrapper).stream()
+                .map(Item::getId).filter(Objects::nonNull).toList();
+            if (CollUtil.isEmpty(itemIds)) {
+                lqw.eq(ItemInstance::getId, -1L);
+            } else {
+                lqw.in(ItemInstance::getItemId, itemIds);
+            }
+        }
+        if (StrUtil.isNotBlank(bo.getSkuName())) {
+            LambdaQueryWrapper<ItemSku> skuSubWrapper = Wrappers.lambdaQuery();
+            skuSubWrapper.like(ItemSku::getSkuName, bo.getSkuName());
+            List<Long> skuIds = itemSkuMapper.selectList(skuSubWrapper).stream()
+                .map(ItemSku::getId).filter(Objects::nonNull).toList();
+            if (CollUtil.isEmpty(skuIds)) {
+                lqw.eq(ItemInstance::getId, -1L);
+            } else {
+                lqw.in(ItemInstance::getSkuId, skuIds);
+            }
+        }
         if (Boolean.TRUE.equals(bo.getUnreceivedOnly())) {
             lqw.eq(ItemInstance::getInstanceStatus, ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
             lqw.isNull(ItemInstance::getWarehouseId);
@@ -654,8 +681,12 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
             .collect(Collectors.toList());
     }
 
-    public void reserveForShipmentDetails(List<ShipmentOrderDetailBo> detailList) {
+    public void reserveForShipmentDetails(List<ShipmentOrderDetailBo> detailList, Long movementOrderId) {
         if (CollUtil.isEmpty(detailList)) {
+            return;
+        }
+        // 关联调拨单的出库单：实例已被调拨单标记为"已调拨"并锁定，跳过暂存校验
+        if (movementOrderId != null) {
             return;
         }
         Set<String> instanceCodes = detailList.stream()
@@ -762,6 +793,13 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         }
         if (StrUtil.isBlank(bo.getInstanceStatus())) {
             bo.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
+        }
+        // 从器材表回填 itemCategory
+        if (bo.getItemId() != null && StrUtil.isBlank(bo.getItemCategory())) {
+            Item item = itemMapper.selectById(bo.getItemId());
+            if (item != null && StrUtil.isNotBlank(item.getItemCategory())) {
+                bo.setItemCategory(item.getItemCategory());
+            }
         }
         validateInstanceCodeUnique(bo);
         fillLocationFields(bo);
@@ -986,16 +1024,29 @@ public class ItemInstanceService extends ServiceImpl<ItemInstanceMapper, ItemIns
         Set<Long> shipmentOrderIds = shipmentDetailMap.values().stream().map(ShipmentOrderDetail::getShipmentOrderId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ShipmentOrder> shipmentOrderMap = shipmentOrderIds.isEmpty() ? java.util.Collections.emptyMap() :
             shipmentOrderMapper.selectBatchIds(shipmentOrderIds).stream().collect(Collectors.toMap(ShipmentOrder::getId, Function.identity()));
+        // 批量查询器材分类名称：从实例表的 itemCategory 字段收集分类ID
+        Set<Long> itemCategoryIds = validList.stream()
+            .filter(vo -> StrUtil.isNotBlank(vo.getItemCategory()))
+            .map(vo -> { try { return Long.valueOf(vo.getItemCategory()); } catch (NumberFormatException e) { return null; } })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        Map<Long, ItemCategory> categoryMap = itemCategoryIds.isEmpty() ? java.util.Collections.emptyMap() :
+            itemCategoryMapper.selectBatchIds(itemCategoryIds).stream().collect(Collectors.toMap(ItemCategory::getId, Function.identity()));
         validList.forEach(vo -> {
             ItemSkuVo skuVo = skuMap.get(vo.getSkuId());
             if (skuVo != null) {
                 vo.setSkuName(skuVo.getSkuName());
                 vo.setProductIdentifier(skuVo.getProductIdentifier());
-                vo.setQualityGrade(skuVo.getQualityGrade());
                 if (skuVo.getItem() != null) {
                     vo.setItemName(skuVo.getItem().getItemName());
                     vo.setItemCode(skuVo.getItem().getItemCode());
                     vo.setUnit(skuVo.getItem().getUnit());
+                    if (StrUtil.isNotBlank(vo.getItemCategory())) {
+                        try {
+                            ItemCategory cat = categoryMap.get(Long.valueOf(vo.getItemCategory()));
+                            if (cat != null) { vo.setCategoryName(cat.getCategoryName()); }
+                        } catch (NumberFormatException ignored) {}
+                    }
                 }
             }
             Warehouse warehouse = warehouseMap.get(vo.getWarehouseId());

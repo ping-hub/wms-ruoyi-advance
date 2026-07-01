@@ -32,9 +32,24 @@ public class InventoryWarningRuleVo implements Serializable {
     private String ruleName;
 
     /**
+     * 规则类型：item/category
+     */
+    private String ruleType;
+
+    /**
      * 器材ID
      */
     private Long itemId;
+
+    /**
+     * 器材分类ID
+     */
+    private Long itemCategoryId;
+
+    /**
+     * 器材分类名称（关联查询）
+     */
+    private String itemCategoryName;
 
     /**
      * 器材名称（关联查询）

@@ -61,9 +61,9 @@ public class BorrowOrderVo extends BaseVo {
     /** 器材明细 */
     private List<BorrowOrderDetailVo> details;
 
-    /** 超期标记（动态计算） */
-    private Integer overdueFlag;
+    /** 预警标记：0=正常, 1=预警(即将超时), 2=超时(已超期) */
+    private Integer warningFlag;
 
-    /** 超期天数（动态计算） */
+    /** 超期天数（动态计算，仅超时时有值） */
     private Integer overdueDays;
 }
