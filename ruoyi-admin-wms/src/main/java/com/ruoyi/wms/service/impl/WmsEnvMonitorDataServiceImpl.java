@@ -50,13 +50,10 @@ public class WmsEnvMonitorDataServiceImpl implements IWmsEnvMonitorDataService {
             } else {
                 e.setCollectTime(LocalDateTime.now());
             }
-            e.setTemp(vo.getTemp() != null ? BigDecimal.valueOf(vo.getTemp()) : null);
-            e.setHum(vo.getHum() != null ? BigDecimal.valueOf(vo.getHum()) : null);
-            e.setSmokeVal(vo.getSmokeVal() != null ? BigDecimal.valueOf(vo.getSmokeVal()) : null);
-            // alarStatus 列表序列化为 JSON 字符串存储
-            if (vo.getAlarStatus() != null) {
-                e.setAlarStatus(vo.getAlarStatus().toString());
-            }
+            // 统一传感器数值
+            e.setDeviceValue(vo.getDeviceValue() != null ? BigDecimal.valueOf(vo.getDeviceValue()) : null);
+            // 报警状态（单值 Integer）
+            e.setAlarStatus(vo.getAlarStatus());
             entities.add(e);
         }
         return mapper.insertBatch(entities);

@@ -3,10 +3,9 @@ package com.ruoyi.wms.domain.vo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.util.List;
-
 /**
  * 采集器上报报文 VO
+ * 新JSON格式：每条记录 = 一个传感器的单次读数
  */
 @Data
 public class EnvMonitorUploadVo {
@@ -26,17 +25,11 @@ public class EnvMonitorUploadVo {
     /** 采集时间戳，格式 yyyy-MM-dd HH:mm:ss */
     private String timestamp;
 
-    /** 温度 */
-    private Double temp;
+    /** 传感器数值（温度℃/湿度%RH/烟雾浓度） */
+    @JsonProperty("deviceValue")
+    private Double deviceValue;
 
-    /** 湿度 */
-    private Double hum;
-
-    /** 烟雾浓度 */
-    @JsonProperty("smokeVal")
-    private Double smokeVal;
-
-    /** 报警状态数组 [0,1] */
+    /** 报警状态：0正常，1告警 */
     @JsonProperty("alarStatus")
-    private List<Integer> alarStatus;
+    private Integer alarStatus;
 }

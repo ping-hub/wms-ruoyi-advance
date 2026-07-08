@@ -38,17 +38,11 @@ public class WmsEnvMonitorData implements Serializable {
     /** 采集器上报时间 */
     private LocalDateTime collectTime;
 
-    /** 温度（℃） */
-    private BigDecimal temp;
+    /** 传感器数值（温度℃/湿度%RH/烟雾浓度） */
+    private BigDecimal deviceValue;
 
-    /** 湿度（%RH） */
-    private BigDecimal hum;
-
-    /** 烟雾浓度值 */
-    private BigDecimal smokeVal;
-
-    /** 报警状态JSON */
-    private String alarStatus;
+    /** 报警状态：0正常，1告警 */
+    private Integer alarStatus;
 
     /** 服务端接收时间 */
     private LocalDateTime receiveTime;
