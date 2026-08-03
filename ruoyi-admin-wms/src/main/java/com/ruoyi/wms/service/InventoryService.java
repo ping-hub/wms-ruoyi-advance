@@ -86,6 +86,9 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
         if (CollUtil.isEmpty(list)) return;
         list.forEach(inventoryBo -> ValidatorUtils.validate(inventoryBo, AddGroup.class));
 
+        // 0. 按唯一键合并同key的变动记录，避免批量INSERT时duplicate key冲突
+        list = mergeByInventoryKey(list);
+
         // 1. 一次 SELECT 查出已存在的库存记录
         List<Inventory> existingList = queryExistingInventories(list);
         Set<String> existingKeys = existingList.stream()
@@ -153,6 +156,31 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
     }
 
     /**
+     * 按唯一键 (warehouseId, areaId, rackId, locationId, skuId) 合并变动记录，
+     * 将同key的多条记录quantity求和为一条，避免批量INSERT时duplicate key冲突。
+     */
+    private List<InventoryBo> mergeByInventoryKey(List<InventoryBo> list) {
+        java.util.LinkedHashMap<String, InventoryBo> merged = new java.util.LinkedHashMap<>();
+        for (InventoryBo bo : list) {
+            String key = buildBoKey(bo);
+            InventoryBo existing = merged.get(key);
+            if (existing != null) {
+                existing.setQuantity(existing.getQuantity().add(bo.getQuantity()));
+            } else {
+                InventoryBo copy = new InventoryBo();
+                copy.setWarehouseId(bo.getWarehouseId());
+                copy.setAreaId(bo.getAreaId());
+                copy.setRackId(bo.getRackId());
+                copy.setLocationId(bo.getLocationId());
+                copy.setSkuId(bo.getSkuId());
+                copy.setQuantity(bo.getQuantity());
+                merged.put(key, copy);
+            }
+        }
+        return new java.util.ArrayList<>(merged.values());
+    }
+
+    /**
      * 单条库存增减（供借出/归还等业务调用，原子操作，并发安全）
      * @param delta 正=增加（归还），负=减少（借出）
      */
@@ -200,4 +228,13 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
         Page<InventoryVo> result = inventoryMapper.queryAreaBoardList(pageQuery.build(), bo);
         return TableDataInfo.build(result);
     }
+
+    /**
+     * 库存汇总查询：按 sku_id + warehouse_id + area_id 聚合数量，服务端分页
+     */
+    public TableDataInfo<InventoryVo> querySummaryList(InventoryBo bo, PageQuery pageQuery) {
+        Page<InventoryVo> result = inventoryMapper.querySummaryList(pageQuery.build(), bo);
+        return TableDataInfo.build(result);
+    }
+
 }

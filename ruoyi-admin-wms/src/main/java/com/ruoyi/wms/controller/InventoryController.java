@@ -38,6 +38,15 @@ public class InventoryController extends BaseController {
     private final InventoryService inventoryService;
 
     /**
+     * 库存汇总列表（按 sku + 仓库 + 库区 聚合，服务端分页）
+     */
+    @SaCheckPermission("wms:inventory:all")
+    @GetMapping("/summary")
+    public TableDataInfo<InventoryVo> querySummaryList(InventoryBo bo, PageQuery pageQuery) {
+        return inventoryService.querySummaryList(bo, pageQuery);
+    }
+
+    /**
      * 查询库存列表库区维度
      */
     @SaCheckPermission("wms:inventory:all")

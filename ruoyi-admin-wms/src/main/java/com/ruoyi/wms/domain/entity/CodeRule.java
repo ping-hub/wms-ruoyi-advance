@@ -34,7 +34,7 @@ public class CodeRule extends BaseEntity {
     /** 前缀 */
     private String prefix;
 
-    /** 后缀类型（ymd/ym/y） */
+    /** 后缀类型（ymd/ym/y/空） */
     private String suffixType;
 
     /** 分隔符 */
@@ -48,9 +48,6 @@ public class CodeRule extends BaseEntity {
 
     /** 当前序号 */
     private Long currentSeq;
-
-    /** 是否使用器材编码作为前缀（0=是 1=否），仅 rule_type=item 时生效 */
-    private String useItemCodeAsPrefix;
 
     /** 排序（越小越靠前） */
     private Integer sortOrder;

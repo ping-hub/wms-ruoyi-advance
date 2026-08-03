@@ -42,6 +42,12 @@ public class ItemCategoryVo implements Serializable {
     private String ancestors;
 
     /**
+     * 分类编码
+     */
+    @ExcelProperty(value = "分类编码")
+    private String categoryCode;
+
+    /**
      * 物料类型名称
      */
     @ExcelProperty(value = "物料类型名称")

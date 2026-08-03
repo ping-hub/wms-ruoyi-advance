@@ -14,6 +14,8 @@ import com.ruoyi.wms.mapper.BorrowOrderMapper;
 import com.ruoyi.wms.mapper.CheckOrderMapper;
 import com.ruoyi.wms.mapper.ShipmentOrderMapper;
 import com.ruoyi.wms.mapper.WarehouseMapper;
+import com.ruoyi.wms.service.InventoryWarningRuleService;
+import com.ruoyi.wms.mapper.DashboardMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,8 @@ public class MyTaskService {
     private final BorrowOrderMapper borrowOrderMapper;
     private final WarehouseMapper warehouseMapper;
     private final SysConfigService sysConfigService;
+    private final DashboardMapper dashboardMapper;
+    private final InventoryWarningRuleService inventoryWarningRuleService;
 
     /** 借用单超时预警天数阈值（sys_config key） */
     private static final String BORROW_TIMEOUT_CONFIG_KEY = "wms.borrow.timeout.warning.days";
@@ -74,23 +78,8 @@ public class MyTaskService {
             );
             sw.eq(ShipmentOrder::getShipmentOrderStatus, 3);
         } else {
-            sw.and(w -> {
-                // 场景1：我是审批人，单子待审批（status=1）
-                if (taskType == null || "pending_approval".equals(taskType)) {
-                    w.or(o -> o.eq(ShipmentOrder::getApproverId, userId)
-                        .eq(ShipmentOrder::getShipmentOrderStatus, 1));
-                }
-                // 场景2：我是操作人，单子待出库（status=2）
-                if (taskType == null || "pending_execute".equals(taskType)) {
-                    w.or(o -> o.eq(ShipmentOrder::getExecutorId, userId)
-                        .eq(ShipmentOrder::getShipmentOrderStatus, 2));
-                }
-                // 场景3：我是申请人，单子被驳回（status=-2）
-                if (taskType == null || "rejected".equals(taskType)) {
-                    w.or(o -> o.eq(ShipmentOrder::getApplicantId, userId)
-                        .eq(ShipmentOrder::getShipmentOrderStatus, -2));
-                }
-            });
+            // 阶段1：出库单为一步完成模式，无中间待办状态，跳过待办查询
+            sw.eq(ShipmentOrder::getShipmentOrderStatus, -999); // 永不匹配
         }
         if (orderNo != null && !orderNo.isEmpty()) {
             sw.like(ShipmentOrder::getShipmentOrderNo, orderNo);
@@ -140,23 +129,8 @@ public class MyTaskService {
             );
             cw.eq(CheckOrder::getCheckOrderStatus, 3);
         } else {
-            cw.and(w -> {
-                // 场景1：我是盘点人，单子待盘点（status=1）
-                if (taskType == null || "pending_execute".equals(taskType)) {
-                    w.or(o -> o.eq(CheckOrder::getExecutorId, userId)
-                        .eq(CheckOrder::getCheckOrderStatus, 1));
-                }
-                // 场景2：我是复核人，单子待复核（status=2）
-                if (taskType == null || "pending_review".equals(taskType)) {
-                    w.or(o -> o.eq(CheckOrder::getReviewerId, userId)
-                        .eq(CheckOrder::getCheckOrderStatus, 2));
-                }
-                // 场景3：我是创建人，单子被驳回（status=-2）
-                if (taskType == null || "rejected".equals(taskType)) {
-                    w.or(o -> o.eq(CheckOrder::getCreateBy, username)
-                        .eq(CheckOrder::getCheckOrderStatus, -2));
-                }
-            });
+            // 阶段1：盘点单为一步完成模式，无中间待办状态，跳过待办查询
+            cw.eq(CheckOrder::getCheckOrderStatus, -999); // 永不匹配
         }
         if (orderNo != null && !orderNo.isEmpty()) {
             cw.like(CheckOrder::getCheckOrderNo, orderNo);
@@ -311,22 +285,9 @@ public class MyTaskService {
         Long userId = LoginHelper.getUserId();
         String username = LoginHelper.getUsername();
 
-        // 待办数量：出库单待办 + 盘点单待办 + 借用单超时待办
-        LambdaQueryWrapper<ShipmentOrder> pendingSw = new LambdaQueryWrapper<>();
-        pendingSw.and(w -> w
-            .or(o -> o.eq(ShipmentOrder::getApproverId, userId).eq(ShipmentOrder::getShipmentOrderStatus, 1))
-            .or(o -> o.eq(ShipmentOrder::getExecutorId, userId).eq(ShipmentOrder::getShipmentOrderStatus, 2))
-            .or(o -> o.eq(ShipmentOrder::getApplicantId, userId).eq(ShipmentOrder::getShipmentOrderStatus, -2))
-        );
-        long pendingShipment = shipmentOrderMapper.selectCount(pendingSw);
-
-        LambdaQueryWrapper<CheckOrder> pendingCw = new LambdaQueryWrapper<>();
-        pendingCw.and(w -> w
-            .or(o -> o.eq(CheckOrder::getExecutorId, userId).eq(CheckOrder::getCheckOrderStatus, 1))
-            .or(o -> o.eq(CheckOrder::getReviewerId, userId).eq(CheckOrder::getCheckOrderStatus, 2))
-            .or(o -> o.eq(CheckOrder::getCreateBy, username).eq(CheckOrder::getCheckOrderStatus, -2))
-        );
-        long pendingCheck = checkOrderMapper.selectCount(pendingCw);
+        // 阶段1：出库单/盘点单为一步完成模式，无中间待办状态
+        long pendingShipment = 0;
+        long pendingCheck = 0;
 
         // 借用单超时待办
         int warningDays = getBorrowTimeoutDays();
@@ -389,4 +350,39 @@ public class MyTaskService {
         }
         return BORROW_TIMEOUT_DEFAULT_DAYS;
     }
+
+    /**
+     * 三类预警分类统计
+     * borrow: 借用单预警+超期数，inventory: 库存预警数，warranty: 质保期预警数
+     */
+    public java.util.Map<String, Object> getWarningCategoryStats() {
+        LocalDate today = LocalDate.now();
+        int warningDays = getBorrowTimeoutDays();
+
+        // 借用单预警（借用中 且 即将到期或已超期）
+        LambdaQueryWrapper<BorrowOrder> warnWrapper = new LambdaQueryWrapper<>();
+        warnWrapper.eq(BorrowOrder::getBorrowOrderStatus, 1);
+        warnWrapper.le(BorrowOrder::getPlanReturnDate, today.plusDays(warningDays));
+        long borrowCount = borrowOrderMapper.selectCount(warnWrapper);
+
+        // 库存预警
+        Map<String, Object> invSummary = inventoryWarningRuleService.getWarningSummary();
+        long inventoryCount = (invSummary.get("total") instanceof Number)
+                ? ((Number) invSummary.get("total")).longValue() : 0L;
+
+        // 质保期预警（已到期+本月+下月）
+        LocalDate nextMonthStart = today.withDayOfMonth(1).plusMonths(1);
+        LocalDate nextNextMonthStart = today.withDayOfMonth(1).plusMonths(2);
+        long expired = dashboardMapper.countByWarrantyExpiry("expired", today, nextMonthStart, nextNextMonthStart);
+        long thisMonth = dashboardMapper.countByWarrantyExpiry("expiringThisMonth", today, nextMonthStart, nextNextMonthStart);
+        long nextMonth = dashboardMapper.countByWarrantyExpiry("expiringNextMonth", today, nextMonthStart, nextNextMonthStart);
+        long warrantyCount = expired + thisMonth + nextMonth;
+
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("borrow", borrowCount);
+        result.put("inventory", inventoryCount);
+        result.put("warranty", warrantyCount);
+        return result;
+    }
+
 }

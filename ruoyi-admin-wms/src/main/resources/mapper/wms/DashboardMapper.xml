@@ -72,4 +72,41 @@
         FROM wms_inventory inv
     </select>
 
+    <!-- 按质保期状态统计器材实例数量 -->
+    <select id="countByWarrantyExpiry" resultType="long">
+        SELECT COUNT(*)
+        FROM wms_item_instance
+        WHERE instance_status = '在库'
+          AND warranty_period IS NOT NULL
+          <choose>
+              <when test="status == 'expired'">
+                  AND warranty_period &lt; #{today}
+              </when>
+              <when test="status == 'expiringThisMonth'">
+                  AND warranty_period &gt;= #{today}
+                  AND warranty_period &lt; #{nextMonthStart}
+              </when>
+              <when test="status == 'expiringNextMonth'">
+                  AND warranty_period &gt;= #{nextMonthStart}
+                  AND warranty_period &lt; #{nextNextMonthStart}
+              </when>
+          </choose>
+    </select>
+
+
+    <!-- 质保期预警明细列表 -->
+    <select id="selectWarrantyWarningList" resultType="map">
+        SELECT
+            ii.id,
+            ii.instance_code AS "instanceCode",
+            i.item_name      AS "itemName",
+            ii.warranty_period AS "warrantyPeriod",
+            ii.warranty_period_months AS "warrantyPeriodMonths"
+        FROM wms_item_instance ii
+        LEFT JOIN wms_item i ON i.id = ii.item_id
+        WHERE ii.warranty_period IS NOT NULL
+          AND ii.warranty_period &lt; #{nextNextMonthStart}
+        ORDER BY ii.warranty_period ASC
+    </select>
+
 </mapper>

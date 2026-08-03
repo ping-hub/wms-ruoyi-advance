@@ -21,6 +21,11 @@ public interface InventoryMapper extends BaseMapperPlus<Inventory, InventoryVo> 
     Page<InventoryVo> queryAreaBoardList(Page<InventoryVo> page, @Param("bo") InventoryBo bo);
 
     /**
+     * 按 sku_id + warehouse_id + area_id 聚合库存数量（去货架/货位维度），分页返回聚合结果
+     */
+    Page<InventoryVo> querySummaryList(Page<InventoryVo> page, @Param("bo") InventoryBo bo);
+
+    /**
      * 原子增加库存数量（行锁保障并发安全）
      * @return 影响行数（0=记录不存在，1=更新成功）
      */

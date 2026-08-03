@@ -35,7 +35,7 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -126,13 +126,16 @@ public class ShipmentOrderDetailBo extends BaseEntity implements PlaceAndItem {
     private Long inventoryDetailId;
 
     /**
-     * 单品实例ID
+     * 器材ID
      */
 
     /**
      * 箱体ID
      */
     private Long boxId;
+    /** 是否随箱出库（前端传入，不持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean boxOutbound;
 
 
     /**

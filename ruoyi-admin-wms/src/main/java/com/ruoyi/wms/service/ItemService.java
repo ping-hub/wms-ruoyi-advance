@@ -17,6 +17,7 @@ import com.ruoyi.wms.domain.entity.Item;
 import com.ruoyi.wms.domain.entity.ItemCategory;
 import com.ruoyi.wms.domain.entity.ItemInstance;
 import com.ruoyi.wms.domain.entity.ItemSku;
+import com.ruoyi.wms.domain.entity.Warehouse;
 import com.ruoyi.wms.domain.vo.BatchPrintQrCodeDetailVo;
 import com.ruoyi.wms.domain.vo.BatchPrintQrCodeResultVo;
 import com.ruoyi.wms.domain.vo.ItemCategoryVo;
@@ -24,6 +25,7 @@ import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ItemVo;
 import com.ruoyi.wms.mapper.ItemCategoryMapper;
 import com.ruoyi.wms.mapper.ItemMapper;
+import com.ruoyi.wms.mapper.WarehouseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class ItemService {
     private final ItemCategoryMapper itemCategoryMapper;
     private final ItemInstanceService itemInstanceService;
     private final CodeRuleService codeRuleService;
+    private final WarehouseMapper warehouseMapper;
 
     /**
      * 查询物料
@@ -106,9 +109,15 @@ public class ItemService {
         Assert.notNull(bo.getSkuId(), "打印规格不能为空");
         Assert.notNull(bo.getQrCodeCount(), "二维码个数不能为空");
         Assert.isTrue(bo.getQrCodeCount() > 0, "二维码个数必须大于0");
+        Assert.isTrue(StrUtil.isNotBlank(bo.getWarehouseCode()), "仓库编码不能为空");
 
         Item item = itemMapper.selectById(bo.getRow().getId());
         Assert.notNull(item, "器材不存在");
+
+        // 根据仓库编码查找仓库，获取 warehouseId
+        Warehouse warehouse = warehouseMapper.selectOne(
+            Wrappers.<Warehouse>lambdaQuery().eq(Warehouse::getWarehouseCode, bo.getWarehouseCode()));
+        Assert.notNull(warehouse, "仓库不存在，编码：" + bo.getWarehouseCode());
 
         ItemBo row = bo.getRow();
         ItemSkuVo sku = resolvePrintSku(row.getId(), bo.getSkuId());
@@ -117,8 +126,11 @@ public class ItemService {
         List<ItemInstance> itemInstances = new ArrayList<>(count);
         List<BatchPrintQrCodeDetailVo> printPayloads = new ArrayList<>(count);
 
-        // 批量生成编码：一次原子递增 N 步 + 内存构建，将 2N 次 DB 往返降为 2 次
-        List<String> codes = codeRuleService.generateBatchCodes(count, "item", item.getItemCode());
+        // 使用四段式编码：prefix-一级分类编码-二级分类编码-seq，按(一级分类+二级分类)独立编号
+        Assert.notBlank(item.getItemCategory(), "器材未绑定分类，无法生成识别码");
+        String[] categoryCodes = resolveCategoryCodes(Long.valueOf(item.getItemCategory()));
+        List<String> codes = codeRuleService.generateBatchItemInstanceCodes(
+            count, categoryCodes[0], categoryCodes[1]);
         boolean useFallback = CollUtil.isEmpty(codes);
 
         for (int i = 0; i < count; i++) {
@@ -133,6 +145,10 @@ public class ItemService {
             itemInstance.setSkuId(sku.getId());
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.PENDING_RECEIPT);
             itemInstance.setRemark(StrUtil.blankToDefault(row.getRemark(), item.getRemark()));
+            // 绑定仓库：打印时即确定器材所属仓库
+            itemInstance.setWarehouseId(warehouse.getId());
+            // 从器材表回填分类ID
+            itemInstance.setItemCategory(item.getItemCategory());
             itemInstances.add(itemInstance);
 
             BatchPrintQrCodeDetailVo payload = new BatchPrintQrCodeDetailVo();
@@ -151,6 +167,37 @@ public class ItemService {
         result.setRow(row);
         result.setDetails(printPayloads);
         return result;
+    }
+
+    /**
+     * 从分类ID向上追溯，获取一级、二级分类编码。
+     * 器材只挂在二级及以下分类，此方法保证返回有效的两级编码。
+     */
+    private String[] resolveCategoryCodes(Long categoryId) {
+        ItemCategory current = itemCategoryMapper.selectById(categoryId);
+        Assert.notNull(current, "器材分类不存在，ID：" + categoryId);
+
+        // 从当前节点向上追溯到一级和二级
+        ItemCategory level2 = current;
+        ItemCategory level1 = null;
+
+        if (current.getParentId() != null && current.getParentId() != 0L) {
+            ItemCategory parent = itemCategoryMapper.selectById(current.getParentId());
+            if (parent != null) {
+                level1 = parent;
+                // 继续向上直到找到一级（parentId为0或null）
+                while (level1.getParentId() != null && level1.getParentId() != 0L) {
+                    level2 = level1;
+                    level1 = itemCategoryMapper.selectById(level1.getParentId());
+                }
+            }
+        }
+
+        if (level1 == null) {
+            // 兜底：当前节点本身就是一级（器材不应挂在一级）
+            return new String[]{current.getCategoryCode(), current.getCategoryCode()};
+        }
+        return new String[]{level1.getCategoryCode(), level2.getCategoryCode()};
     }
 
     private LambdaQueryWrapper<Item> buildQueryWrapper(ItemBo bo) {
@@ -172,9 +219,15 @@ public class ItemService {
     }
 
     private List<Long> buildSubItemCategoryIdList(Long parentId) {
-        LambdaQueryWrapper<ItemCategory> itemTypeWrapper = new LambdaQueryWrapper<>();
-        itemTypeWrapper.eq(ItemCategory::getParentId, parentId);
-        return itemCategoryMapper.selectList(itemTypeWrapper).stream().map(ItemCategory::getId).collect(Collectors.toList());
+        List<Long> result = new ArrayList<>();
+        LambdaQueryWrapper<ItemCategory> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(ItemCategory::getParentId, parentId);
+        List<ItemCategory> children = itemCategoryMapper.selectList(wrapper);
+        for (ItemCategory child : children) {
+            result.add(child.getId());
+            result.addAll(buildSubItemCategoryIdList(child.getId()));
+        }
+        return result;
     }
 
     private void enrichItemVos(List<ItemVo> itemVos) {
@@ -264,7 +317,6 @@ public class ItemService {
     private void validateBoBeforeSave(ItemBo itemBo) {
         normalizeBoBeforeSave(itemBo);
         validateItemName(itemBo);
-        validateItemCode(itemBo);
         validateItemSkuName(itemBo.getSku());
     }
 
@@ -285,14 +337,6 @@ public class ItemService {
         queryWrapper.eq(Item::getItemName, item.getItemName());
         queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
         Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材名称重复");
-    }
-
-    private void validateItemCode(ItemBo item) {
-        Assert.isTrue(StrUtil.isNotBlank(item.getItemCode()), "器材编码不能为空");
-        LambdaQueryWrapper<Item> queryWrapper = Wrappers.lambdaQuery();
-        queryWrapper.eq(Item::getItemCode, item.getItemCode());
-        queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
-        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材编码重复");
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {

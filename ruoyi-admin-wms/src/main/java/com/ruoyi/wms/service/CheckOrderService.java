@@ -39,7 +39,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 库存盘点单据Service业务层处理（两级流程：申请 → 执行）
+ * 库存盘点单据Service业务层处理（一步完成模式）
  *
  * @author ping
  * @date 2024-08-13
@@ -189,8 +189,8 @@ public class CheckOrderService {
     public Map<String, Object> startCheck(Long id) {
         CheckOrder checkOrder = checkOrderMapper.selectById(id);
         Assert.notNull(checkOrder, "盘点单不存在");
-        Assert.isTrue(ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(checkOrder.getCheckOrderStatus()),
-            "仅待盘点状态可以开始盘点");
+        Assert.isTrue(ServiceConstants.CheckOrderStatus.DRAFT.equals(checkOrder.getCheckOrderStatus()),
+            "仅草稿状态可以开始盘点");
 
         // 根据盘点范围使用 SQL 聚合查询（GROUP BY sku_id），避免全量加载后内存分组
         List<Map<String, Object>> skuSummary = inventoryMapper.selectSkuQuantitySummary(
@@ -235,7 +235,7 @@ public class CheckOrderService {
         CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
         Assert.notNull(checkOrder, "盘点单不存在");
 
-        // 查询盘点范围内的所有实例编码（缓存友好：只查 instanceCode 和 skuId）
+        // 查询盘点范围内的所有器材识别码（缓存友好：只查 instanceCode 和 skuId）
         LambdaQueryWrapper<ItemInstance> lqw = Wrappers.lambdaQuery();
         lqw.select(ItemInstance::getInstanceCode, ItemInstance::getSkuId, ItemInstance::getItemId);
         if (checkOrder.getWarehouseId() != null) lqw.eq(ItemInstance::getWarehouseId, checkOrder.getWarehouseId());
@@ -295,9 +295,8 @@ public class CheckOrderService {
         CheckOrder checkOrder = checkOrderMapper.selectById(checkOrderId);
         Assert.notNull(checkOrder, "盘点单不存在");
 
-        // 已完成或待复核的盘点单：返回存储的账面实例快照，不再查询实时数据
-        if (ServiceConstants.CheckOrderStatus.FINISH.equals(checkOrder.getCheckOrderStatus())
-            || ServiceConstants.CheckOrderStatus.PENDING_REVIEW.equals(checkOrder.getCheckOrderStatus())) {
+        // 已完成的盘点单：返回存储的账面实例快照，不再查询实时数据
+        if (ServiceConstants.CheckOrderStatus.FINISH.equals(checkOrder.getCheckOrderStatus())) {
             return getStoredBookInstancesBySku(checkOrderId, skuId);
         }
 
@@ -428,7 +427,7 @@ public class CheckOrderService {
      * 1. 扫码驱动（App端）：bo.scannedInstanceCodes 为全量已扫码，后端自动按SKU分组计算差异
      * 2. 明细驱动（Web端）：bo.details 为前端组装好的SKU级明细
      *
-     * 仅保存盘点数据，不改变状态。状态转移由 completeCheck/approve 等流程方法完成。
+     * 保存盘点数据并设置状态为已完成。
      */
     @Transactional
     public void check(CheckOrderBo bo) {
@@ -460,10 +459,12 @@ public class CheckOrderService {
             totalProfitAndLoss = totalProfitAndLoss.add(diff);
         }
 
-        // 更新盘点单盈亏总数（仅保存数据，不改变状态）
+        // 更新盘点单盈亏总数 + 设置为已完成
         CheckOrder updateOrder = new CheckOrder();
         updateOrder.setId(bo.getId());
         updateOrder.setCheckOrderTotal(totalProfitAndLoss);
+        updateOrder.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
+        updateOrder.setCheckDate(LocalDateTime.now());
         checkOrderMapper.updateById(updateOrder);
 
         // 保存实例差异明细
@@ -746,12 +747,7 @@ public class CheckOrderService {
         if (ServiceConstants.CheckOrderStatus.FINISH.equals(status)) {
             throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】已盘点完成，无法删除！", HttpStatus.CONFLICT.value());
         }
-        if (ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(status)) {
-            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】待盘点中，无法删除！", HttpStatus.CONFLICT.value());
-        }
-        if (ServiceConstants.CheckOrderStatus.PENDING_REVIEW.equals(status)) {
-            throw new ServiceException("盘库单【" + checkOrderVo.getCheckOrderNo() + "】待复核中，无法删除！", HttpStatus.CONFLICT.value());
-        }
+
     }
 
     /**
@@ -778,24 +774,8 @@ public class CheckOrderService {
      * @param rackId      货架ID（可为null）
      */
     public void assertNoActiveCheckOrder(Long warehouseId, Long areaId, Long rackId) {
-        if (warehouseId == null) {
-            return;
-        }
-        LambdaQueryWrapper<CheckOrder> lqw = Wrappers.lambdaQuery();
-        lqw.eq(CheckOrder::getWarehouseId, warehouseId);
-        lqw.in(CheckOrder::getCheckOrderStatus,
-            List.of(ServiceConstants.CheckOrderStatus.PENDING_CHECK,
-                    ServiceConstants.CheckOrderStatus.PENDING_REVIEW));
-        List<CheckOrder> activeOrders = checkOrderMapper.selectList(lqw);
-        if (CollUtil.isEmpty(activeOrders)) {
-            return;
-        }
-        for (CheckOrder co : activeOrders) {
-            if (isLocationInScope(co, warehouseId, areaId, rackId)) {
-                throw new ServiceException("仓库范围正在盘点（盘点单号：" + co.getCheckOrderNo()
-                    + "），禁止出入库操作", HttpStatus.CONFLICT.value());
-            }
-        }
+        // 阶段1：盘点单为一步完成模式，无中间活跃状态，无需冻结校验
+        // 阶段2：表驱动工作流上线后，此处将恢复基于 wms_workflow_def 的冻结校验
     }
 
     /**
@@ -843,124 +823,17 @@ public class CheckOrderService {
 
     // ==================== 审批流程方法 ====================
 
-    /**
-     * 提交盘点（草稿/已驳回 → 待盘点）
-     * 同时指定盘点人（executor）
-     *
-     * @param id           盘点单ID
-     * @param executorId   盘点人ID
-     * @param executorName 盘点人姓名
-     */
-    @Transactional
-    public void submitForApproval(Long id, Long executorId, String executorName) {
-        CheckOrder order = checkOrderMapper.selectById(id);
-        Assert.notNull(order, "盘点单不存在");
-        Assert.isTrue(
-            ServiceConstants.CheckOrderStatus.DRAFT.equals(order.getCheckOrderStatus())
-                || ServiceConstants.CheckOrderStatus.REJECTED.equals(order.getCheckOrderStatus()),
-            "只有草稿或已驳回状态的盘点单才能提交"
-        );
-        CheckOrder update = new CheckOrder();
-        update.setId(id);
-        update.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.PENDING_CHECK);
-        update.setSubmitTime(LocalDateTime.now());
-        update.setExecutorId(executorId);
-        update.setExecutorName(executorName);
-        update.setApproveRemark(null); // 清除上次驳回原因
-        checkOrderMapper.updateById(update);
-        workflowService.logOperation("check", id, "submit", "提交盘点",
-            executorName != null ? "指定盘点人：" + executorName : null, "submitted");
-    }
 
     /**
-     * 完成盘点（待盘点 → 待复核）
-     * 保存盘点数据 + 状态转移 + 指定复核人
-     *
-     * @param bo           盘点数据（含明细）
-     * @param reviewerId   复核人ID
-     * @param reviewerName 复核人姓名
-     */
-    @Transactional
-    public void completeCheck(CheckOrderBo bo, Long reviewerId, String reviewerName) {
-        CheckOrder order = checkOrderMapper.selectById(bo.getId());
-        Assert.notNull(order, "盘点单不存在");
-        Assert.isTrue(ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(order.getCheckOrderStatus()),
-            "只有待盘点状态的盘点单才能完成盘点");
-        // 保存盘点数据（不改变状态）
-        check(bo);
-        // 状态转移 + 指定复核人
-        CheckOrder update = new CheckOrder();
-        update.setId(bo.getId());
-        update.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.PENDING_REVIEW);
-        update.setExecuteTime(LocalDateTime.now());
-        update.setReviewerId(reviewerId);
-        update.setReviewerName(reviewerName);
-        checkOrderMapper.updateById(update);
-        workflowService.logOperation("check", bo.getId(), "complete_check", "完成盘点",
-            reviewerName != null ? "指定复核人：" + reviewerName : null, "checked");
-    }
-
-    /**
-     * 复核通过（待复核 → 已完成）
-     */
-    @Transactional
-    public void approve(Long id, String remark) {
-        CheckOrder order = checkOrderMapper.selectById(id);
-        Assert.notNull(order, "盘点单不存在");
-        Assert.isTrue(ServiceConstants.CheckOrderStatus.PENDING_REVIEW.equals(order.getCheckOrderStatus()),
-            "只有待复核状态的盘点单才能复核");
-        CheckOrder update = new CheckOrder();
-        update.setId(id);
-        update.setCheckOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
-        update.setApproveRemark(remark);
-        checkOrderMapper.updateById(update);
-        workflowService.logOperation("check", id, "approve", "复核通过", remark, "approved");
-    }
-
-    /**
-     * 驳回（待盘点/待复核 → 已驳回）
-     */
-    @Transactional
-    public void reject(Long id, String remark) {
-        CheckOrder order = checkOrderMapper.selectById(id);
-        Assert.notNull(order, "盘点单不存在");
-        Assert.isTrue(
-            ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(order.getCheckOrderStatus())
-                || ServiceConstants.CheckOrderStatus.PENDING_REVIEW.equals(order.getCheckOrderStatus()),
-            "只有待盘点或待复核状态的盘点单才能驳回"
-        );
-        String action = ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(order.getCheckOrderStatus())
-            ? "reject_from_check" : "reject_from_review";
-        String actionLabel = ServiceConstants.CheckOrderStatus.PENDING_CHECK.equals(order.getCheckOrderStatus())
-            ? "盘点驳回" : "复核驳回";
-        // 待复核驳回 -> 回到待盘点；待盘点驳回 -> 已驳回
-        int targetStatus = ServiceConstants.CheckOrderStatus.PENDING_REVIEW.equals(order.getCheckOrderStatus())
-            ? ServiceConstants.CheckOrderStatus.PENDING_CHECK
-            : ServiceConstants.CheckOrderStatus.REJECTED;
-        CheckOrder update = new CheckOrder();
-        update.setId(id);
-        update.setCheckOrderStatus(targetStatus);
-        update.setApproveRemark(remark);
-        checkOrderMapper.updateById(update);
-        // 驳回至已驳回时，清除旧的盘点明细和实例差异数据（库存快照已失效，重新提交后需重新加载）
-        if (ServiceConstants.CheckOrderStatus.REJECTED == targetStatus) {
-            checkOrderDetailService.deleteByCheckOrderIds(java.util.Collections.singletonList(id));
-            checkOrderInstanceService.deleteByCheckOrderIds(java.util.Collections.singletonList(id));
-        }
-        workflowService.logOperation("check", id, action, actionLabel, remark, "rejected");
-    }
-
-    /**
-     * 作废（草稿/已驳回 → 作废）
+     * 作废（草稿 → 作废）
      */
     @Transactional
     public void voidOrder(Long id) {
         CheckOrder order = checkOrderMapper.selectById(id);
         Assert.notNull(order, "盘点单不存在");
         Assert.isTrue(
-            ServiceConstants.CheckOrderStatus.DRAFT.equals(order.getCheckOrderStatus())
-                || ServiceConstants.CheckOrderStatus.REJECTED.equals(order.getCheckOrderStatus()),
-            "只有草稿或已驳回状态的盘点单才能作废"
+            ServiceConstants.CheckOrderStatus.DRAFT.equals(order.getCheckOrderStatus()),
+            "只有草稿状态的盘点单才能作废"
         );
         CheckOrder update = new CheckOrder();
         update.setId(id);

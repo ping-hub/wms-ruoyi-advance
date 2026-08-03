@@ -30,7 +30,7 @@ public class CheckOrderDetail extends BaseEntity {
     @TableId(value = "id")
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
     /**

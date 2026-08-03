@@ -22,9 +22,9 @@ public class BorrowRecordBo extends BaseEntity {
     private Long id;
 
     /**
-     * 单品实例ID
+     * 器材ID
      */
-    @NotNull(message = "单品实例不能为空", groups = {AddGroup.class})
+    @NotNull(message = "器材不能为空", groups = {AddGroup.class})
 
     /**
      * 借还状态
@@ -83,7 +83,7 @@ public class BorrowRecordBo extends BaseEntity {
     private Integer overdueDays;
 
     /**
-     * 器材实例编码快照
+     * 器材识别码快照
      */
     private String instanceCode;
 

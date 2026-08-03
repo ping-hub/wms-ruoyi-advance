@@ -158,6 +158,9 @@ public class ReceiptOrderService {
         // 1. 校验
         validateBeforeReceive(bo);
 
+        // 1.5 释放旧入库单对这些器材实例的预留占用（防止旧草稿阻塞新建入库）
+        releaseStaleReceiptReservations(bo.getDetails());
+
         // 2. 保存入库单和入库单明细
         if (Objects.isNull(bo.getId())) {
             insertByBo(bo);
@@ -197,6 +200,49 @@ public class ReceiptOrderService {
         this.saveInventoryHistory(bo, receivedInstances);
     }
 
+    /**
+     * 释放旧入库单对当前器材实例的预留占用。
+     * <p>
+     * 场景：用户先保存了一份入库草稿（insertByBo 成功，器材 receiptOrderDetailId 已设置），
+     * 随后又发起全新的入库操作；此时新入库单生成的明细 ID 与旧草稿不同，
+     * reserveForReceiptDetails 校验会报「已入库或已被入库单占用」。
+     * 此方法在 receive() 的 reserve 步骤前调用，仅释放尚未真正入库（warehouseId 为 null）的实例，
+     * 不会影响已完成入库的记录。
+     */
+    private void releaseStaleReceiptReservations(List<ReceiptOrderDetailBo> detailList) {
+        if (CollUtil.isEmpty(detailList)) {
+            return;
+        }
+        Set<String> instanceCodes = new HashSet<>();
+        detailList.forEach(detail -> {
+            if (CollUtil.isNotEmpty(detail.getReceiptItemInstances())) {
+                detail.getReceiptItemInstances().forEach(item -> {
+                    String code = StrUtil.trim(item.getInstanceCode());
+                    if (StrUtil.isNotBlank(code)) {
+                        instanceCodes.add(code);
+                    }
+                });
+            }
+        });
+        if (instanceCodes.isEmpty()) {
+            return;
+        }
+        LambdaQueryWrapper<ItemInstance> wrapper = Wrappers.lambdaQuery();
+        wrapper.in(ItemInstance::getInstanceCode, instanceCodes);
+        wrapper.isNotNull(ItemInstance::getReceiptOrderDetailId);
+        List<ItemInstance> reservedInstances = itemInstanceService.list(wrapper);
+        if (CollUtil.isEmpty(reservedInstances)) {
+            return;
+        }
+        Set<Long> oldDetailIds = reservedInstances.stream()
+            .map(ItemInstance::getReceiptOrderDetailId)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+        if (CollUtil.isNotEmpty(oldDetailIds)) {
+            itemInstanceService.releaseReceiptReservationsByDetailIds(oldDetailIds);
+        }
+    }
+
     private void validateBeforeReceive(ReceiptOrderBo bo) {
         if (CollUtil.isEmpty(bo.getDetails())) {
             throw new BaseException("器材明细不能为空");
@@ -205,7 +251,7 @@ public class ReceiptOrderService {
             ReceiptOrder receiptOrder = receiptOrderMapper.selectById(bo.getId());
             Assert.notNull(receiptOrder, "入库单不存在");
             Assert.isFalse(ServiceConstants.ReceiptOrderStatus.FINISH.equals(receiptOrder.getReceiptOrderStatus()), "入库单已完成入库");
-            Assert.isTrue(itemInstanceService.countByReceiptOrderId(bo.getId()) == 0, "入库单已生成单品实例，请勿重复入库");
+            Assert.isTrue(itemInstanceService.countByReceiptOrderId(bo.getId()) == 0, "入库单已生成器材，请勿重复入库");
         }
         validateReceiptInstances(bo.getDetails());
     }
@@ -406,14 +452,14 @@ public class ReceiptOrderService {
         for (ReceiptOrderDetailBo detail : details) {
             int instanceCount = convertInstanceCount(detail.getQuantity());
             List<ReceiptItemInstanceBo> receiptItemInstances = detail.getReceiptItemInstances();
-            Assert.isTrue(CollUtil.isNotEmpty(receiptItemInstances), "请先选择器材实例");
-            Assert.isTrue(receiptItemInstances.size() == instanceCount, "器材实例数量与入库数量不一致");
+            Assert.isTrue(CollUtil.isNotEmpty(receiptItemInstances), "请先选择器材");
+            Assert.isTrue(receiptItemInstances.size() == instanceCount, "器材数量与入库数量不一致");
             for (ReceiptItemInstanceBo receiptItemInstance : receiptItemInstances) {
                 String instanceCode = cn.hutool.core.util.StrUtil.trim(receiptItemInstance.getInstanceCode());
                 Long instanceId = receiptItemInstance.getId();
-                Assert.isTrue(instanceId != null || cn.hutool.core.util.StrUtil.isNotBlank(instanceCode), "器材实例不能为空");
+                Assert.isTrue(instanceId != null || cn.hutool.core.util.StrUtil.isNotBlank(instanceCode), "器材不能为空");
                 String uniqueKey = instanceId != null ? "ID:" + instanceId : "CODE:" + instanceCode;
-                Assert.isTrue(instanceKeySet.add(uniqueKey), "器材实例存在重复：" + (instanceId != null ? instanceId : instanceCode));
+                Assert.isTrue(instanceKeySet.add(uniqueKey), "器材存在重复：" + (instanceId != null ? instanceId : instanceCode));
             }
         }
     }
@@ -424,7 +470,7 @@ public class ReceiptOrderService {
         try {
             return quantity.intValueExact();
         } catch (ArithmeticException e) {
-            throw new ServiceException("录入器材实例时，入库数量必须为整数", HttpStatus.CONFLICT.value());
+            throw new ServiceException("录入器材时，入库数量必须为整数", HttpStatus.CONFLICT.value());
         }
     }
 

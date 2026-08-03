@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 import java.io.Serial;
 import java.time.LocalDate;
 /**
- * 单品实例对象 wms_item_instance
+ * 器材对象 wms_item_instance
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -23,7 +23,7 @@ public class ItemInstance extends BaseEntity {
     private Long id;
 
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -85,6 +85,11 @@ public class ItemInstance extends BaseEntity {
     /**
      * 质保期
      */
+    /**
+     * 质保期（月）
+     */
+    private Integer warrantyPeriodMonths;
+
     private LocalDate warrantyPeriod;
 
     /**

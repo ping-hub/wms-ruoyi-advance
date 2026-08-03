@@ -37,7 +37,7 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -92,6 +92,11 @@ public class ReceiptOrderDetailBo extends BaseEntity {
     /**
      * 质保期
      */
+    /**
+     * 质保期（月）
+     */
+    private Integer warrantyPeriodMonths;
+
     private LocalDate warrantyPeriod;
 
     /**
@@ -113,7 +118,7 @@ public class ReceiptOrderDetailBo extends BaseEntity {
      * 箱码
      */
     /**
-     * 器材实例编码
+     * 器材识别码
      */
 
     private String boxCode;

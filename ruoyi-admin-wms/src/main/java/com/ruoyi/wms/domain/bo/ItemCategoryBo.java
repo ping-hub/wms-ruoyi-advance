@@ -27,6 +27,11 @@ public class ItemCategoryBo extends BaseEntity {
     private Long parentId;
 
     /**
+     * 分类编码
+     */
+    private String categoryCode;
+
+    /**
      * 物料类型名称
      */
     @NotBlank(message = "物料类型名称不能为空", groups = { AddGroup.class, EditGroup.class })

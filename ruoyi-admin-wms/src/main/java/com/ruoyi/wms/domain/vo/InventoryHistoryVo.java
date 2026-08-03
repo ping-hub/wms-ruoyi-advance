@@ -34,7 +34,7 @@ public class InventoryHistoryVo implements Serializable {
     @ExcelProperty(value = "")
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 

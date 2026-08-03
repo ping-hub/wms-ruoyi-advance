@@ -18,6 +18,7 @@ import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.system.service.SysConfigService;
 import com.ruoyi.wms.domain.bo.BorrowOrderBo;
 import com.ruoyi.wms.domain.bo.BorrowOrderDetailBo;
+import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.BorrowOrder;
 import com.ruoyi.wms.domain.entity.BorrowOrderDetail;
 import com.ruoyi.wms.domain.bo.InventoryBo;
@@ -63,6 +64,8 @@ public class BorrowOrderService {
     private final ItemSkuService itemSkuService;
     private final CheckOrderService checkOrderService;
     private final LocationService locationService;
+    private final BoxService boxService;
+    private final com.ruoyi.wms.service.BoxCirculationLogService boxCirculationLogService;
     private final SysConfigService sysConfigService;
 
     public BorrowOrderVo queryById(Long id) {
@@ -116,6 +119,21 @@ public class BorrowOrderService {
         statsVo.setWarningCount(borrowOrderMapper.selectCount(warningWrapper));
 
         return statsVo;
+    }
+
+    /**
+     * 借用单预警明细列表（借出中 且 即将到期或已超期）
+     */
+    public TableDataInfo<BorrowOrderVo> queryWarningList(BorrowOrderBo bo, PageQuery pageQuery) {
+        LocalDate today = LocalDate.now();
+        int warningDays = getBorrowWarningDays();
+        LambdaQueryWrapper<BorrowOrder> lqw = buildQueryWrapper(bo);
+        lqw.eq(BorrowOrder::getBorrowOrderStatus, ServiceConstants.BorrowOrderStatus.BORROWING);
+        lqw.le(BorrowOrder::getPlanReturnDate, today.plusDays(warningDays));
+        lqw.orderByAsc(BorrowOrder::getPlanReturnDate);
+        Page<BorrowOrderVo> result = borrowOrderMapper.selectVoPage(pageQuery.build(), lqw);
+        result.getRecords().forEach(this::fillWarningFields);
+        return TableDataInfo.build(result);
     }
 
     private LambdaQueryWrapper<BorrowOrder> buildQueryWrapper(BorrowOrderBo bo) {
@@ -190,18 +208,23 @@ public class BorrowOrderService {
         List<InventoryBo> inventoryAdjustments = new ArrayList<>();
         List<ItemInstance> instanceUpdates = new ArrayList<>();
         Set<Long> affectedBoxIds = new HashSet<>();
+        // 提前计算随箱出库的箱子（用于过滤 BOX_REMOVE 日志和箱子状态同步）
+        Set<Long> outboundBoxIds = (bo.getDetails() != null) ? bo.getDetails().stream()
+            .filter(d -> d.getBoxId() != null && Boolean.TRUE.equals(d.getBoxOutbound()))
+            .map(BorrowOrderDetailBo::getBoxId)
+            .collect(Collectors.toSet()) : java.util.Collections.emptySet();
         List<BorrowOrderDetail> detailUpdates = new ArrayList<>();
         List<InventoryHistory> historyList = new ArrayList<>();
 
         for (BorrowOrderDetailVo detail : details) {
             ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
-            Assert.notNull(itemInstance, "器材实例不存在：" + detail.getInstanceCode());
+            Assert.notNull(itemInstance, "器材不存在：" + detail.getInstanceCode());
             Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()),
-                "器材实例 " + detail.getInstanceCode() + " 不在库，无法借出");
-            Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null, "器材实例 " + detail.getInstanceCode() + " 已被出库单占用");
-            Assert.isTrue(itemInstance.getMovementOrderDetailId() == null, "器材实例 " + detail.getInstanceCode() + " 已被调拨单占用");
+                "器材 " + detail.getInstanceCode() + " 不在库，无法借出");
+            Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null, "器材 " + detail.getInstanceCode() + " 已被出库单占用");
+            Assert.isTrue(itemInstance.getMovementOrderDetailId() == null, "器材 " + detail.getInstanceCode() + " 已被调拨单占用");
             Assert.isTrue(findActiveBorrowRecord(detail.getInstanceCode()) == null,
-                "器材实例 " + detail.getInstanceCode() + " 已处于借出状态");
+                "器材 " + detail.getInstanceCode() + " 已处于借出状态");
             checkOrderService.assertNoActiveCheckOrder(itemInstance.getWarehouseId(), itemInstance.getAreaId(), itemInstance.getRackId());
 
             InventoryBo adj = new InventoryBo();
@@ -213,7 +236,18 @@ public class BorrowOrderService {
             adj.setQuantity(BigDecimal.ONE.negate());
             inventoryAdjustments.add(adj);
 
-            if (itemInstance.getBoxId() != null) affectedBoxIds.add(itemInstance.getBoxId());
+            if (itemInstance.getBoxId() != null) {
+                affectedBoxIds.add(itemInstance.getBoxId());
+                // 记录器材移出箱体日志（随箱出库的不记录，由 markOutbound 管理）
+                if (!outboundBoxIds.contains(itemInstance.getBoxId())) {
+                    boxCirculationLogService.logEvent(
+                        itemInstance.getBoxId(), null, "BOX_REMOVE",
+                        bo.getId(), "BORROW_ORDER",
+                        null, null,
+                        "器材 " + itemInstance.getInstanceCode() + " 借用移出箱体"
+                    );
+                }
+            }
             itemInstance.setInstanceStatus(ServiceConstants.ItemInstanceStatus.BORROWED);
             itemInstance.setBoxId(null);
             itemInstance.setWarehouseId(null);
@@ -232,7 +266,10 @@ public class BorrowOrderService {
 
         inventoryService.updateInventoryQuantity(inventoryAdjustments);
         if (!instanceUpdates.isEmpty()) itemInstanceService.updateBatchById(instanceUpdates);
-        affectedBoxIds.forEach(boxId -> itemInstanceService.syncBoxAfterItemLeave(boxId));
+        affectedBoxIds.stream().filter(bid -> !outboundBoxIds.contains(bid))
+            .forEach(boxId -> itemInstanceService.syncBoxAfterItemLeave(boxId));
+        // 箱子随借用单出库：outboundBoxIds 已在循环前计算
+        outboundBoxIds.forEach(boxId -> boxService.markOutbound(boxId, bo.getId(), "BORROW_ORDER"));
         if (!detailUpdates.isEmpty()) borrowOrderDetailService.updateBatchById(detailUpdates);
         if (!historyList.isEmpty()) inventoryHistoryService.saveBatch(historyList);
 
@@ -273,7 +310,7 @@ public class BorrowOrderService {
                 continue;
             }
             ItemInstance itemInstance = returnItemMap.get(detail.getInstanceCode());
-            Assert.notNull(itemInstance, "器材实例不存在：" + detail.getInstanceCode());
+            Assert.notNull(itemInstance, "器材不存在：" + detail.getInstanceCode());
 
             InventoryBo adj = new InventoryBo();
             adj.setWarehouseId(detail.getWarehouseId());
@@ -311,6 +348,12 @@ public class BorrowOrderService {
         if (!locationIds.isEmpty()) {
             locationService.refreshOccupiedFlagsByLocationIds(locationIds);
         }
+        // 箱子随借用单归还：查找由本借用单标记为出库的箱子
+        List<Box> borrowBoxes = boxService.list(Wrappers.<Box>lambdaQuery()
+            .eq(Box::getOutboundOrderId, orderId)
+            .eq(Box::getOutboundOrderType, "BORROW_ORDER"));
+        borrowBoxes.forEach(box -> boxService.markReturn(box.getId()));
+
         BorrowOrder updateOrder = new BorrowOrder();
         updateOrder.setId(orderId);
         updateOrder.setBorrowOrderStatus(ServiceConstants.BorrowOrderStatus.RETURNED);

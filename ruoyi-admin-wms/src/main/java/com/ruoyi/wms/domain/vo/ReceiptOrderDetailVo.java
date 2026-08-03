@@ -33,7 +33,7 @@ public class ReceiptOrderDetailVo implements Serializable {
     @ExcelProperty(value = "")
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -94,6 +94,12 @@ public class ReceiptOrderDetailVo implements Serializable {
     /**
      * 质保期
      */
+    /**
+     * 质保期（月）
+     */
+    @ExcelProperty(value = "质保期（月）")
+    private Integer warrantyPeriodMonths;
+
     @ExcelProperty(value = "质保期")
     private LocalDate warrantyPeriod;
 
@@ -120,7 +126,7 @@ public class ReceiptOrderDetailVo implements Serializable {
      */
     @ExcelProperty(value = "箱码")
     /**
-     * 器材实例编码
+     * 器材识别码
      */
 
     private String boxCode;

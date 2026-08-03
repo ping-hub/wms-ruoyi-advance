@@ -38,6 +38,9 @@ public class BorrowOrderBo extends BaseEntity {
     @NotNull(message = "计划归还日期不能为空", groups = { AddGroup.class, EditGroup.class })
     private LocalDate planReturnDate;
 
+    /** 借用期限(天) */
+    private Integer borrowPeriodDays;
+
     /** 发货单位 */
     private String fromUnit;
 

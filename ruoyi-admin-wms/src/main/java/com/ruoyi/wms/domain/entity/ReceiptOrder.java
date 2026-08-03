@@ -46,6 +46,11 @@ public class ReceiptOrder extends BaseEntity {
 
     private String receiveUnit;
 
+    /**
+     * 调拨单号
+     */
+    private String movementOrderNo;
+
     private LocalDate purchaseDate;
 
     private LocalDate receiptDate;

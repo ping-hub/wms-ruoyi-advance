@@ -107,6 +107,12 @@ public class ItemCategoryService extends ServiceImpl<ItemCategoryMapper, ItemCat
         queryWrapper.eq(ItemCategory::getCategoryName, bo.getCategoryName());
         queryWrapper.ne(bo.getId() != null, ItemCategory::getId, bo.getId());
         Assert.isTrue(itemCategoryMapper.selectCount(queryWrapper) == 0, "分类名重复");
+        if (StrUtil.isNotBlank(bo.getCategoryCode())) {
+            LambdaQueryWrapper<ItemCategory> codeWrapper = Wrappers.lambdaQuery();
+            codeWrapper.eq(ItemCategory::getCategoryCode, bo.getCategoryCode());
+            codeWrapper.ne(bo.getId() != null, ItemCategory::getId, bo.getId());
+            Assert.isTrue(itemCategoryMapper.selectCount(codeWrapper) == 0, "分类编码重复");
+        }
     }
 
     /**

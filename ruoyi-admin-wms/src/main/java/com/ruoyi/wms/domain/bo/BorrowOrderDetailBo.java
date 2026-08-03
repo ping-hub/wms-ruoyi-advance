@@ -25,9 +25,15 @@ public class BorrowOrderDetailBo extends BaseEntity {
     /** 借用单ID */
     private Long borrowOrderId;
 
-    /** 器材实例编码 */
-    @NotBlank(message = "器材实例编码不能为空", groups = { AddGroup.class, EditGroup.class })
+    /** 器材识别码 */
+    @NotBlank(message = "器材识别码不能为空", groups = { AddGroup.class, EditGroup.class })
     private String instanceCode;
+    /** 所属箱ID（前端传入，不持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long boxId;
+    /** 是否随箱出库（前端传入，不持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean boxOutbound;
 
     /** 规格ID */
     @NotNull(message = "规格ID不能为空", groups = { AddGroup.class, EditGroup.class })

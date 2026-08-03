@@ -342,9 +342,11 @@ public class RackLocationPlannerService {
         location.setLocationCode(buildLocationCode(rack, row, column));
         location.setLocationName(buildLocationName(rack, row, column));
         location.setLocationStatus(DEFAULT_LOCATION_STATUS);
-        location.setLength(rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP));
+        location.setLength(rack.getLength() != null
+            ? rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP) : null);
         location.setWidth(rack.getWidth());
-        location.setHeight(rack.getHeight().divide(BigDecimal.valueOf(rack.getRowCount()), BigDecimal.ROUND_HALF_UP));
+        location.setHeight(rack.getHeight() != null
+            ? rack.getHeight().divide(BigDecimal.valueOf(rack.getRowCount()), BigDecimal.ROUND_HALF_UP) : null);
         location.setOccupiedFlag(0);
         location.setSortNo(buildSortNo(row, column));
         return location;

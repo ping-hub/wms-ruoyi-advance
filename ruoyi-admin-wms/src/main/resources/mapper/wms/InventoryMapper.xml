@@ -146,4 +146,40 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach>
         )
     </delete>
+
+    <!-- 库存汇总：按 sku_id + warehouse_id + area_id 聚合数量，分页返回 -->
+    <select id="querySummaryList" resultType="com.ruoyi.wms.domain.vo.InventoryVo">
+        SELECT
+            inventory.sku_id AS skuId,
+            inventory.warehouse_id AS warehouseId,
+            inventory.area_id AS areaId,
+            SUM(inventory.quantity) AS quantity,
+            item.item_name AS itemName,
+            item.item_code AS itemCode,
+            sku.sku_name AS skuName
+        FROM wms_inventory inventory
+        INNER JOIN wms_item_sku sku ON inventory.sku_id = sku.id
+        INNER JOIN wms_item item ON sku.item_id = item.id
+        <where>
+            <if test="bo.itemName != null and bo.itemName != ''">
+                item.item_name LIKE concat('%', #{bo.itemName}, '%')
+            </if>
+            <if test="bo.itemCode != null and bo.itemCode != ''">
+                AND item.item_code LIKE concat('%', #{bo.itemCode}, '%')
+            </if>
+            <if test="bo.skuName != null and bo.skuName != ''">
+                AND sku.sku_name LIKE concat('%', #{bo.skuName}, '%')
+            </if>
+            <if test="bo.warehouseId != null">
+                AND inventory.warehouse_id = #{bo.warehouseId}
+            </if>
+            <if test="bo.areaId != null">
+                AND inventory.area_id = #{bo.areaId}
+            </if>
+        </where>
+        GROUP BY inventory.sku_id, inventory.warehouse_id, inventory.area_id,
+                 item.item_name, item.item_code, sku.sku_name
+        ORDER BY inventory.warehouse_id, inventory.area_id, item.item_name, inventory.sku_id
+    </select>
+
 </mapper>

@@ -7,7 +7,9 @@ import com.ruoyi.wms.domain.bo.CodeRuleBo;
 import com.ruoyi.wms.domain.entity.CodeRule;
 import com.ruoyi.wms.domain.vo.CodeRuleVo;
 import com.ruoyi.wms.mapper.CodeRuleMapper;
+import com.ruoyi.wms.mapper.ItemCodeSeqMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class CodeRuleService {
 
     private final CodeRuleMapper codeRuleMapper;
+    private final ItemCodeSeqMapper itemCodeSeqMapper;
 
     // ==================== CRUD ====================
 
@@ -51,7 +54,7 @@ public class CodeRuleService {
         codeRuleMapper.updateById(update);
     }
 
-    // ==================== 核心编码生成 ====================
+    // ==================== 通用编码生成（单据号、箱码、货架等） ====================
 
     /**
      * 根据编码类型生成编码。
@@ -59,40 +62,26 @@ public class CodeRuleService {
      */
     @Transactional
     public String generateCode(String ruleType) {
-        return generateCode(ruleType, null);
-    }
-
-    /**
-     * 根据编码类型生成编码，支持传入器材编码作为动态前缀。
-     * 当 rule_type='item' 且 useItemCodeAsPrefix='0' 时，使用 itemCode 替代固定前缀。
-     * 若规则不存在或未启用，返回 null（调用方自行降级处理）。
-     */
-    @Transactional
-    public String generateCode(String ruleType, String itemCode) {
         CodeRule rule = codeRuleMapper.selectOne(
             Wrappers.<CodeRule>lambdaQuery().eq(CodeRule::getRuleType, ruleType));
 
         if (rule == null || !"0".equals(rule.getEnabled())) {
-            return null; // 规则不存在或未启用，调用方降级
+            return null;
         }
 
-        // 1. 递增序号
         codeRuleMapper.incrementSeq(rule.getId(), 1);
-        // 重新读取最新值
         rule = codeRuleMapper.selectById(rule.getId());
         long seq = rule.getCurrentSeq();
 
-        // 2. 拼接编码
-        return buildCode(rule, seq, itemCode);
+        return buildCode(rule, seq);
     }
 
-
     /**
-     * 批量生成编码（一次原子递增 N 步，内存中构建 N 个编码，避免 N 次 DB 往返）。
+     * 批量生成编码（一次原子递增 N 步，内存中构建 N 个编码）。
      * 若规则不存在或未启用，返回空列表（调用方降级处理）。
      */
     @Transactional
-    public List<String> generateBatchCodes(int count, String ruleType, String itemCode) {
+    public List<String> generateBatchCodes(int count, String ruleType) {
         if (count <= 0) {
             return new ArrayList<>();
         }
@@ -102,7 +91,6 @@ public class CodeRuleService {
             return new ArrayList<>();
         }
 
-        // 一次性原子递增 count 步
         codeRuleMapper.incrementSeq(rule.getId(), count);
         rule = codeRuleMapper.selectById(rule.getId());
         long endSeq = rule.getCurrentSeq();
@@ -110,52 +98,144 @@ public class CodeRuleService {
 
         List<String> codes = new ArrayList<>(count);
         if ("random".equals(rule.getSeqMethod())) {
-            // 随机序号：无法批量化，逐个生成
             for (int i = 0; i < count; i++) {
-                codes.add(buildCode(rule, 0L, itemCode));  // buildCode 内部会生成随机序号
+                codes.add(buildCode(rule, 0L));
             }
         } else {
-            // 顺序序号：内存中批量构建
             for (long seq = startSeq; seq <= endSeq; seq++) {
-                codes.add(buildCode(rule, seq, itemCode));
+                codes.add(buildCode(rule, seq));
             }
         }
         return codes;
     }
 
+    // ==================== 器材实例编码（四段式，按一级分类+二级分类独立编号） ====================
+
     /**
-     * 批量生成编码（无 itemCode 前缀版本）
+     * 生成器材实例编码（单个）。
+     * 格式：{prefix}-{level1Code}-{level2Code}-{seq}
+     * 序号按 (level1Code, level2Code) 组合独立从1递增。
+     * 若规则不存在或未启用，返回 null（调用方降级处理）。
+     *
+     * @param level1Code 一级分类编码
+     * @param level2Code 二级分类编码
      */
-    public List<String> generateBatchCodes(int count, String ruleType) {
-        return generateBatchCodes(count, ruleType, null);
+    @Transactional
+    public String generateItemInstanceCode(String level1Code, String level2Code) {
+        CodeRule rule = loadItemRule();
+        if (rule == null) {
+            return null;
+        }
+
+        long seq = upsertSeq(level1Code, level2Code, 1);
+        return buildItemInstanceCode(rule, seq, level1Code, level2Code);
     }
 
     /**
-     * 拼接编码：prefix + separator + dateSuffix + separator + seq
-     * 当 useItemCodeAsPrefix='0' 且 itemCode 不为空时，用 itemCode 替代固定前缀
+     * 批量生成器材实例编码。
+     * 一次原子递增 N 步，内存中构建 N 个编码。
+     * 若规则不存在或未启用，返回空列表（调用方降级处理）。
+     *
+     * @param count      生成数量
+     * @param level1Code 一级分类编码
+     * @param level2Code 二级分类编码
      */
-    private String buildCode(CodeRule rule, long seq, String itemCode) {
+    @Transactional
+    public List<String> generateBatchItemInstanceCodes(int count, String level1Code, String level2Code) {
+        if (count <= 0) {
+            return new ArrayList<>();
+        }
+        CodeRule rule = loadItemRule();
+        if (rule == null) {
+            return new ArrayList<>();
+        }
+
+        long endSeq = upsertSeq(level1Code, level2Code, count);
+        long startSeq = endSeq - count + 1;
+
+        List<String> codes = new ArrayList<>(count);
+        for (long seq = startSeq; seq <= endSeq; seq++) {
+            codes.add(buildItemInstanceCode(rule, seq, level1Code, level2Code));
+        }
+        return codes;
+    }
+
+    // ==================== 内部方法 ====================
+
+    /**
+     * 按 (level1Code, level2Code) 组合原子递增序号。
+     * 采用 SELECT FOR UPDATE → INSERT/UPDATE 两步法，兼容 VastBase。
+     */
+    private long upsertSeq(String level1Code, String level2Code, long step) {
+        // 1. 查询并锁定行
+        Long currentSeq = itemCodeSeqMapper.selectForUpdate(level1Code, level2Code);
+
+        if (currentSeq == null) {
+            // 2a. 行不存在，尝试插入
+            try {
+                itemCodeSeqMapper.insertSeq(level1Code, level2Code, step);
+                return step;
+            } catch (DuplicateKeyException e) {
+                // 并发插入冲突，回退到更新
+                itemCodeSeqMapper.incrementSeq(level1Code, level2Code, step);
+                Long seq = itemCodeSeqMapper.selectForUpdate(level1Code, level2Code);
+                return seq;
+            }
+        } else {
+            // 2b. 行存在，递增
+            itemCodeSeqMapper.incrementSeq(level1Code, level2Code, step);
+            return currentSeq + step;
+        }
+    }
+
+    private CodeRule loadItemRule() {
+        CodeRule rule = codeRuleMapper.selectOne(
+            Wrappers.<CodeRule>lambdaQuery().eq(CodeRule::getRuleType, "item"));
+        if (rule == null || !"0".equals(rule.getEnabled())) {
+            return null;
+        }
+        return rule;
+    }
+
+    /**
+     * 拼接器材实例编码（四段式）：prefix + sep + level1Code + sep + level2Code + sep + seq
+     */
+    private String buildItemInstanceCode(CodeRule rule, long seq, String level1Code, String level2Code) {
         String sep = StrUtil.blankToDefault(rule.getSeparator(), "");
         StringBuilder sb = new StringBuilder();
 
-        // 前缀：优先使用器材编码（item类型 + 开关开启 + itemCode非空）
-        String effectivePrefix;
-        if ("0".equals(rule.getUseItemCodeAsPrefix()) && StrUtil.isNotBlank(itemCode)) {
-            effectivePrefix = itemCode;
-        } else {
-            effectivePrefix = rule.getPrefix();
-        }
-        if (StrUtil.isNotBlank(effectivePrefix)) {
-            sb.append(effectivePrefix).append(sep);
+        if (StrUtil.isNotBlank(rule.getPrefix())) {
+            sb.append(rule.getPrefix()).append(sep);
         }
 
-        // 日期后缀
         String dateSuffix = formatDateSuffix(rule.getSuffixType());
         if (StrUtil.isNotBlank(dateSuffix)) {
             sb.append(dateSuffix).append(sep);
         }
 
-        // 序号
+        sb.append(level1Code).append(sep);
+        sb.append(level2Code).append(sep);
+        sb.append(StrUtil.padPre(String.valueOf(seq), rule.getSeqLength(), '0'));
+
+        return sb.toString();
+    }
+
+    /**
+     * 拼接通用编码：prefix + separator + dateSuffix + separator + seq
+     */
+    private String buildCode(CodeRule rule, long seq) {
+        String sep = StrUtil.blankToDefault(rule.getSeparator(), "");
+        StringBuilder sb = new StringBuilder();
+
+        if (StrUtil.isNotBlank(rule.getPrefix())) {
+            sb.append(rule.getPrefix()).append(sep);
+        }
+
+        String dateSuffix = formatDateSuffix(rule.getSuffixType());
+        if (StrUtil.isNotBlank(dateSuffix)) {
+            sb.append(dateSuffix).append(sep);
+        }
+
         String seqStr;
         if ("random".equals(rule.getSeqMethod())) {
             seqStr = generateRandomSeq(rule.getSeqLength());

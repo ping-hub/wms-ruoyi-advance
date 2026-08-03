@@ -24,6 +24,7 @@ public class RackBo extends BaseEntity {
     /**
      * 货架编码
      */
+    @NotBlank(message = "货架编码不能为空", groups = {AddGroup.class, EditGroup.class})
     private String rackCode;
 
     /**

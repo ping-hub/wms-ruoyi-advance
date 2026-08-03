@@ -20,7 +20,7 @@ public class ItemInstanceBo extends BaseEntity {
     private Long id;
 
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -87,6 +87,11 @@ public class ItemInstanceBo extends BaseEntity {
     /**
      * 质保期
      */
+    /**
+     * 质保期（月）
+     */
+    private Integer warrantyPeriodMonths;
+
     private LocalDate warrantyPeriod;
 
     /**

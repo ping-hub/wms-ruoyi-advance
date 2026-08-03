@@ -46,4 +46,21 @@ public interface DashboardMapper extends BaseMapperPlus<Inventory, InventoryVo> 
      * 统计总库存价值（基于入库历史最近单价）
      */
     BigDecimal sumInventoryValue();
+
+    /**
+     * 按质保期状态统计器材实例数量
+     * status: expired / expiringThisMonth / expiringNextMonth
+     */
+    long countByWarrantyExpiry(@Param("status") String status,
+                                @Param("today") LocalDate today,
+                                @Param("nextMonthStart") LocalDate nextMonthStart,
+                                @Param("nextNextMonthStart") LocalDate nextNextMonthStart);
+
+    /**
+     * 质保期预警明细
+     */
+    List<Map<String, Object>> selectWarrantyWarningList(
+            @Param("today") LocalDate today,
+            @Param("nextNextMonthStart") LocalDate nextNextMonthStart);
+
 }

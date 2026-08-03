@@ -69,6 +69,12 @@ public class ReceiptOrderVo extends BaseVo {
     private String receiveUnit;
 
     /**
+     * 调拨单号
+     */
+    @ExcelProperty(value = "调拨单号")
+    private String movementOrderNo;
+
+    /**
      * 采购日期
      */
     @ExcelProperty(value = "采购日期")

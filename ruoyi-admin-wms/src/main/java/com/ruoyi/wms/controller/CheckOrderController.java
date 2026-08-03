@@ -166,64 +166,8 @@ public class CheckOrderController extends BaseController {
         return R.ok();
     }
 
-    // ==================== 流程端点 ====================
-
     /**
-     * 提交盘点（草稿/已驳回 → 待盘点）
-     */
-    @SaCheckPermission("wms:check:submit")
-    @Log(title = "盘点单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/submit/{id}")
-    public R<Void> submit(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                          @RequestParam(required = false) Long executorId,
-                          @RequestParam(required = false) String executorName) {
-        checkOrderService.submitForApproval(id, executorId, executorName);
-        return R.ok();
-    }
-
-    /**
-     * 完成盘点并提交复核（待盘点 → 待复核）
-     */
-    @SaCheckPermission("wms:check:execute")
-    @Log(title = "盘点单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PostMapping("/complete")
-    public R<Void> complete(@RequestBody CheckOrderBo bo,
-                            @RequestParam(required = false) Long reviewerId,
-                            @RequestParam(required = false) String reviewerName) {
-        checkOrderService.completeCheck(bo, reviewerId, reviewerName);
-        return R.ok();
-    }
-
-    /**
-     * 复核通过（待复核 → 已完成）
-     */
-    @SaCheckPermission("wms:check:approve")
-    @Log(title = "盘点单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/approve/{id}")
-    public R<Void> approve(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                           @RequestParam(required = false) String remark) {
-        checkOrderService.approve(id, remark);
-        return R.ok();
-    }
-
-    /**
-     * 驳回（待盘点/待复核 → 已驳回）
-     */
-    @SaCheckPermission("wms:check:execute")
-    @Log(title = "盘点单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/reject/{id}")
-    public R<Void> reject(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                          @RequestParam(required = false) String remark) {
-        checkOrderService.reject(id, remark);
-        return R.ok();
-    }
-
-    /**
-     * 作废（草稿/已驳回 → 作废）
+     * 作废（草稿 → 作废）
      */
     @SaCheckPermission("wms:check:all")
     @Log(title = "盘点单", businessType = BusinessType.UPDATE)

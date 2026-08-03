@@ -115,7 +115,7 @@ public class CheckOrderBo extends BaseEntity {
     private transient String myNickName;
 
     /**
-     * 扫码驱动模式：订单级别已扫描实例编码列表（App端使用）
+     * 扫码驱动模式：订单级别已扫描器材识别码列表（App端使用）
      */
     private List<String> scannedInstanceCodes;
 

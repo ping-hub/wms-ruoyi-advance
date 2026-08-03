@@ -157,9 +157,9 @@ public class MovementOrderDetailVo implements Serializable {
     private Long inventoryDetailId;
 
     /**
-     * 器材实例编码
+     * 器材识别码
      */
-    @ExcelProperty(value = "器材实例编码")
+    @ExcelProperty(value = "器材识别码")
     private String instanceCode;
 
     /**

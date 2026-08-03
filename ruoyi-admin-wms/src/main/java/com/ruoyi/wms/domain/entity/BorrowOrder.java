@@ -36,6 +36,9 @@ public class BorrowOrder extends BaseEntity {
     /** 计划归还日期 */
     private LocalDate planReturnDate;
 
+    /** 借用期限(天) */
+    private Integer borrowPeriodDays;
+
     /** 发货单位 */
     private String fromUnit;
 

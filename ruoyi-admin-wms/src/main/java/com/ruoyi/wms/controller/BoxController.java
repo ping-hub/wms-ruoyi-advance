@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Validated
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ import java.util.List;
 public class BoxController extends BaseController {
 
     private final BoxService boxService;
+    private final com.ruoyi.wms.service.BoxCirculationLogService boxCirculationLogService;
 
     @SaCheckPermission("wms:box:list")
     @GetMapping("/list")
@@ -77,6 +79,36 @@ public class BoxController extends BaseController {
     @PutMapping
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody BoxBo bo) {
         boxService.updateByBo(bo);
+        return R.ok();
+    }
+
+
+    @SaCheckPermission("wms:box:edit")
+    @Log(title = "箱体移位", businessType = BusinessType.UPDATE)
+    @RepeatSubmit
+
+    /**
+     * 获取箱体流转日志
+     */
+    @GetMapping("/{id}/logs")
+    public R<java.util.List<com.ruoyi.wms.domain.entity.BoxCirculationLog>> getLogs(
+            @NotNull(message = "主键不能为空") @PathVariable Long id) {
+        java.util.List<com.ruoyi.wms.domain.entity.BoxCirculationLog> logs = boxCirculationLogService.list(
+            com.baomidou.mybatisplus.core.toolkit.Wrappers.<com.ruoyi.wms.domain.entity.BoxCirculationLog>lambdaQuery()
+                .eq(com.ruoyi.wms.domain.entity.BoxCirculationLog::getBoxId, id)
+                .orderByDesc(com.ruoyi.wms.domain.entity.BoxCirculationLog::getCreateTime)
+        );
+        return R.ok(logs);
+    }
+
+    @PutMapping("/{id}/relocate")
+    public R<Void> relocate(
+        @NotNull(message = "主键不能为空") @PathVariable Long id,
+        @RequestBody Map<String, Object> body) {
+        Long rackId     = body.get("rackId")     != null ? Long.valueOf(body.get("rackId").toString()) : null;
+        Long locationId = body.get("locationId") != null ? Long.valueOf(body.get("locationId").toString()) : null;
+        Boolean syncItems = body.get("syncItems") != null ? Boolean.valueOf(body.get("syncItems").toString()) : true;
+        boxService.relocate(id, rackId, locationId, syncItems);
         return R.ok();
     }
 

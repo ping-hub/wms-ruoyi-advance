@@ -93,10 +93,8 @@ public class BorrowOrderController extends BaseController {
     @SaCheckPermission("wms:borrowOrder:list")
     @Log(title = "借用单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
-    @PutMapping("/confirm/{id}")
-    public R<Void> confirmBorrow(@NotNull(message = "主键不能为空") @PathVariable Long id) {
-        BorrowOrderBo bo = new BorrowOrderBo();
-        bo.setId(id);
+    @PutMapping("/confirm")
+    public R<Void> confirmBorrow(@RequestBody BorrowOrderBo bo) {
         borrowOrderService.confirmBorrow(bo);
         return R.ok();
     }
@@ -133,6 +131,15 @@ public class BorrowOrderController extends BaseController {
     @GetMapping("/warning/stats")
     public R<BorrowOrderWarningStatsVo> warningStats() {
         return R.ok(borrowOrderService.queryWarningStats());
+    }
+
+    /**
+     * 借用单预警明细列表（借出中 且 即将到期或已超期）
+     */
+    @SaCheckPermission("wms:borrowOrder:list")
+    @GetMapping("/warning/list")
+    public TableDataInfo<BorrowOrderVo> warningList(BorrowOrderBo bo, PageQuery pageQuery) {
+        return borrowOrderService.queryWarningList(bo, pageQuery);
     }
 
     /**

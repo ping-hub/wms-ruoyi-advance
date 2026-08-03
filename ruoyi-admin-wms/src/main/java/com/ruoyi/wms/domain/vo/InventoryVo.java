@@ -72,6 +72,22 @@ public class InventoryVo implements Serializable {
     @ExcelProperty(value = "备注")
     private String remark;
 
+
+    /**
+     * 器材名称（汇总查询专用，SQL JOIN 填充）
+     */
+    private String itemName;
+
+    /**
+     * 器材编码（汇总查询专用，SQL JOIN 填充）
+     */
+    private String itemCode;
+
+    /**
+     * 规格型号名称（汇总查询专用，SQL JOIN 填充）
+     */
+    private String skuName;
+
     private ItemSkuVo itemSku;
 
     private ItemVo item;

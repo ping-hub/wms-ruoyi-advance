@@ -288,12 +288,16 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         if (CollUtil.isNotEmpty(occupiedIds)) {
             locationMapper.update(null, Wrappers.lambdaUpdate(Location.class)
                 .in(Location::getId, occupiedIds)
-                .set(Location::getOccupiedFlag, 1));
+                .set(Location::getOccupiedFlag, 1)
+                .set(Location::getLocationStatus, "occupied"));
         }
         if (CollUtil.isNotEmpty(freeIds)) {
+            // 仅将 occupied/enabled 状态还原为 enabled，不覆盖 disabled/abnormal
             locationMapper.update(null, Wrappers.lambdaUpdate(Location.class)
                 .in(Location::getId, freeIds)
-                .set(Location::getOccupiedFlag, 0));
+                .in(Location::getLocationStatus, "occupied", "enabled")
+                .set(Location::getOccupiedFlag, 0)
+                .set(Location::getLocationStatus, "enabled"));
         }
     }
 
@@ -357,7 +361,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Assert.notNull(locationMapper.selectById(id), "货位不存在");
         ItemInstanceBo itemInstanceBo = new ItemInstanceBo();
         itemInstanceBo.setLocationId(id);
-        Assert.isTrue(CollUtil.isEmpty(itemInstanceService.queryList(itemInstanceBo)), "货位下仍有单品实例占用，无法删除");
+        Assert.isTrue(CollUtil.isEmpty(itemInstanceService.queryList(itemInstanceBo)), "货位下仍有器材占用，无法删除");
         Assert.isTrue(CollUtil.isEmpty(boxService.queryByLocationId(id)), "货位下仍有箱体占用，无法删除");
     }
 

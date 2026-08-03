@@ -60,4 +60,23 @@ public class DashboardController extends BaseController {
     public R<Object> qualityStats() {
         return R.ok(dashboardService.getQualityStats());
     }
+
+    /**
+     * 质保期预警统计（已到期 / 本月到期 / 下月到期）
+     */
+    @GetMapping("/warrantyStats")
+    public R<Object> warrantyStats() {
+        return R.ok(dashboardService.getWarrantyStats());
+    }
+
+    /**
+     * 质保期预警明细列表（已到期+本月到期+下月到期）
+     */
+    @GetMapping("/warrantyWarningList")
+    public R<Object> warrantyWarningList(
+            @RequestParam(required = false, defaultValue = "1") Integer pageNum,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
+        return R.ok(dashboardService.getWarrantyWarningList(pageNum, pageSize));
+    }
+
 }

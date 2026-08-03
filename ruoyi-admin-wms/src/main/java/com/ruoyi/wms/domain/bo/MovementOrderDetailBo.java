@@ -30,7 +30,7 @@ public class MovementOrderDetailBo extends BaseEntity implements PlaceAndItem {
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 

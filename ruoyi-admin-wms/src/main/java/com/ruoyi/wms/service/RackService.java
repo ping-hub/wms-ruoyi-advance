@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 public class RackService extends ServiceImpl<RackMapper, Rack> {
 
     private final RackMapper rackMapper;
-    private final CodeRuleService codeRuleService;
     private final AreaMapper areaMapper;
     private final WarehouseMapper warehouseMapper;
     private final LocationMapper locationMapper;
@@ -66,10 +65,8 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
 
     @Transactional
     public void insertByBo(RackBo bo) {
-        bo.setRackCode(null);
         validateBoBeforeSave(bo);
         Rack rack = MapstructUtils.convert(bo, Rack.class);
-        rack.setRackCode(generateRackCodeWithRetry());
         rackMapper.insert(rack);
         rackLocationPlannerService.generateLocationsForNewRack(rack);
     }
@@ -196,12 +193,4 @@ public class RackService extends ServiceImpl<RackMapper, Rack> {
         });
     }
 
-    private String generateRackCodeWithRetry() {
-        String code = codeRuleService.generateCode("rack");
-        if (code != null) {
-            return code;
-        }
-        // 降级：雪花ID
-        return "RK" + cn.hutool.core.util.IdUtil.getSnowflakeNextIdStr();
-    }
 }

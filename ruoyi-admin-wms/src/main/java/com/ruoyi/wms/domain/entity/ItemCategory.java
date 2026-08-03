@@ -28,6 +28,11 @@ public class ItemCategory extends BaseEntity {
     private Long parentId;
 
     /**
+     * 分类编码
+     */
+    private String categoryCode;
+
+    /**
      * 物料类型名称
      */
     private String categoryName;

@@ -103,7 +103,7 @@ public class ShipmentOrderController extends BaseController {
     /**
      * 执行出库（状态必须为已审批=2）
      */
-    @SaCheckPermission("wms:shipment:execute")
+    @SaCheckPermission("wms:shipment:all")
     @Log(title = "出库单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping("/shipment")
@@ -114,50 +114,9 @@ public class ShipmentOrderController extends BaseController {
         return R.ok();
     }
 
-    /**
-     * 提交审批（草稿/已驳回 → 待审批）
-     */
-    @SaCheckPermission("wms:shipment:submit")
-    @Log(title = "出库单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/submit/{id}")
-    public R<Void> submit(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                          @RequestParam(required = false) Long approverId,
-                          @RequestParam(required = false) String approverName) {
-        shipmentOrderService.submitForApproval(id, approverId, approverName);
-        return R.ok();
-    }
 
     /**
-     * 审批通过（待审批 → 已审批）
-     */
-    @SaCheckPermission("wms:shipment:approve")
-    @Log(title = "出库单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/approve/{id}")
-    public R<Void> approve(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                           @RequestParam(required = false) String remark,
-                           @RequestParam(required = false) Long executorId,
-                           @RequestParam(required = false) String executorName) {
-        shipmentOrderService.approve(id, remark, executorId, executorName);
-        return R.ok();
-    }
-
-    /**
-     * 驳回（待审批 → 已驳回）
-     */
-    @SaCheckPermission("wms:shipment:approve")
-    @Log(title = "出库单", businessType = BusinessType.UPDATE)
-    @RepeatSubmit()
-    @PutMapping("/reject/{id}")
-    public R<Void> reject(@NotNull(message = "主键不能为空") @PathVariable Long id,
-                          @RequestParam(required = false) String remark) {
-        shipmentOrderService.reject(id, remark);
-        return R.ok();
-    }
-
-    /**
-     * 作废（草稿/已驳回 → 作废）
+     * 作废（草稿 → 作废）
      */
     @SaCheckPermission("wms:shipment:all")
     @Log(title = "出库单", businessType = BusinessType.UPDATE)

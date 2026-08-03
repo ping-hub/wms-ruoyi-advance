@@ -152,6 +152,73 @@ public class DashboardService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 质保期预警统计
+     * 返回：{expired: N, expiringThisMonth: N, expiringNextMonth: N}
+     */
+    public Map<String, Object> getWarrantyStats() {
+        LocalDate today = LocalDate.now();
+        // 下月第一天
+        LocalDate nextMonthStart = today.withDayOfMonth(1).plusMonths(1);
+        // 下下月第一天
+        LocalDate nextNextMonthStart = today.withDayOfMonth(1).plusMonths(2);
+
+        long expired = dashboardMapper.countByWarrantyExpiry("expired", today, nextMonthStart, nextNextMonthStart);
+        long expiringThisMonth = dashboardMapper.countByWarrantyExpiry("expiringThisMonth", today, nextMonthStart, nextNextMonthStart);
+        long expiringNextMonth = dashboardMapper.countByWarrantyExpiry("expiringNextMonth", today, nextMonthStart, nextNextMonthStart);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("expired", expired);
+        result.put("expiringThisMonth", expiringThisMonth);
+        result.put("expiringNextMonth", expiringNextMonth);
+        return result;
+    }
+
+
+    /**
+     * 质保期预警明细列表（已到期+本月到期+下月到期），分页返回
+     */
+    public Map<String, Object> getWarrantyWarningList(int pageNum, int pageSize) {
+        LocalDate today = LocalDate.now();
+        LocalDate nextNextMonthStart = today.withDayOfMonth(1).plusMonths(2);
+
+        List<Map<String, Object>> allItems = dashboardMapper.selectWarrantyWarningList(today, nextNextMonthStart);
+
+        List<Map<String, Object>> enrichedItems = new ArrayList<>();
+        for (Map<String, Object> item : allItems) {
+            String warrantyPeriodStr = String.valueOf(item.get("warrantyPeriod"));
+            if (warrantyPeriodStr == null || "null".equals(warrantyPeriodStr)) continue;
+            try {
+                LocalDate warrantyDate = LocalDate.parse(warrantyPeriodStr);
+                long remaining = ChronoUnit.DAYS.between(today, warrantyDate);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", item.get("id"));
+                row.put("instanceCode", item.get("instanceCode"));
+                row.put("itemName", item.get("itemName"));
+                row.put("warrantyPeriodMonths", item.get("warrantyPeriodMonths"));
+                row.put("warrantyPeriod", warrantyPeriodStr);
+                row.put("remainingDays", remaining);
+                if (remaining < 0) {
+                    row.put("warrantyLabel", "已到期");
+                } else {
+                    LocalDate nextMonthStart = today.withDayOfMonth(1).plusMonths(1);
+                    row.put("warrantyLabel", warrantyDate.isBefore(nextMonthStart) ? "本月到期" : "下月到期");
+                }
+                enrichedItems.add(row);
+            } catch (Exception ignored) {}
+        }
+
+        int total = enrichedItems.size();
+        int fromIndex = Math.min((pageNum - 1) * pageSize, total);
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        List<Map<String, Object>> pageList = enrichedItems.subList(fromIndex, toIndex);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", total);
+        result.put("list", pageList);
+        return result;
+    }
+
     // ========== 工具方法 ==========
 
     private long toLong(Object val) {

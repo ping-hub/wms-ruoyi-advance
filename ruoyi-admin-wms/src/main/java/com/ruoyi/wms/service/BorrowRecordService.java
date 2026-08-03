@@ -116,7 +116,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
         ItemInstance itemInstance = requireBorrowableItem(bo.getInstanceCode());
         // 盘点冻结校验
         checkOrderService.assertNoActiveCheckOrder(itemInstance.getWarehouseId(), itemInstance.getAreaId(), itemInstance.getRackId());
-        Assert.isNull(findActiveRecordEntity(bo.getInstanceCode()), "该单品实例已处于借出状态");
+        Assert.isNull(findActiveRecordEntity(bo.getInstanceCode()), "该器材已处于借出状态");
         BorrowRecord add = new BorrowRecord();
         add.setInstanceCode(itemInstance.getInstanceCode());
         add.setBorrowStatus(ServiceConstants.BorrowStatus.BORROWED);
@@ -216,11 +216,11 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
 
     private ItemInstance requireBorrowableItem(String instanceCode) {
         ItemInstance itemInstance = itemInstanceService.getEntityByInstanceCode(instanceCode);
-        Assert.notNull(itemInstance, "单品实例不存在");
-        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "单品实例已借出");
+        Assert.notNull(itemInstance, "器材不存在");
+        Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "器材已借出");
         Assert.isTrue(ServiceConstants.ItemInstanceStatus.IN_STOCK.equals(itemInstance.getInstanceStatus()), "仅在库单品可以借出");
-        Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null, "单品实例已被出库单占用");
-        Assert.isTrue(itemInstance.getMovementOrderDetailId() == null, "单品实例已被调拨单占用");
+        Assert.isTrue(itemInstance.getShipmentOrderDetailId() == null, "器材已被出库单占用");
+        Assert.isTrue(itemInstance.getMovementOrderDetailId() == null, "器材已被调拨单占用");
         return itemInstance;
     }
 
@@ -231,7 +231,7 @@ public class BorrowRecordService extends ServiceImpl<BorrowRecordMapper, BorrowR
             Assert.isTrue(ServiceConstants.BorrowStatus.BORROWED.equals(borrowRecord.getBorrowStatus()), "该借还记录已归还");
             return borrowRecord;
         }
-        Assert.notNull(bo.getInstanceCode(), "归还时借还记录ID或单品实例ID至少传一个");
+        Assert.notNull(bo.getInstanceCode(), "归还时借还记录ID或器材ID至少传一个");
         BorrowRecord borrowRecord = findActiveRecordEntity(bo.getInstanceCode());
         Assert.notNull(borrowRecord, "当前单品不存在未归还借用记录");
         return borrowRecord;

@@ -30,7 +30,7 @@ public class CheckOrderDetailBo extends BaseEntity {
     @NotNull(message = "不能为空", groups = { EditGroup.class })
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
 
@@ -114,7 +114,7 @@ public class CheckOrderDetailBo extends BaseEntity {
     /**
      * 有盈亏
      */
-    /** 已扫描的器材实例编码列表（前端提交） */
+    /** 已扫描的器材识别码列表（前端提交） */
     private java.util.List<String> scannedInstanceCodes;
 
     /**

@@ -25,6 +25,7 @@ import com.ruoyi.wms.domain.entity.ShipmentOrderDetail;
 import com.ruoyi.wms.domain.vo.ItemSkuVo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderDetailVo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
+import com.ruoyi.wms.service.BoxService;
 import com.ruoyi.wms.mapper.InventoryDetailMapper;
 import com.ruoyi.wms.mapper.ShipmentOrderMapper;
 import jakarta.validation.constraints.NotEmpty;
@@ -60,6 +61,7 @@ public class ShipmentOrderService {
     private final ItemSkuService itemSkuService;
     private final LocationService locationService;
     private final WorkflowService workflowService;
+    private final BoxService boxService;
     private final CheckOrderService checkOrderService;
 
     /**
@@ -214,12 +216,7 @@ public class ShipmentOrderService {
         if (ServiceConstants.ShipmentOrderStatus.FINISH.equals(status)) {
             throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】已出库，无法删除！", HttpStatus.CONFLICT.value());
         }
-        if (ServiceConstants.ShipmentOrderStatus.APPROVED.equals(status)) {
-            throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】已审批，无法删除！", HttpStatus.CONFLICT.value());
-        }
-        if (ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(status)) {
-            throw new ServiceException("出库单【" + shipmentOrderVo.getShipmentOrderNo() + "】待审批中，无法删除！", HttpStatus.CONFLICT.value());
-        }
+
     }
 
     /**
@@ -232,11 +229,9 @@ public class ShipmentOrderService {
         if (bo.getId() != null) {
             ShipmentOrder existing = shipmentOrderMapper.selectById(bo.getId());
             Assert.notNull(existing, "出库单不存在");
-            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.APPROVED.equals(existing.getShipmentOrderStatus()),
-                "出库单未审批通过，不能执行出库");
-            if (existing.getExecutorId() != null && !existing.getExecutorId().equals(LoginHelper.getUserId())) {
-                throw new ServiceException("您不是指定的出库操作人，无权执行出库");
-            }
+            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.DRAFT.equals(existing.getShipmentOrderStatus()),
+                "出库单不是草稿状态，不能执行出库");
+
         }
         // 0.1 盘点冻结校验（从明细级取warehouseId，支持跨仓库出库）
         if (bo.getDetails() != null) {
@@ -269,10 +264,17 @@ public class ShipmentOrderService {
         inventoryDetailMapper.deductInventoryDetailQuantity(inventoryDetailBoList, LoginHelper.getUsername(), LocalDateTime.now());
         // 7.创建库存记录
         saveInventoryHistory(bo, inventoryDetailMap);
-        // 8.同步单品实例状态（关联调拨单的出库单跳过，调拨单已将实例标为"已调拨"）
+        // 8. 先计算随箱出库的箱子
+        Set<Long> outboundBoxIds = bo.getDetails().stream()
+            .filter(d -> d.getBoxId() != null && Boolean.TRUE.equals(d.getBoxOutbound()))
+            .map(ShipmentOrderDetailBo::getBoxId)
+            .collect(Collectors.toSet());
+        // 8.同步器材状态（关联调拨单的出库单跳过，调拨单已将实例标为"已调拨"）
         if (bo.getMovementOrderId() == null) {
-            syncShipmentObjects(bo.getDetails(), bo.getShipmentOrderType());
+            syncShipmentObjects(bo.getDetails(), bo.getShipmentOrderType(), outboundBoxIds, bo.getId());
         }
+        // 9. 箱子出库（在器材状态同步之后调用，此时器材 boxId 已被清空，markOutbound 仍正确设置状态）
+        outboundBoxIds.forEach(boxId -> boxService.markOutbound(boxId, bo.getId(), "SHIPMENT"));
         locationService.refreshOccupiedFlagsByLocationIds(inventoryDetailMap.values().stream()
             .map(InventoryDetail::getLocationId)
             .filter(Objects::nonNull)
@@ -378,8 +380,8 @@ public class ShipmentOrderService {
         if (bo.getId() != null) {
             ShipmentOrder shipmentOrder = shipmentOrderMapper.selectById(bo.getId());
             Assert.notNull(shipmentOrder, "出库单不存在");
-            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.APPROVED.equals(shipmentOrder.getShipmentOrderStatus()),
-                "出库单未审批通过，不能执行出库");
+            Assert.isTrue(ServiceConstants.ShipmentOrderStatus.DRAFT.equals(shipmentOrder.getShipmentOrderStatus()),
+                "出库单不是草稿状态，不能执行出库");
             // movementOrderId以数据库为准（前端完成出库请求可能不携带此字段）
             if (movementOrderId == null) {
                 movementOrderId = shipmentOrder.getMovementOrderId();
@@ -404,9 +406,9 @@ public class ShipmentOrderService {
                 continue;
             }
             ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
-            Assert.notNull(itemInstance, "存在不存在的单品实例");
-            Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "单品实例与出库规格不匹配");
-            Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按单品实例出库时，数量必须为1");
+            Assert.notNull(itemInstance, "存在不存在的器材");
+            Assert.isTrue(Objects.equals(itemInstance.getSkuId(), detail.getSkuId()), "器材与出库规格不匹配");
+            Assert.isTrue(detail.getQuantity() != null && detail.getQuantity().compareTo(java.math.BigDecimal.ONE) == 0, "按器材出库时，数量必须为1");
             Assert.isFalse(ServiceConstants.ItemInstanceStatus.BORROWED.equals(itemInstance.getInstanceStatus()), "已借出单品不能出库");
             // 关联调拨单的出库单：实例已被调拨单标记为"已调拨"，允许TRANSFERRED状态
             if (movementOrderId != null) {
@@ -420,7 +422,7 @@ public class ShipmentOrderService {
         }
     }
 
-    private void syncShipmentObjects(List<ShipmentOrderDetailBo> details, String shipmentOrderType) {
+    private void syncShipmentObjects(List<ShipmentOrderDetailBo> details, String shipmentOrderType, Set<Long> outboundBoxIds, Long orderId) {
         Set<String> instanceCodes = details.stream()
             .map(ShipmentOrderDetailBo::getInstanceCode)
             .filter(Objects::nonNull)
@@ -440,11 +442,11 @@ public class ShipmentOrderService {
                 continue;
             }
             ItemInstance itemInstance = itemMap.get(detail.getInstanceCode());
-            Assert.notNull(itemInstance, "单品实例不存在");
+            Assert.notNull(itemInstance, "器材不存在");
             instanceIds.add(itemInstance.getId());
         }
         if (CollUtil.isNotEmpty(instanceIds)) {
-            itemInstanceService.batchMarkOutbound(instanceIds, targetStatus);
+            itemInstanceService.batchMarkOutbound(instanceIds, targetStatus, outboundBoxIds, orderId, "SHIPMENT");
         }
     }
 
@@ -498,92 +500,19 @@ public class ShipmentOrderService {
 
     // ==================== 审批流程方法 ====================
 
-    /**
-     * 提交审批（草稿/已驳回 → 待审批）
-     *
-     * @param id           出库单ID
-     * @param approverId   指定审批人ID
-     * @param approverName 指定审批人姓名
-     */
-    @Transactional
-    public void submitForApproval(Long id, Long approverId, String approverName) {
-        ShipmentOrder order = shipmentOrderMapper.selectById(id);
-        Assert.notNull(order, "出库单不存在");
-        Assert.isTrue(
-            ServiceConstants.ShipmentOrderStatus.DRAFT.equals(order.getShipmentOrderStatus())
-                || ServiceConstants.ShipmentOrderStatus.REJECTED.equals(order.getShipmentOrderStatus()),
-            "只有草稿或已驳回状态的出库单才能提交审批"
-        );
-        ShipmentOrder update = new ShipmentOrder();
-        update.setId(id);
-        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL);
-        update.setSubmitTime(LocalDateTime.now());
-        update.setApproverId(approverId);
-        update.setApproverName(approverName);
-        shipmentOrderMapper.updateById(update);
-        workflowService.logOperation("shipment", id, "submit", "提交审批",
-            approverName != null ? "指定审批人：" + approverName : null, "submitted");
-    }
+
+
 
     /**
-     * 审批通过（待审批 → 已审批）
-     */
-    @Transactional
-    public void approve(Long id, String remark, Long executorId, String executorName) {
-        ShipmentOrder order = shipmentOrderMapper.selectById(id);
-        Assert.notNull(order, "出库单不存在");
-        Assert.isTrue(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(order.getShipmentOrderStatus()),
-            "只有待审批状态的出库单才能审批");
-
-        ShipmentOrder update = new ShipmentOrder();
-        update.setId(id);
-        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.APPROVED);
-        update.setApproverId(LoginHelper.getUserId());
-        update.setApproverName(LoginHelper.getUsername());
-        update.setApproveTime(LocalDateTime.now());
-        update.setApproveRemark(remark);
-        update.setExecutorId(executorId);
-        update.setExecutorName(executorName);
-        shipmentOrderMapper.updateById(update);
-        String logRemark = remark;
-        if (executorName != null) {
-            logRemark = (logRemark != null ? logRemark + "; " : "") + "指定操作人：" + executorName;
-        }
-        workflowService.logOperation("shipment", id, "approve", "审批通过", logRemark, "approved");
-    }
-
-    /**
-     * 驳回（待审批 → 已驳回）
-     */
-    @Transactional
-    public void reject(Long id, String remark) {
-        ShipmentOrder order = shipmentOrderMapper.selectById(id);
-        Assert.notNull(order, "出库单不存在");
-        Assert.isTrue(ServiceConstants.ShipmentOrderStatus.PENDING_APPROVAL.equals(order.getShipmentOrderStatus()),
-            "只有待审批状态的出库单才能驳回");
-
-        ShipmentOrder update = new ShipmentOrder();
-        update.setId(id);
-        update.setShipmentOrderStatus(ServiceConstants.ShipmentOrderStatus.REJECTED);
-        update.setApproverId(LoginHelper.getUserId());
-        update.setApproverName(LoginHelper.getUsername());
-        update.setApproveTime(LocalDateTime.now());
-        update.setApproveRemark(remark);
-        shipmentOrderMapper.updateById(update);
-        workflowService.logOperation("shipment", id, "reject", "驳回", remark, "rejected");
-    }
-
-    /**
-     * 作废（草稿/已驳回 → 作废）
+     * 作废（草稿 → 作废）
      */
     @Transactional
     public void voidOrder(Long id) {
         ShipmentOrder order = shipmentOrderMapper.selectById(id);
         Assert.notNull(order, "出库单不存在");
         Assert.isTrue(
-            ServiceConstants.ShipmentOrderStatus.DRAFT.equals(order.getShipmentOrderStatus())
-                || ServiceConstants.ShipmentOrderStatus.REJECTED.equals(order.getShipmentOrderStatus()),
-            "只有草稿或已驳回状态的出库单才能作废"
+            ServiceConstants.ShipmentOrderStatus.DRAFT.equals(order.getShipmentOrderStatus()),
+            "只有草稿状态的出库单才能作废"
         );
         ShipmentOrder update = new ShipmentOrder();
         update.setId(id);

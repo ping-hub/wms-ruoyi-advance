@@ -57,6 +57,22 @@ public class BoxBo extends BaseEntity {
      */
     private Integer itemCount;
 
+
+    /**
+     * 关联出库单据ID
+     */
+    private Long outboundOrderId;
+
+    /**
+     * 关联单据类型：SHIPMENT/BORROW_ORDER
+     */
+    private String outboundOrderType;
+
+    /**
+     * 出库时间
+     */
+    private java.time.LocalDateTime outboundTime;
+
     /**
      * 备注
      */

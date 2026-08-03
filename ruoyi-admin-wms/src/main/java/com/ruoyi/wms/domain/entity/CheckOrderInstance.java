@@ -33,7 +33,7 @@ public class CheckOrderInstance extends BaseEntity {
     /** 器材规格ID */
     private Long skuId;
 
-    /** 器材实例编码 */
+    /** 器材识别码 */
     private String instanceCode;
 
     /** 器材名称（冗余展示） */

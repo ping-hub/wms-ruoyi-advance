@@ -22,7 +22,7 @@ public class BorrowOrderDetailVo {
     /** 借用单ID */
     private Long borrowOrderId;
 
-    /** 器材实例编码 */
+    /** 器材识别码 */
     private String instanceCode;
 
     /** 规格ID */
@@ -72,6 +72,12 @@ public class BorrowOrderDetailVo {
 
     /** 归还状态 */
     private Integer returnStatus;
+    /** 所属箱ID（从 ItemInstance 带入，不持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long boxId;
+    /** 是否随箱出库（前端传入，不持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean boxOutbound;
 
     /** 归还时间 */
     private LocalDateTime returnTime;

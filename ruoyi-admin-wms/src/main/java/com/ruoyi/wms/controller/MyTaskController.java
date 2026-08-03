@@ -1,6 +1,7 @@
 package com.ruoyi.wms.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.common.web.core.BaseController;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * 我的待办
@@ -53,4 +56,15 @@ public class MyTaskController extends BaseController {
     public com.ruoyi.common.core.domain.R<java.util.Map<String, Object>> summary() {
         return com.ruoyi.common.core.domain.R.ok(myTaskService.getMyTasksSummary());
     }
+
+    /**
+     * 三类预警分类统计（供我的待办页 Tab 角标使用）
+     * 返回：{borrow: N, inventory: N, warranty: N}
+     */
+    @SaCheckPermission("wms:myTasks:list")
+    @GetMapping("/warningCategoryStats")
+    public R<Map<String, Object>> warningCategoryStats() {
+        return R.ok(myTaskService.getWarningCategoryStats());
+    }
+
 }

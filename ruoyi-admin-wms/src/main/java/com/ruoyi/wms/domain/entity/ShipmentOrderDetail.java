@@ -30,7 +30,7 @@ public class ShipmentOrderDetail extends BaseEntity {
     @TableId(value = "id")
     private Long id;
     /**
-     * 器材实例编码
+     * 器材识别码
      */
     private String instanceCode;
     /**
@@ -108,13 +108,15 @@ public class ShipmentOrderDetail extends BaseEntity {
     private Long inventoryDetailId;
 
     /**
-     * 单品实例ID
+     * 器材ID
      */
 
     /**
      * 箱体ID
      */
     private Long boxId;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean boxOutbound;
 
     /**
      * 备注

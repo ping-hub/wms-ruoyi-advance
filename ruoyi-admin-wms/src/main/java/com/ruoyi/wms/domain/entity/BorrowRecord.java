@@ -25,7 +25,7 @@ public class BorrowRecord extends BaseEntity {
     private Long id;
 
     /**
-     * 单品实例ID
+     * 器材ID
      */
 
     /**
@@ -84,7 +84,7 @@ public class BorrowRecord extends BaseEntity {
     private Integer overdueDays;
 
     /**
-     * 器材实例编码快照
+     * 器材识别码快照
      */
     private String instanceCode;
 

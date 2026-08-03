@@ -26,7 +26,7 @@ public class BorrowOrderDetail extends BaseEntity {
     /** 借用单ID */
     private Long borrowOrderId;
 
-    /** 器材实例编码 */
+    /** 器材识别码 */
     private String instanceCode;
 
     /** 规格ID */

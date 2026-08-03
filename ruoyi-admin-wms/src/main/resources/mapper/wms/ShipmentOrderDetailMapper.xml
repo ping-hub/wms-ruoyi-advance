@@ -26,17 +26,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="boxCode" column="box_code" />
         <association property="shipmentOrder" javaType="com.ruoyi.wms.domain.vo.ShipmentOrderVo">
             <result property="shipmentOrderNo" column="shipment_order_no" />
-            <result property="warehouseId" column="so_warehouse_id" />
-            <result property="areaId" column="so_area_id" />
         </association>
     </resultMap>
 
     <select id="queryDetailPage" resultMap="shipmentDetailVoMap">
         SELECT
             d.*,
-            so.shipment_order_no,
-            so.warehouse_id  AS so_warehouse_id,
-            so.area_id       AS so_area_id
+            so.shipment_order_no
         FROM wms_shipment_order_detail d
         INNER JOIN wms_shipment_order so ON d.shipment_order_id = so.id
         <where>

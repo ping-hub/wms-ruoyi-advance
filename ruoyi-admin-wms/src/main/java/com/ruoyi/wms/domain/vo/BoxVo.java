@@ -60,5 +60,15 @@ public class BoxVo implements Serializable {
     @ExcelProperty(value = "备注")
     private String remark;
 
+
+    @ExcelProperty(value = "关联出库单ID")
+    private Long outboundOrderId;
+
+    @ExcelProperty(value = "关联单据类型")
+    private String outboundOrderType;
+
+    @ExcelProperty(value = "出库时间")
+    private java.time.LocalDateTime outboundTime;
+
     private List<ItemInstanceVo> items;
 }

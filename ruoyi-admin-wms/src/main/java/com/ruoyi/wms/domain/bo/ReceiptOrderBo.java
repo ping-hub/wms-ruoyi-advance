@@ -65,6 +65,11 @@ public class ReceiptOrderBo extends BaseEntity {
     private String receiveUnit;
 
     /**
+     * 调拨单号
+     */
+    private String movementOrderNo;
+
+    /**
      * 采购日期
      */
     private LocalDate purchaseDate;

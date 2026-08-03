@@ -20,7 +20,7 @@ public class ItemInstanceVo implements Serializable {
     @ExcelProperty(value = "")
     private Long id;
 
-    @ExcelProperty(value = "器材实例编码")
+    @ExcelProperty(value = "器材识别码")
     private String instanceCode;
 
     @ExcelProperty(value = "物品ID")
@@ -52,6 +52,12 @@ public class ItemInstanceVo implements Serializable {
 
     @ExcelProperty(value = "质量等级")
     private String qualityGrade;
+
+    /**
+     * 质保期（月）
+     */
+    @ExcelProperty(value = "质保期（月）")
+    private Integer warrantyPeriodMonths;
 
     @ExcelProperty(value = "质保期")
     private LocalDate warrantyPeriod;

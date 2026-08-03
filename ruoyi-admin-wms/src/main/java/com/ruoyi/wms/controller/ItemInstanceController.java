@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Validated
 @RequiredArgsConstructor
@@ -49,10 +50,10 @@ public class ItemInstanceController extends BaseController {
     }
 
     @SaCheckPermission("wms:itemInstance:list")
-    @Log(title = "单品实例", businessType = BusinessType.EXPORT)
+    @Log(title = "器材", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(ItemInstanceBo bo, HttpServletResponse response) {
-        ExcelUtil.exportExcel(itemInstanceService.queryList(bo), "单品实例", ItemInstanceVo.class, response);
+        ExcelUtil.exportExcel(itemInstanceService.queryList(bo), "器材", ItemInstanceVo.class, response);
     }
 
     @SaCheckPermission("wms:itemInstance:list")
@@ -62,7 +63,7 @@ public class ItemInstanceController extends BaseController {
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例", businessType = BusinessType.IMPORT)
+    @Log(title = "器材", businessType = BusinessType.IMPORT)
     @PostMapping(value = "/importData", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public R<Void> importData(@RequestPart("file") MultipartFile file) throws Exception {
         ExcelResult<ItemInstanceImportVo> excelResult = ExcelUtil.importExcel(file.getInputStream(), ItemInstanceImportVo.class, true);
@@ -79,14 +80,14 @@ public class ItemInstanceController extends BaseController {
 
     @SaCheckPermission("wms:itemInstance:list")
     @GetMapping("/code/{instanceCode}")
-    public R<ItemInstanceVo> getByCode(@NotBlank(message = "器材实例编码不能为空") @PathVariable String instanceCode, ItemInstanceBo bo) {
+    public R<ItemInstanceVo> getByCode(@NotBlank(message = "器材识别码不能为空") @PathVariable String instanceCode, ItemInstanceBo bo) {
         ItemInstanceVo vo = itemInstanceService.queryByCode(instanceCode);
         itemInstanceService.validateSelectRules(vo, bo);
         return R.ok(vo);
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例", businessType = BusinessType.INSERT)
+    @Log(title = "器材", businessType = BusinessType.INSERT)
     @RepeatSubmit
     @PostMapping
     public R<Void> add(@Validated(AddGroup.class) @RequestBody ItemInstanceBo bo) {
@@ -95,7 +96,7 @@ public class ItemInstanceController extends BaseController {
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例", businessType = BusinessType.UPDATE)
+    @Log(title = "器材", businessType = BusinessType.UPDATE)
     @RepeatSubmit
     @PutMapping
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody ItemInstanceBo bo) {
@@ -104,7 +105,7 @@ public class ItemInstanceController extends BaseController {
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例状态", businessType = BusinessType.UPDATE)
+    @Log(title = "器材状态", businessType = BusinessType.UPDATE)
     @RepeatSubmit
     @PutMapping("/status")
     public R<Void> updateStatus(@RequestBody ItemInstanceBo bo) {
@@ -113,7 +114,7 @@ public class ItemInstanceController extends BaseController {
     }
 
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例位置", businessType = BusinessType.UPDATE)
+    @Log(title = "器材位置", businessType = BusinessType.UPDATE)
     @RepeatSubmit
     @PutMapping("/location")
     public R<Void> updateLocation(@RequestBody ItemInstanceBo bo) {
@@ -121,8 +122,37 @@ public class ItemInstanceController extends BaseController {
         return R.ok();
     }
 
+
     @SaCheckPermission("wms:itemInstance:edit")
-    @Log(title = "单品实例", businessType = BusinessType.DELETE)
+    @Log(title = "散件移位", businessType = BusinessType.UPDATE)
+    @RepeatSubmit
+    @PutMapping("/batchRelocate")
+    public R<Void> batchRelocate(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> rawIds = (List<Number>) body.get("ids");
+        if (rawIds == null || rawIds.isEmpty()) {
+            return R.ok();
+        }
+        List<Long> ids = rawIds.stream().map(Number::longValue).collect(java.util.stream.Collectors.toList());
+        Long warehouseId = body.get("warehouseId") != null ? ((Number) body.get("warehouseId")).longValue() : null;
+        Long areaId     = body.get("areaId")     != null ? ((Number) body.get("areaId")).longValue()     : null;
+        Long rackId     = body.get("rackId")     != null ? ((Number) body.get("rackId")).longValue()     : null;
+        Long locationId = body.get("locationId") != null ? ((Number) body.get("locationId")).longValue() : null;
+        itemInstanceService.batchRelocate(ids, warehouseId, areaId, rackId, locationId);
+        return R.ok();
+    }
+
+    @SaCheckPermission("wms:itemInstance:edit")
+    @Log(title = "质保期重置", businessType = BusinessType.UPDATE)
+    @RepeatSubmit
+    @PutMapping("/batchResetWarranty")
+    public R<Void> batchResetWarranty(@RequestBody List<Long> ids) {
+        itemInstanceService.batchResetWarranty(ids);
+        return R.ok();
+    }
+
+    @SaCheckPermission("wms:itemInstance:edit")
+    @Log(title = "器材", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public R<Void> remove(@NotNull(message = "主键不能为空") @PathVariable Long id) {
         itemInstanceService.deleteById(id);

@@ -22,15 +22,13 @@ public class ServiceConstants {
     }
 
     /**
-     * 出库单状态（审批流程）
-     * 0=草稿, 1=待审批, 2=已审批, 3=已出库, -1=作废, -2=已驳回
+     * 出库单状态
+     * 0=草稿, 3=已出库, -1=作废
+     * 中间状态（待审批/已审批/已驳回）由 wms_workflow_def 表驱动，不硬编码
      */
     public class ShipmentOrderStatus {
-        public static final Integer REJECTED = -2;
         public static final Integer INVALID = -1;
         public static final Integer DRAFT = 0;
-        public static final Integer PENDING_APPROVAL = 1;
-        public static final Integer APPROVED = 2;
         public static final Integer FINISH = 3;
     }
 
@@ -57,15 +55,13 @@ public class ServiceConstants {
     }
 
     /**
-     * 盘库单状态（两步流程：草稿→待盘点→待复核→已完成）
-     * -2=已驳回, -1=作废, 0=草稿, 1=待盘点, 2=待复核, 3=已完成
+     * 盘库单状态
+     * 0=草稿, 3=已完成, -1=作废
+     * 中间状态（待盘点/待复核/已驳回）由 wms_workflow_def 表驱动，不硬编码
      */
     public class CheckOrderStatus {
-        public static final Integer REJECTED = -2;
         public static final Integer INVALID = -1;
         public static final Integer DRAFT = 0;
-        public static final Integer PENDING_CHECK = 1;
-        public static final Integer PENDING_REVIEW = 2;
         public static final Integer FINISH = 3;
     }
 
