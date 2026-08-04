@@ -50,28 +50,34 @@ public class LicenseService {
             if (!file.exists()) {
                 log.warn("License 文件不存在: {}，系统进入未激活状态", licenseFilePath);
                 statusHolder.updateStatus(null);
+                statusHolder.syncToRedis(null);
                 return;
             }
             LicenseInfo info = readAndVerifyLicenseFile(file);
             if (info == null) {
                 log.warn("License 文件校验失败，系统进入未激活状态");
                 statusHolder.updateStatus(null);
+                statusHolder.syncToRedis(null);
                 return;
             }
             // 校验有效期
             if (isExpired(info)) {
                 log.warn("License 已过期（到期时间: {}），系统进入过期只读状态", info.getExpiresAt());
                 statusHolder.updateStatus(info);
+                statusHolder.syncToRedis(info);
                 return;
             }
             // 校验机器码
             if (!verifyMachineCode(info)) {
                 log.warn("License 机器码不匹配，系统进入未激活状态");
                 statusHolder.updateStatus(null);
+                statusHolder.syncToRedis(null);
                 return;
             }
             log.info("License 校验通过: 颁发对象={}, 到期时间={}", info.getIssuedTo(), info.getExpiresAt());
             statusHolder.updateStatus(info);
+            // 启动时同步到 Redis，防止 refreshFromRedis 用旧数据覆盖
+            statusHolder.syncToRedis(info);
         } catch (Exception e) {
             log.error("License 加载异常: {}", e.getMessage(), e);
             statusHolder.updateStatus(null);
