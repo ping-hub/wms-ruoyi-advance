@@ -60,6 +60,9 @@ public class BoxVo implements Serializable {
     @ExcelProperty(value = "备注")
     private String remark;
 
+    @ExcelProperty(value = "位置编码")
+    private String positionCode;
+
 
     @ExcelProperty(value = "关联出库单ID")
     private Long outboundOrderId;

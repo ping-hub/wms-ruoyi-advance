@@ -77,4 +77,9 @@ public class BoxBo extends BaseEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 位置编码
+     */
+    private String positionCode;
 }
