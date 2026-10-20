@@ -14,6 +14,7 @@ import com.ruoyi.common.mybatis.handler.InjectionMetaObjectHandler;
 import com.ruoyi.common.mybatis.handler.MybatisExceptionHandler;
 import com.ruoyi.common.mybatis.interceptor.PlusDataPermissionInterceptor;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -27,6 +28,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @MapperScan("${mybatis-plus.mapperPackage}")
 @PropertySource(value = "classpath:common-mybatis.yml", factory = YmlPropertySourceFactory.class)
 public class MybatisPlusConfig {
+
+    @Value("${db.type:postgresql}")
+    private String dbType;
 
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
@@ -53,10 +57,19 @@ public class MybatisPlusConfig {
     public PaginationInnerInterceptor paginationInnerInterceptor() {
         PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor();
         // 设置数据库类型为 POSTGRE_SQL (Vastbase 基于 PostgreSQL)
-        paginationInnerInterceptor.setDbType(DbType.POSTGRE_SQL);
+        paginationInnerInterceptor.setDbType(resolveDbType());
         // 分页合理化
         paginationInnerInterceptor.setOverflow(true);
         return paginationInnerInterceptor;
+    }
+
+    private DbType resolveDbType() {
+        for (DbType type : DbType.values()) {
+            if (type.getDb().equalsIgnoreCase(dbType)) {
+                return type;
+            }
+        }
+        return DbType.POSTGRE_SQL;
     }
 
     /**

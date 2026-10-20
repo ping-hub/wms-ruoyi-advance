@@ -130,3 +130,19 @@ sms:
     sdkAppId: appid
     #地域信息默认为 ap-guangzhou 如无特殊改变可不用设置
     territory: ap-guangzhou
+
+--- # 温湿度监控 V2（智能主机对接）配置
+wms:
+  env-monitor:
+    job:
+      # 是否开启温湿度定时轮询任务（false 时任务不注册）
+      enabled: false
+      # 轮询周期 cron 表达式，默认每分钟执行一轮
+      cron: "0 */1 * * * ?"
+    client:
+      # 智能主机地址（示例为文档中的测试地址，现场部署时替换）
+      base-url: http://2445kh01qv40.vicp.fun:32520
+      # 智能主机登录账号
+      account: admin
+      # 智能主机登录密码（明文配置，调用登录接口时自动 MD5 后传输）
+      password: Omara@123

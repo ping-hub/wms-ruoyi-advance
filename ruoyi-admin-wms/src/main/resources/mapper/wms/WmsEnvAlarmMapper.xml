@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.WmsEnvAlarmMapper">
+
+    <!-- 告警分页查询（关联设备配置表） -->
+    <select id="selectAlarmPage" resultType="com.ruoyi.wms.domain.vo.EnvAlarmVo">
+        SELECT
+            a.id,
+            a.alarm_id,
+            a.type,
+            a.device_id,
+            a.spi,
+            a.level,
+            a.alarm_desc,
+            a.eng_desc,
+            a.state,
+            a.s_time,
+            a.e_time,
+            a.c_time,
+            a.s_option,
+            a.e_option,
+            a.c_option,
+            a.c_user,
+            a.parent,
+            a.push_time,
+            a.is_discharge,
+            a.ext_info,
+            a.receive_time,
+            c.device_name,
+            c.warehouse,
+            c.device_type,
+            c.location
+        FROM wms_env_alarm a
+        LEFT JOIN wms_env_device c ON c.device_id = a.device_id
+        <where>
+            <if test="query.deviceId != null and query.deviceId != ''">
+                AND a.device_id = #{query.deviceId}
+            </if>
+            <if test="query.alarmType != null and query.alarmType != ''">
+                AND a.ext_info::jsonb -&gt;&gt; 'alarmType' = #{query.alarmType}
+            </if>
+            <if test="query.state != null">
+                AND a.state = #{query.state}
+            </if>
+            <if test="query.beginTime != null">
+                AND a.s_time &gt;= #{query.beginTime}
+            </if>
+            <if test="query.endTime != null">
+                AND a.s_time &lt;= #{query.endTime}
+            </if>
+        </where>
+        ORDER BY a.s_time DESC
+    </select>
+
+</mapper>

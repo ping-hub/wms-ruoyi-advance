@@ -139,6 +139,8 @@ security:
     - /actuator/**
     # 环境监测采集器上报（无需登录）
     - /wms/envMonitor/upload
+    # 智能主机告警订阅推送（无需登录）
+    - /wms/envMonitor/v2/alarm/push
 
 # MyBatisPlus配置
 # https://baomidou.com/config/

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.WmsEnvDataMapper">
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch">
+        INSERT INTO wms_env_data
+            (device_id, online, temperature, humidity, collect_time, receive_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.deviceId},
+                #{item.online},
+                #{item.temperature},
+                #{item.humidity},
+                #{item.collectTime},
+                NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 查询每个设备的最新一条数据（关联设备配置表） -->
+    <select id="selectLatestList" resultType="com.ruoyi.wms.domain.vo.EnvDataVo">
+        SELECT DISTINCT ON (d.device_id)
+            d.id,
+            d.device_id,
+            d.online,
+            d.temperature,
+            d.humidity,
+            d.collect_time,
+            d.receive_time,
+            c.device_name,
+            c.warehouse,
+            c.device_type,
+            c.location
+        FROM wms_env_data d
+        LEFT JOIN wms_env_device c ON c.device_id = d.device_id
+        ORDER BY d.device_id, d.collect_time DESC
+    </select>
+
+    <!-- 历史数据分页查询（关联设备配置表） -->
+    <select id="selectDataPage" resultType="com.ruoyi.wms.domain.vo.EnvDataVo">
+        SELECT
+            d.id,
+            d.device_id,
+            d.online,
+            d.temperature,
+            d.humidity,
+            d.collect_time,
+            d.receive_time,
+            c.device_name,
+            c.warehouse,
+            c.device_type,
+            c.location
+        FROM wms_env_data d
+        LEFT JOIN wms_env_device c ON c.device_id = d.device_id
+        <where>
+            <if test="query.deviceId != null and query.deviceId != ''">
+                AND d.device_id = #{query.deviceId}
+            </if>
+            <if test="query.beginTime != null">
+                AND d.collect_time &gt;= #{query.beginTime}
+            </if>
+            <if test="query.endTime != null">
+                AND d.collect_time &lt;= #{query.endTime}
+            </if>
+        </where>
+        ORDER BY d.collect_time DESC
+    </select>
+
+</mapper>
