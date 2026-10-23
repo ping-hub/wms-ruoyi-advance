@@ -51,6 +51,11 @@ public class RackBo extends BaseEntity {
     private String rackStatus;
 
     /**
+     * 货架类型：rack-货架 cabinet-密集柜
+     */
+    private String rackType;
+
+    /**
      * 行数
      */
     @NotNull(message = "行数不能为空", groups = {AddGroup.class, EditGroup.class})

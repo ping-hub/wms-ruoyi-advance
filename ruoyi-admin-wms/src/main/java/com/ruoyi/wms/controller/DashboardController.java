@@ -46,11 +46,21 @@ public class DashboardController extends BaseController {
     }
 
     /**
+     * 仓储资源统计（仓库总数 / 货位数量）
+     */
+    @GetMapping("/storageStats")
+    public R<Object> storageStats() {
+        return R.ok(dashboardService.getStorageStats());
+    }
+
+    /**
      * 出入库趋势（默认近7天）
+     * granularity: day-按天 / week-按周 / month-按月；days 在周/月粒度下表示周数/月份数
      */
     @GetMapping("/inoutTrend")
-    public R<Object> inoutTrend(@RequestParam(defaultValue = "7") int days) {
-        return R.ok(dashboardService.getInoutTrend(days));
+    public R<Object> inoutTrend(@RequestParam(defaultValue = "7") int days,
+                                @RequestParam(required = false, defaultValue = "day") String granularity) {
+        return R.ok(dashboardService.getInoutTrend(granularity, days));
     }
 
     /**

@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.ruoyi.common.core.constant.ServiceConstants;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.wms.domain.entity.Box;
 import com.ruoyi.wms.domain.entity.InventoryDetail;
@@ -246,6 +247,12 @@ public class RackLocationPlannerService {
             update.setSortNo(expectedSortNo);
             changed = true;
         }
+        // 货架类型变更时，级联同步其下格位类型（格位类型为派生态）
+        String expectedLocationType = resolveLocationType(afterRack.getRackType());
+        if (!Objects.equals(location.getLocationType(), expectedLocationType)) {
+            update.setLocationType(expectedLocationType);
+            changed = true;
+        }
         return changed ? update : null;
     }
 
@@ -342,6 +349,7 @@ public class RackLocationPlannerService {
         location.setLocationCode(buildLocationCode(rack, row, column));
         location.setLocationName(buildLocationName(rack, row, column));
         location.setLocationStatus(DEFAULT_LOCATION_STATUS);
+        location.setLocationType(resolveLocationType(rack.getRackType()));
         location.setLength(rack.getLength() != null
             ? rack.getLength().divide(BigDecimal.valueOf(rack.getColumnCount()), BigDecimal.ROUND_HALF_UP) : null);
         location.setWidth(rack.getWidth());
@@ -364,6 +372,15 @@ public class RackLocationPlannerService {
 
     private Long buildSortNo(Integer row, Integer column) {
         return row == null || column == null ? null : row * 1000L + column;
+    }
+
+    /**
+     * 由货架类型映射格位类型：密集柜(cabinet)->柜位(cabinet_slot)，其余(含空)->货位/架位(slot)
+     */
+    private String resolveLocationType(String rackType) {
+        return ServiceConstants.RackType.CABINET.equals(rackType)
+            ? ServiceConstants.LocationType.CABINET_SLOT
+            : ServiceConstants.LocationType.SLOT;
     }
 
     private boolean isWithinRange(Location location, Rack rack) {

@@ -110,6 +110,22 @@ public class ServiceConstants {
 
 
     /**
+     * 货架类型
+     */
+    public class RackType {
+        public static final String RACK = "rack";
+        public static final String CABINET = "cabinet";
+    }
+
+    /**
+     * 货位类型
+     */
+    public class LocationType {
+        public static final String SLOT = "slot";
+        public static final String CABINET_SLOT = "cabinet_slot";
+    }
+
+    /**
      * 箱体状态
      */
     public class BoxStatus {

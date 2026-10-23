@@ -55,6 +55,11 @@ public class LocationBo extends BaseEntity {
     private String locationStatus;
 
     /**
+     * 货位类型：slot-货位/架位 cabinet_slot-柜位
+     */
+    private String locationType;
+
+    /**
      * 行号
      */
     private Integer rowNo;

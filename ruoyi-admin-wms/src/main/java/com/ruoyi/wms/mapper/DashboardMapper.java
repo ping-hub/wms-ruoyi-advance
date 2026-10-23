@@ -48,6 +48,16 @@ public interface DashboardMapper extends BaseMapperPlus<Inventory, InventoryVo> 
     BigDecimal sumInventoryValue();
 
     /**
+     * 统计仓库总数
+     */
+    long countWarehouse();
+
+    /**
+     * 统计货位数量
+     */
+    long countLocation();
+
+    /**
      * 按质保期状态统计器材实例数量
      * status: expired / expiringThisMonth / expiringNextMonth
      */

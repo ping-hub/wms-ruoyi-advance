@@ -82,6 +82,12 @@ public class LocationVo implements Serializable {
     private String locationStatus;
 
     /**
+     * 货位类型：slot-货位/架位 cabinet_slot-柜位
+     */
+    @ExcelProperty(value = "类型")
+    private String locationType;
+
+    /**
      * 行号
      */
     @ExcelProperty(value = "行号")

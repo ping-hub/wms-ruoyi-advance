@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ruoyi.common.core.constant.ServiceConstants;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
 import com.ruoyi.wms.domain.bo.BoxBo;
@@ -310,6 +311,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         lqw.eq(bo.getAreaId() != null, Location::getAreaId, bo.getAreaId());
         lqw.eq(bo.getRackId() != null, Location::getRackId, bo.getRackId());
         lqw.eq(StrUtil.isNotBlank(bo.getLocationStatus()), Location::getLocationStatus, bo.getLocationStatus());
+        lqw.eq(StrUtil.isNotBlank(bo.getLocationType()), Location::getLocationType, bo.getLocationType());
         lqw.eq(bo.getRowNo() != null, Location::getRowNo, bo.getRowNo());
         lqw.eq(bo.getColumnNo() != null, Location::getColumnNo, bo.getColumnNo());
         lqw.eq(bo.getOccupiedFlag() != null, Location::getOccupiedFlag, bo.getOccupiedFlag());
@@ -331,6 +333,13 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         Assert.notNull(rack, "所属货架不存在");
         Assert.isTrue(Objects.equals(rack.getWarehouseId(), bo.getWarehouseId()), "货位所属货架与仓库不匹配");
         Assert.isTrue(Objects.equals(rack.getAreaId(), bo.getAreaId()), "货位所属货架与库区不匹配");
+        // 格位类型需与父容器类型一致（密集柜->柜位，货架->货位/架位）
+        if (StrUtil.isNotBlank(bo.getLocationType())) {
+            String expectedType = ServiceConstants.RackType.CABINET.equals(rack.getRackType())
+                ? ServiceConstants.LocationType.CABINET_SLOT
+                : ServiceConstants.LocationType.SLOT;
+            Assert.isTrue(Objects.equals(expectedType, bo.getLocationType()), "货位类型与所属货架类型不匹配");
+        }
     }
 
     private void validateMaintenanceBoundary(LocationBo bo) {

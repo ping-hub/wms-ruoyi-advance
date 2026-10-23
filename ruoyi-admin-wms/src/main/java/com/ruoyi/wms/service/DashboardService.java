@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -23,6 +24,9 @@ public class DashboardService {
 
     private final DashboardMapper dashboardMapper;
     private final SysConfigService sysConfigService;
+
+    private static final DateTimeFormatter MM_DD = DateTimeFormatter.ofPattern("MM-dd");
+    private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
     /**
      * 安全运行天数
@@ -63,6 +67,17 @@ public class DashboardService {
     }
 
     /**
+     * 仓储资源统计（仓库总数 / 货位数量）
+     * 返回：{warehouseCount: N, locationCount: N}
+     */
+    public Map<String, Object> getStorageStats() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("warehouseCount", dashboardMapper.countWarehouse());
+        result.put("locationCount", dashboardMapper.countLocation());
+        return result;
+    }
+
+    /**
      * 物资种类统计（含分类明细 + 核心指标）
      * 返回：{categories: [...], totalCategories: N, totalQuantity: N, totalValue: N}
      */
@@ -96,43 +111,103 @@ public class DashboardService {
     }
 
     /**
-     * 出入库趋势（近 N 天）
+     * 出入库趋势（近 N 天，按日粒度）
      * 返回：{dates: [...], inQty: [...], outQty: [...]}
      */
     public Map<String, Object> getInoutTrend(int days) {
-        LocalDate startDate = LocalDate.now().minusDays(days);
+        return getInoutTrend("day", days);
+    }
+
+    /**
+     * 出入库趋势（支持日/周/月粒度）
+     * granularity: day-按天（count 为天数），week-按周（count 为周数，周一为一周起点），month-按月（count 为月份数）
+     * 返回：{dates: [...], inQty: [...], outQty: [...]}
+     */
+    public Map<String, Object> getInoutTrend(String granularity, int count) {
+        LocalDate today = LocalDate.now();
+        LocalDate startDate;
+        if ("week".equals(granularity)) {
+            startDate = today.minusWeeks(count - 1L).with(DayOfWeek.MONDAY);
+        } else if ("month".equals(granularity)) {
+            startDate = today.minusMonths(count - 1L).withDayOfMonth(1);
+        } else {
+            granularity = "day";
+            startDate = today.minusDays(count - 1L);
+        }
+
         List<Map<String, Object>> rows = dashboardMapper.countInoutByDate(startDate);
 
-        // 构建完整日期序列（补齐无数据的天）
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
-        Map<String, long[]> dateMap = new LinkedHashMap<>();
-        for (int i = days - 1; i >= 0; i--) {
-            String d = LocalDate.now().minusDays(i).format(fmt);
-            dateMap.put(d, new long[]{0L, 0L}); // [入库, 出库]
+        // 按粒度构建完整时间桶序列（补齐无数据的桶），key 为桶起始日
+        Map<LocalDate, long[]> bucketMap = new LinkedHashMap<>();
+        Map<LocalDate, String> labelMap = new LinkedHashMap<>();
+        for (int i = count - 1; i >= 0; i--) {
+            LocalDate bucketStart;
+            String label;
+            switch (granularity) {
+                case "week":
+                    bucketStart = today.minusWeeks(i).with(DayOfWeek.MONDAY);
+                    LocalDate sunday = bucketStart.plusDays(6);
+                    label = bucketStart.format(MM_DD) + "~" + sunday.format(MM_DD);
+                    break;
+                case "month":
+                    bucketStart = today.minusMonths(i).withDayOfMonth(1);
+                    label = bucketStart.format(MONTH_FMT);
+                    break;
+                default:
+                    bucketStart = today.minusDays(i);
+                    label = bucketStart.format(MM_DD);
+            }
+            bucketMap.put(bucketStart, new long[]{0L, 0L}); // [入库, 出库]
+            labelMap.put(bucketStart, label);
         }
 
         if (rows != null) {
+            DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             for (Map<String, Object> row : rows) {
                 String date = String.valueOf(row.get("date"));
+                LocalDate rowDate;
+                try {
+                    rowDate = LocalDate.parse(date, dayFmt);
+                } catch (Exception e) {
+                    continue;
+                }
+                // 定位行数据所属桶（向前找最近的桶起始日）
+                LocalDate bucketKey = bucketKeyOf(rowDate, granularity);
+                long[] arr = bucketMap.get(bucketKey);
+                if (arr == null) {
+                    continue;
+                }
                 int orderType = toInt(row.get("orderType"));
                 long qty = toLong(row.get("quantity"));
-                long[] arr = dateMap.get(date);
-                if (arr != null) {
-                    if (orderType == 1) arr[0] = qty; // 入库
-                    else if (orderType == 2) arr[1] = qty; // 出库
-                }
+                if (orderType == 1) arr[0] += qty; // 入库
+                else if (orderType == 2) arr[1] += qty; // 出库
             }
         }
 
-        List<String> dates = new ArrayList<>(dateMap.keySet());
-        List<Long> inQty = dates.stream().map(d -> dateMap.get(d)[0]).collect(Collectors.toList());
-        List<Long> outQty = dates.stream().map(d -> dateMap.get(d)[1]).collect(Collectors.toList());
+        List<String> dates = bucketMap.keySet().stream().map(labelMap::get).collect(Collectors.toList());
+        List<Long> inQty = bucketMap.values().stream().map(arr -> arr[0]).collect(Collectors.toList());
+        List<Long> outQty = bucketMap.values().stream().map(arr -> arr[1]).collect(Collectors.toList());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("dates", dates);
         result.put("inQty", inQty);
         result.put("outQty", outQty);
+        result.put("granularity", granularity);
         return result;
+    }
+
+    /**
+     * 计算日期所属时间桶的起始日
+     */
+    private LocalDate bucketKeyOf(LocalDate date, String granularity) {
+        switch (granularity) {
+            case "week":
+                return date.with(DayOfWeek.MONDAY);
+            case "month":
+                return date.withDayOfMonth(1);
+            default:
+                return date;
+        }
     }
 
     /**

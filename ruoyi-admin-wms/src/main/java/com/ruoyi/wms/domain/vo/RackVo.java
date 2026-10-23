@@ -64,6 +64,12 @@ public class RackVo implements Serializable {
     private String rackStatus;
 
     /**
+     * 货架类型：rack-货架 cabinet-密集柜
+     */
+    @ExcelProperty(value = "类型")
+    private String rackType;
+
+    /**
      * 行数
      */
     @ExcelProperty(value = "行数")
