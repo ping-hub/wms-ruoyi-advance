@@ -19,9 +19,9 @@
         </foreach>
     </insert>
 
-    <!-- 查询每个设备的最新一条数据（关联设备配置表） -->
+    <!-- 查询每个设备的最新一条数据（关联设备配置表，按 collect_time 倒序取每组首条，id 兜底去重，兼容 MySQL/Vastbase） -->
     <select id="selectLatestList" resultType="com.ruoyi.wms.domain.vo.EnvDataVo">
-        SELECT DISTINCT ON (d.device_id)
+        SELECT
             d.id,
             d.device_id,
             d.online,
@@ -35,7 +35,14 @@
             c.location
         FROM wms_env_data d
         LEFT JOIN wms_env_device c ON c.device_id = d.device_id
-        ORDER BY d.device_id, d.collect_time DESC
+        WHERE d.id = (
+            SELECT d2.id
+            FROM wms_env_data d2
+            WHERE d2.device_id = d.device_id
+            ORDER BY d2.collect_time DESC, d2.id DESC
+            LIMIT 1
+        )
+        ORDER BY d.device_id
     </select>
 
     <!-- 历史数据分页查询（关联设备配置表） -->

@@ -29,17 +29,17 @@
         ORDER BY SUM(inv.quantity) DESC
     </select>
 
-    <!-- 近N天出入库趋势（按日期和类型分组，返回完整日期，周/月聚合在Java层完成，兼容 Vastbase/H2） -->
+    <!-- 近N天出入库趋势（按日期和类型分组，返回完整日期，周/月聚合在Java层完成，兼容 MySQL/Vastbase） -->
     <select id="countInoutByDate" resultType="map">
         SELECT
-            TO_CHAR(create_time, 'YYYY-MM-DD') AS "date",
+            CAST(create_time AS DATE) AS "date",
             order_type AS "orderType",
             SUM(ABS(quantity)) AS "quantity"
         FROM wms_inventory_history
         WHERE order_type IN (1, 2)
-          AND create_time >= CAST(#{startDate} AS timestamp)
-        GROUP BY TO_CHAR(create_time, 'YYYY-MM-DD'), order_type
-        ORDER BY "date"
+          AND create_time >= #{startDate}
+        GROUP BY CAST(create_time AS DATE), order_type
+        ORDER BY 1
     </select>
 
     <!-- 按质量等级统计实例数量 -->

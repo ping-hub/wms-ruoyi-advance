@@ -37,7 +37,14 @@
                 AND a.device_id = #{query.deviceId}
             </if>
             <if test="query.alarmType != null and query.alarmType != ''">
-                AND a.ext_info::jsonb -&gt;&gt; 'alarmType' = #{query.alarmType}
+                <choose>
+                    <when test="_databaseId == 'mysql'">
+                        AND JSON_UNQUOTE(JSON_EXTRACT(a.ext_info, '$.alarmType')) = #{query.alarmType}
+                    </when>
+                    <otherwise>
+                        AND a.ext_info::jsonb -&gt;&gt; 'alarmType' = #{query.alarmType}
+                    </otherwise>
+                </choose>
             </if>
             <if test="query.state != null">
                 AND a.state = #{query.state}

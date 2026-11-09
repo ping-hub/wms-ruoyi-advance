@@ -14,10 +14,14 @@ import com.ruoyi.common.mybatis.handler.InjectionMetaObjectHandler;
 import com.ruoyi.common.mybatis.handler.MybatisExceptionHandler;
 import com.ruoyi.common.mybatis.interceptor.PlusDataPermissionInterceptor;
 import org.mybatis.spring.annotation.MapperScan;
+import org.apache.ibatis.mapping.DatabaseIdProvider;
+import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+import java.util.Properties;
 
 /**
  * mybatis-plus配置类(下方注释有插件介绍)
@@ -77,6 +81,20 @@ public class MybatisPlusConfig {
      */
     public OptimisticLockerInnerInterceptor optimisticLockerInnerInterceptor() {
         return new OptimisticLockerInnerInterceptor();
+    }
+
+    /**
+     * 数据库厂商标识，供 mapper 中 _databaseId 按方言分支（Vastbase 基于 PostgreSQL）
+     */
+    @Bean
+    public DatabaseIdProvider databaseIdProvider() {
+        VendorDatabaseIdProvider provider = new VendorDatabaseIdProvider();
+        Properties properties = new Properties();
+        properties.setProperty("MySQL", "mysql");
+        properties.setProperty("PostgreSQL", "postgresql");
+        properties.setProperty("Vastbase", "postgresql");
+        provider.setProperties(properties);
+        return provider;
     }
 
     /**

@@ -21,18 +21,25 @@
         </foreach>
     </insert>
 
-    <!-- 查询每个传感器的最新一条数据（按 collect_time 倒序，取每组首条） -->
+    <!-- 查询每个传感器的最新一条数据（按 collect_time 倒序取每组首条，id 兜底去重，兼容 MySQL/Vastbase） -->
     <select id="selectLatestByDevice" resultType="map">
-        SELECT DISTINCT ON (device_id)
-            device_id    AS "deviceId",
-            collect_id   AS "collectId",
-            device_type  AS "deviceType",
-            online,
-            collect_time AS "collectTime",
-            device_value AS "deviceValue",
-            alar_status  AS "alarStatus"
-        FROM wms_env_monitor_data
-        ORDER BY device_id, collect_time DESC
+        SELECT
+            t.device_id    AS "deviceId",
+            t.collect_id   AS "collectId",
+            t.device_type  AS "deviceType",
+            t.online,
+            t.collect_time AS "collectTime",
+            t.device_value AS "deviceValue",
+            t.alar_status  AS "alarStatus"
+        FROM wms_env_monitor_data t
+        WHERE t.id = (
+            SELECT t2.id
+            FROM wms_env_monitor_data t2
+            WHERE t2.device_id = t.device_id
+            ORDER BY t2.collect_time DESC, t2.id DESC
+            LIMIT 1
+        )
+        ORDER BY t.device_id
     </select>
 
 </mapper>
