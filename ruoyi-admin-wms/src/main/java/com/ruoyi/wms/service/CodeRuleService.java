@@ -201,7 +201,7 @@ public class CodeRuleService {
      * 拼接器材实例编码（四段式）：prefix + sep + level1Code + sep + level2Code + sep + seq
      */
     private String buildItemInstanceCode(CodeRule rule, long seq, String level1Code, String level2Code) {
-        String sep = StrUtil.blankToDefault(rule.getSeparator(), "");
+        String sep = StrUtil.blankToDefault(rule.getCodeSeparator(), "");
         StringBuilder sb = new StringBuilder();
 
         if (StrUtil.isNotBlank(rule.getPrefix())) {
@@ -224,7 +224,7 @@ public class CodeRuleService {
      * 拼接通用编码：prefix + separator + dateSuffix + separator + seq
      */
     private String buildCode(CodeRule rule, long seq) {
-        String sep = StrUtil.blankToDefault(rule.getSeparator(), "");
+        String sep = StrUtil.blankToDefault(rule.getCodeSeparator(), "");
         StringBuilder sb = new StringBuilder();
 
         if (StrUtil.isNotBlank(rule.getPrefix())) {

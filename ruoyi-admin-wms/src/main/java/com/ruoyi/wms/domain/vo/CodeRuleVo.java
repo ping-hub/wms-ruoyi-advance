@@ -20,7 +20,7 @@ public class CodeRuleVo implements Serializable {
     private String enabled;
     private String prefix;
     private String suffixType;
-    private String separator;
+    private String codeSeparator;
     private Integer seqLength;
     private String seqMethod;
     private Long currentSeq;
