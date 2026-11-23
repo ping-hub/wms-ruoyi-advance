@@ -21,7 +21,9 @@
         </foreach>
     </insert>
 
-    <!-- 查询每个传感器的最新一条数据（按 collect_time 倒序取每组首条，id 兜底去重，兼容 MySQL/Vastbase） -->
+    <!-- 查询每个传感器的最新一条数据（按 collect_time 倒序取每组首条，id 兜底去重）
+         注意：与 WmsEnvDataMapper.selectLatestList 同原因，不能用字符串相关子查询（Vastbase 报 collation 错误），
+         改用窗口函数 ROW_NUMBER 非相关改写，兼容 MySQL 8 / Vastbase / H2 -->
     <select id="selectLatestByDevice" resultType="map">
         SELECT
             t.device_id    AS "deviceId",
@@ -31,14 +33,13 @@
             t.collect_time AS "collectTime",
             t.device_value AS "deviceValue",
             t.alar_status  AS "alarStatus"
-        FROM wms_env_monitor_data t
-        WHERE t.id = (
-            SELECT t2.id
-            FROM wms_env_monitor_data t2
-            WHERE t2.device_id = t.device_id
-            ORDER BY t2.collect_time DESC, t2.id DESC
-            LIMIT 1
-        )
+        FROM (
+            SELECT
+                m.id, m.device_id, m.collect_id, m.device_type, m.online, m.collect_time, m.device_value, m.alar_status,
+                ROW_NUMBER() OVER (PARTITION BY m.device_id ORDER BY m.collect_time DESC, m.id DESC) AS rn
+            FROM wms_env_monitor_data m
+        ) t
+        WHERE t.rn = 1
         ORDER BY t.device_id
     </select>
 

@@ -19,30 +19,32 @@
         </foreach>
     </insert>
 
-    <!-- 查询每个设备的最新一条数据（关联设备配置表，按 collect_time 倒序取每组首条，id 兜底去重，兼容 MySQL/Vastbase） -->
+    <!-- 查询每个设备的最新一条数据（关联设备配置表）
+         注意：不能用相关子查询 WHERE d2.device_id = d.device_id 做每组取最新，
+         Vastbase 对字符串相关子查询会报 could not determine which collation to use for string comparison（与列 collation 是否一致无关）。
+         改用窗口函数 ROW_NUMBER 非相关改写，兼容 MySQL 8 / Vastbase / H2 -->
     <select id="selectLatestList" resultType="com.ruoyi.wms.domain.vo.EnvDataVo">
         SELECT
-            d.id,
-            d.device_id,
-            d.online,
-            d.temperature,
-            d.humidity,
-            d.collect_time,
-            d.receive_time,
+            t.id,
+            t.device_id,
+            t.online,
+            t.temperature,
+            t.humidity,
+            t.collect_time,
+            t.receive_time,
             c.device_name,
             c.warehouse,
             c.device_type,
             c.location
-        FROM wms_env_data d
-        LEFT JOIN wms_env_device c ON c.device_id = d.device_id
-        WHERE d.id = (
-            SELECT d2.id
-            FROM wms_env_data d2
-            WHERE d2.device_id = d.device_id
-            ORDER BY d2.collect_time DESC, d2.id DESC
-            LIMIT 1
-        )
-        ORDER BY d.device_id
+        FROM (
+            SELECT
+                d.id, d.device_id, d.online, d.temperature, d.humidity, d.collect_time, d.receive_time,
+                ROW_NUMBER() OVER (PARTITION BY d.device_id ORDER BY d.collect_time DESC, d.id DESC) AS rn
+            FROM wms_env_data d
+        ) t
+        LEFT JOIN wms_env_device c ON c.device_id = t.device_id
+        WHERE t.rn = 1
+        ORDER BY t.device_id
     </select>
 
     <!-- 历史数据分页查询（关联设备配置表） -->
