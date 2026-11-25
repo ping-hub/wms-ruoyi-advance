@@ -316,7 +316,7 @@ public class ItemService {
      */
     private void validateBoBeforeSave(ItemBo itemBo) {
         normalizeBoBeforeSave(itemBo);
-        validateItemName(itemBo);
+        validateItemCode(itemBo);
         validateItemSkuName(itemBo.getSku());
     }
 
@@ -332,11 +332,11 @@ public class ItemService {
         }
     }
 
-    private void validateItemName(ItemBo item) {
+    private void validateItemCode(ItemBo item) {
         LambdaQueryWrapper<Item> queryWrapper = Wrappers.lambdaQuery();
-        queryWrapper.eq(Item::getItemName, item.getItemName());
+        queryWrapper.eq(Item::getItemCode, item.getItemCode());
         queryWrapper.ne(item.getId() != null, Item::getId, item.getId());
-        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材名称重复");
+        Assert.isTrue(itemMapper.selectCount(queryWrapper) == 0, "器材编码重复");
     }
 
     private void validateItemSkuName(List<ItemSkuBo> skuVoList) {
